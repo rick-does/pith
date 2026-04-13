@@ -214,7 +214,10 @@ export default function App() {
 
   const handleHighlight = useCallback((path: string | null) => {
     setSelectedPath(path);
-  }, []);
+    if (path === null && overlayType === "editor") {
+      setOverlayType(null);
+    }
+  }, [overlayType]);
 
   const handleSelect = useCallback(async (path: string) => {
     if (!currentProject) return;

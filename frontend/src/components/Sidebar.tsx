@@ -147,7 +147,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
     const sidebarRect = sidebarRef.current.getBoundingClientRect();
     const btnRect = orphanArrowRef.current.getBoundingClientRect();
     setDpadTop(btnRect.top + btnRect.height / 2 - sidebarRect.top);
-  }, [orphans, selectedPath]);
+  }, [selectedPath]);
 
   useEffect(() => {
     setOrphanOrder(prev => {
@@ -366,6 +366,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
     const isFromHierarchy = !orphans.some(o => o.path === dragged);
     if (isFromHierarchy && (droppedOnZone || (over && orphans.some(o => o.path === over.id as string)))) {
       const [newRoot] = removeNode(collection.root, dragged);
+      onSelect(null);
       onCollectionChange({ root: reorder(newRoot) });
       setTimeout(() => onRefresh(), 300);
       return;
@@ -388,11 +389,35 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
       return;
     }
     const effectiveDx = pointerZoneDeltaX(event.activatorEvent, delta.x, over?.rect);
+
+    // Multi-orphan drag to hierarchy
+    if (wasOrphan && !targetIsOrphan && selectedOrphans.has(dragged) && selectedOrphans.size > 1) {
+      const pathsToMove = [...selectedOrphans];
+      const newNodes: FileNode[] = pathsToMove.map(p => {
+        const info = orphans.find(o => o.path === p)!;
+        return { path: p, title: info.title, order: 0, children: [] };
+      });
+      let root = collection.root;
+      if (effectiveDx > 30) {
+        for (const n of newNodes) root = insertAsChild(root, target, n);
+        setExpanded(prev => { const s = new Set(prev); s.add(target); return s; });
+      } else {
+        for (const n of [...newNodes].reverse()) root = insertAfter(root, target, n);
+      }
+      setSelectedOrphans(new Set());
+      onCollectionChange({ root: reorder(root) });
+      setTimeout(() => onRefresh(), 300);
+      return;
+    }
+
     const newNodes = computeNewRoot(dragged, target, effectiveDx);
     if (!newNodes) return;
     if (effectiveDx > 30) setExpanded(prev => { const s = new Set(prev); s.add(target); return s; });
     onCollectionChange({ root: newNodes });
-    if (wasOrphan) setTimeout(() => onRefresh(), 300);
+    if (wasOrphan) {
+      setSelectedOrphans(new Set());
+      setTimeout(() => onRefresh(), 300);
+    }
   }
 
   const activeDepth = (() => {
@@ -420,7 +445,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
   return (
     <div ref={sidebarRef} style={{ display: "flex", flexDirection: "column", height: "100%", background: "#ffffff", paddingLeft: "1in", marginRight: "1in", position: "relative" }}>
 
-      {selectedPath && (
+      {selectedPath && flatIds(collection.root).includes(selectedPath) && (
         <div style={{ position: "absolute", left: 0, top: dpadTop ?? 280, width: "1in", display: "flex", justifyContent: "center", zIndex: 5, transform: "translateY(-50%)" }}>
           <div style={{ display: "grid", gridTemplateColumns: "auto auto auto" }}>
             <div />
@@ -518,23 +543,38 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
           </div>
         </SortableContext>
         <DragOverlay dropAnimation={{ duration: 150, easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)" }}>
-          {activeId ? (
-            <div style={{ marginLeft: activeDepth > 0 ? `${(activeDepth + 1) * COL_W}px` : 0 }}>
-              <div style={{
-                display: "inline-flex", alignItems: "center",
-                width: "2.5in", borderRadius: "6px",
-                border: "1.5px solid #1a6fa8",
-                background: !orphans.some(o => o.path === activeId) ? "#e8f4fd" : "#fff",
-                boxShadow: !orphans.some(o => o.path === activeId)
-                  ? "inset 5px 0 0 0 #1a6fa8, 0 6px 20px rgba(0,0,0,0.22)"
-                  : "0 6px 20px rgba(0,0,0,0.22)",
-                opacity: 0.97, userSelect: "none",
-                padding: "5px 10px 5px 12px",
-              }}>
-                <span style={{ fontSize: "15px", fontWeight: 500, color: "#1a1a1a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeLabel}</span>
+          {activeId ? (() => {
+            const isOrphanDrag = orphans.some(o => o.path === activeId);
+            const isMultiOrphanDrag = isOrphanDrag && selectedOrphans.has(activeId) && selectedOrphans.size > 1;
+            const labels = isMultiOrphanDrag
+              ? [...selectedOrphans].map(p => {
+                  const o = orphans.find(x => x.path === p);
+                  return o ? (titleMode ? o.title : o.path) : p;
+                })
+              : [activeLabel];
+            return (
+              <div style={{ marginLeft: activeDepth > 0 ? `${(activeDepth + 1) * COL_W}px` : 0 }}>
+                {labels.map((label, i) => (
+                  <div key={i} style={{
+                    display: "inline-flex", alignItems: "center",
+                    width: "2.5in", borderRadius: "6px",
+                    border: "1.5px solid #1a6fa8",
+                    background: !isOrphanDrag ? "#e8f4fd" : "#fff",
+                    boxShadow: i === 0
+                      ? (!isOrphanDrag
+                          ? "inset 5px 0 0 0 #1a6fa8, 0 6px 20px rgba(0,0,0,0.22)"
+                          : "0 6px 20px rgba(0,0,0,0.22)")
+                      : "none",
+                    opacity: 0.97, userSelect: "none",
+                    padding: "5px 10px 5px 12px",
+                    marginTop: i > 0 ? "4px" : 0,
+                  }}>
+                    <span style={{ fontSize: "15px", fontWeight: 500, color: "#1a1a1a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+                  </div>
+                ))}
               </div>
-            </div>
-          ) : null}
+            );
+          })() : null}
         </DragOverlay>
       </DndContext>
 

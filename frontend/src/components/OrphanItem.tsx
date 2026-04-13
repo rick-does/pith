@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, CSSProperties } from "react";
+import { useState, useEffect, useRef, useCallback, CSSProperties } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { fetchMarkdown } from "../api";
 
@@ -24,8 +24,10 @@ export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSel
   const [previewContent, setPreviewContent] = useState<string | null>(null);
   const [previewFixed, setPreviewFixed] = useState<{ left: number; top: number } | null>(null);
   const label = titleMode ? title : path;
+  const tooltip = titleMode ? path : title;
   const menuRef = useRef<HTMLDivElement>(null);
   const menuTriggerRef = useRef<HTMLSpanElement>(null);
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -63,14 +65,24 @@ export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSel
               const r = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
               setPreviewFixed({ left: r.left - 272, top: r.top });
               fetchMarkdown(currentProject, path).then(setPreviewContent).catch(() => {});
-            } else { onMultiSelect(path, e.ctrlKey || e.metaKey); }
+              return;
+            }
+            if (clickTimerRef.current) {
+              clearTimeout(clickTimerRef.current);
+              clickTimerRef.current = null;
+              onAddToHierarchy(path);
+            } else {
+              clickTimerRef.current = setTimeout(() => {
+                clickTimerRef.current = null;
+                onMultiSelect(path, e.ctrlKey || e.metaKey);
+              }, 250);
+            }
           }}
-          onDoubleClick={(e) => { if (!e.altKey) onAddToHierarchy(path); }}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => { setHovered(false); setPreviewContent(null); setPreviewFixed(null); }}
         >
           <div style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0, padding: "5px 10px 5px 12px" }}>
-            <span style={{ fontSize: "15px", fontWeight: 500, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }} title={label}>
+            <span style={{ fontSize: "15px", fontWeight: 500, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }} title={tooltip}>
               {label}
             </span>
           </div>

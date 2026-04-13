@@ -118,6 +118,7 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
   const isSelected = selectedPath === node.path;
   const isOver = activeId !== null && overId === node.path && activeId !== node.path;
   const label = titleMode ? node.title : node.path;
+  const tooltip = titleMode ? node.path : node.title;
 
   const dropAction = isOver
     ? dragDeltaX > 30 ? "nest" : dragDeltaX < -30 ? "unnest" : "sibling"
@@ -196,7 +197,7 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
               ) : (
                 <span
                   style={{ fontSize: "15px", fontWeight: 500, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}
-                  title={label}
+                  title={tooltip}
                 >
                   {label}
                 </span>

@@ -162,28 +162,27 @@ export default function OrphanPane({
       {orphansExpanded && (
         <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
           <div style={{ width: "100px", flexShrink: 0, position: "relative" }}>
-            {hasOrphans && (
-              <div style={{ position: "absolute", top: 200, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
-                <button
-                  ref={arrowBtnRef}
-                  onClick={() => { if (selectedOrphans.size > 0) onAddOrphansToCollection([...selectedOrphans]); }}
-                  title={selectedOrphans.size > 0 ? `Add ${selectedOrphans.size} to hierarchy` : "Select files to add"}
-                  style={{
-                    background: selectedOrphans.size > 0 ? "#1a6fa8" : "#e0e0e0",
-                    border: `1.5px solid ${selectedOrphans.size > 0 ? "#1a6fa8" : "#aaa"}`,
-                    borderRadius: "4px", padding: "4px 9px",
-                    cursor: selectedOrphans.size > 0 ? "pointer" : "default",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: selectedOrphans.size > 0 ? "#fff" : "#888",
-                  }}
-                >
-                  <svg width="22" height="14" viewBox="0 0 22 14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="21" y1="7" x2="1" y2="7"/>
-                    <polyline points="6 3.5 1 7 6 10.5"/>
-                  </svg>
-                </button>
-              </div>
-            )}
+            <div style={{ position: "absolute", top: 200, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
+              <button
+                ref={arrowBtnRef}
+                onClick={() => { if (selectedOrphans.size > 0) onAddOrphansToCollection([...selectedOrphans]); }}
+                title={selectedOrphans.size > 0 ? `Add ${selectedOrphans.size} to hierarchy` : "Select files to add"}
+                style={{
+                  background: selectedOrphans.size > 0 ? "#1a6fa8" : "#e0e0e0",
+                  border: `1.5px solid ${selectedOrphans.size > 0 ? "#1a6fa8" : "#aaa"}`,
+                  borderRadius: "4px", padding: "4px 9px",
+                  cursor: selectedOrphans.size > 0 ? "pointer" : "default",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: selectedOrphans.size > 0 ? "#fff" : "#888",
+                  visibility: hasOrphans ? "visible" : "hidden",
+                }}
+              >
+                <svg width="22" height="14" viewBox="0 0 22 14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="21" y1="7" x2="1" y2="7"/>
+                  <polyline points="6 3.5 1 7 6 10.5"/>
+                </svg>
+              </button>
+            </div>
           </div>
           <div ref={orphanSectionRef} style={{ width: "360px", overflowY: "auto", minHeight: 0, padding: "6px 8px 8px 8px", position: "relative", userSelect: "none" }}>
             {!hasOrphans && !creatingFile && (
@@ -212,7 +211,12 @@ export default function OrphanPane({
                 isMultiSelected={selectedOrphans.has(o.path)}
                 onMultiSelect={onOrphanSelect}
                 onAddToSelection={onAddToSelection}
-                onOpen={onOpen} onDelete={onDelete} onAddToHierarchy={(p) => onAddOrphansToCollection([p])} currentProject={currentProject}
+                onOpen={onOpen} onDelete={onDelete} onAddToHierarchy={(p) => {
+                  const paths = selectedOrphans.has(p) && selectedOrphans.size > 1
+                    ? [...selectedOrphans]
+                    : [p];
+                  onAddOrphansToCollection(paths);
+                }} currentProject={currentProject}
                 setChipRef={(el) => { if (el) orphanChipRefs.current.set(o.path, el); else orphanChipRefs.current.delete(o.path); }}
                 activeId={activeId}
               />

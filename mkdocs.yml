@@ -26,5 +26,7 @@ nav:
   - Editing Files: editing.md
   - Building Your Hierarchy: hierarchy.md
   - Unlinked Files: unlinked-files.md
+  - Search: search.md
+  - Frontmatter: frontmatter.md
   - Import & Export: import-export.md
   - Keyboard Shortcuts: keyboard-shortcuts.md
