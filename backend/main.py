@@ -50,6 +50,18 @@ app = FastAPI(title="PiTH")
 async def health():
     return {"status": "ok"}
 
+
+@app.get("/api/projects/{project}/file-count")
+async def api_file_count(project: str):
+    md_dir = get_markdowns_dir(project)
+    if not md_dir.exists():
+        return {"count": 0}
+    count = sum(
+        1 for fp in md_dir.rglob("*.md")
+        if "_archive" not in fp.relative_to(md_dir).as_posix().split("/")
+    )
+    return {"count": count}
+
 # ---------------------------------------------------------------------------
 # Projects
 # ---------------------------------------------------------------------------

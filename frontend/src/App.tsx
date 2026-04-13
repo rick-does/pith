@@ -99,6 +99,8 @@ export default function App() {
     return () => document.removeEventListener("keydown", handler);
   }, [overlayType]);
 
+  const lastFileCountRef = useRef<number>(-1);
+
   const loadCollection = useCallback(async (project: string) => {
     try {
       const [c, o, t] = await Promise.all([
@@ -134,6 +136,25 @@ export default function App() {
       }
     })();
   }, [loadCollection]);
+
+  useEffect(() => {
+    if (!currentProject) return;
+    lastFileCountRef.current = -1;
+    const interval = setInterval(async () => {
+      try {
+        const r = await fetch(`/api/projects/${encodeURIComponent(currentProject)}/file-count`);
+        if (!r.ok) return;
+        const { count } = await r.json();
+        if (lastFileCountRef.current >= 0 && count !== lastFileCountRef.current) {
+          lastFileCountRef.current = count;
+          loadCollection(currentProject);
+        } else {
+          lastFileCountRef.current = count;
+        }
+      } catch {}
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [currentProject, loadCollection]);
 
   const handleSwitchProject = useCallback(async (name: string) => {
     setCurrentProject(name);
