@@ -91,6 +91,7 @@ export default function App() {
   const [brokenLinkMap, setBrokenLinkMap] = useState<Record<string, number>>({});
   const [frontmatterIssueMap, setFrontmatterIssueMap] = useState<Record<string, boolean>>({});
   const [showIndicators, setShowIndicators] = useState(() => localStorage.getItem("pith_indicators") !== "false");
+  const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
 
   const editorContentRef = useRef(editorContent);
   const savedContentRef = useRef(savedContent);
@@ -347,16 +348,16 @@ export default function App() {
     setBrokenLinkMap(map);
   }, [currentProject]);
 
-  const handleExportHtml = useCallback(async () => {
+  const handleExportHtml = useCallback(() => {
     if (!currentProject) return;
-    const r = await fetch(`/api/projects/${encodeURIComponent(currentProject)}/export/html`);
-    const html = await r.text();
-    const blob = new Blob([html], { type: "text/html" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${currentProject}.html`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    const url = `/api/projects/${encodeURIComponent(currentProject)}/export/html`;
+    if ((window as any).pywebview) {
+      // pywebview mode — show in overlay
+      fetch(url).then(r => r.text()).then(setHtmlPreview).catch(() => {});
+    } else {
+      // Browser mode — open in new tab
+      window.open(url, "_blank");
+    }
   }, [currentProject]);
 
   const handleUseAsTemplate = useCallback(async () => {
@@ -677,6 +678,37 @@ export default function App() {
           onOpen={handleSelect}
           onClose={() => setLinkReport(null)}
         />
+      )}
+
+      {htmlPreview !== null && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "#fff", display: "flex", flexDirection: "column" }}>
+          <div style={{
+            height: 50, background: "#1a6fa8", display: "flex", alignItems: "center",
+            padding: "0 24px", gap: 12, flexShrink: 0,
+          }}>
+            <span style={{ color: "#fff", fontWeight: 600, fontSize: 15, flex: 1 }}>Export Preview</span>
+            <button
+              onClick={() => {
+                const blob = new Blob([htmlPreview], { type: "text/html" });
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = `${currentProject}.html`;
+                a.click();
+                URL.revokeObjectURL(a.href);
+              }}
+              style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}
+            >Save as HTML</button>
+            <button
+              onClick={() => setHtmlPreview(null)}
+              style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}
+            >Close</button>
+          </div>
+          <iframe
+            srcDoc={htmlPreview}
+            style={{ flex: 1, border: "none", width: "100%" }}
+            title="Export preview"
+          />
+        </div>
       )}
     </div>
   );
