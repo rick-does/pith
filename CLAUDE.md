@@ -48,21 +48,23 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 
 ## GUI Features
 
-### Implemented (v0.1.0)
+### Implemented
 - Drag-and-drop markdown hierarchy editor with connector lines
 - Live markdown preview with CodeMirror editor (vi mode, split/edit/preview)
 - Project management (create, archive, rename, switch projects)
-- Orphan/unlinked file management with rubber-band multi-select, 3 sort modes
+- Orphan/unlinked file management with rubber-band multi-select, 3 sort modes, multi-select drag/double-click
 - Keyboard navigation (arrow keys + dpad for hierarchy; arrow keys for orphans)
-- Alt+click file preview tooltips
+- Alt+click file preview tooltips; tooltips show opposite of display (title vs path)
 - Full-text search across all files (Ctrl+F or top bar button, debounced, highlighted matches)
-- Frontmatter template management (per-project schema, infer from existing file, compliance scan, batch update, Jekyll-style support)
-- Frontmatter panel in editor (collapsible, type-aware inputs, "Use as template" button)
+- Frontmatter template management (per-project schema, infer from file via "Use as template", compliance scan with selective batch update, Jekyll-style support)
+- Frontmatter panel in editor (collapsible, defaults closed, type-aware inputs)
 - Preview pane strips frontmatter (both standard and Jekyll-style)
+- Filesystem polling (3s interval, detects new/deleted files without browser refresh)
 - Import/Export: MkDocs and Docusaurus sidebar formats
 - Standalone executable (PyInstaller, Win/Mac/Linux)
 - GitHub Actions CI (3 OS), standalone builds, MkDocs docs deploy
-- Bundled documentation project (golden copy for GitHub Pages)
+- Bundled documentation project (10 pages, golden copy with restore via project menu)
+- Project menu: flyout submenus for Projects, Frontmatter, Restore Docs, Import, Export
 
 ### To build
 
