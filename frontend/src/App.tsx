@@ -471,8 +471,20 @@ export default function App() {
     const stem = parentPath.replace(/\.md$/, "");
     const newFilename = `${stem}-copy.md`;
     await createFile(currentProject, newFilename);
-    await saveMarkdown(currentProject, newFilename, source);
-    const title = newFilename.replace(/\.md$/, "").replace(/[-_]/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    // Find the parent's title from the collection and append "-copy"
+    const findTitle = (nodes: FileNode[]): string => {
+      for (const n of nodes) {
+        if (n.path === parentPath) return n.title;
+        const found = findTitle(n.children ?? []);
+        if (found) return found;
+      }
+      return "";
+    };
+    const parentTitle = findTitle(collection.root) || stem;
+    const title = `${parentTitle}-copy`;
+    // Replace the H1 in the copied content
+    const newContent = source.replace(/^(#\s+).+$/m, `$1${title}`);
+    await saveMarkdown(currentProject, newFilename, newContent);
     const newNode: FileNode = { path: newFilename, title, order: 0, children: [] };
     const newRoot = reorder(insertAsLastChild(collection.root, parentPath, newNode));
     await saveCollection(currentProject, { root: newRoot });
@@ -480,8 +492,8 @@ export default function App() {
     const o = await fetchOrphans(currentProject);
     setOrphans(o);
     setSelectedPath(newFilename);
-    setEditorContent(source);
-    setSavedContent(source);
+    setEditorContent(newContent);
+    setSavedContent(newContent);
     setOverlayType("editor");
   }, [currentProject, collection]);
 
