@@ -48,3 +48,12 @@ To permanently delete a project, remove its folder from `projects/_archive/` by 
 ## Viewing the hierarchy file
 
 To see the raw `tree.yaml` for the current project, click **⋮ → View YAML**. This is a read-only view.
+
+## Restoring documentation
+
+The bundled Documentation project includes a golden copy of its original structure and content. If you rearrange or edit the documentation pages and want to reset them, click **⋮** on the project chip, then **Restore Docs**:
+
+- **Structure only** — restores the hierarchy (`tree.yaml`) to its original order without changing any file content
+- **Structure & content** — restores both the hierarchy and all markdown files to their original state
+
+This option only appears when the Documentation project is selected. Other projects do not have a golden copy.

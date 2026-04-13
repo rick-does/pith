@@ -36,6 +36,8 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
   const [projectSubmenuOpen, setProjectSubmenuOpen] = useState(false);
   const [importSubmenuOpen, setImportSubmenuOpen] = useState(false);
   const [exportSubmenuOpen, setExportSubmenuOpen] = useState(false);
+  const [frontmatterSubmenuOpen, setFrontmatterSubmenuOpen] = useState(false);
+  const [restoreSubmenuOpen, setRestoreSubmenuOpen] = useState(false);
   const menuRef = useRef<HTMLSpanElement>(null);
   const menuButtonRef = useRef<HTMLSpanElement>(null);
 
@@ -105,6 +107,12 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
     padding: "7px 14px", fontSize: "13px", cursor: "pointer",
     color: "#1a1a1a", whiteSpace: "nowrap",
   };
+  const flyoutArrow: CSSProperties = { fontSize: "18px", color: "#999", lineHeight: 0 };
+  const submenuStyle: CSSProperties = {
+    position: "absolute", left: "100%", top: 0, zIndex: 101,
+    background: "#fff", border: "1px solid #d0e8f7", borderRadius: "8px",
+    boxShadow: "0 4px 16px rgba(0,0,0,0.12)", minWidth: "160px", overflow: "hidden",
+  };
 
   return (
     <div style={{ margin: `${GAP}px 0` }}>
@@ -163,19 +171,16 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
               background: "#fff", border: "1px solid #d0e8f7", borderRadius: "8px",
               boxShadow: "0 4px 16px rgba(0,0,0,0.12)", minWidth: "200px", overflow: "visible",
             }}>
+              {/* Projects flyout */}
               <div
                 style={{ ...menuItem, justifyContent: "space-between", position: "relative" }}
                 onMouseEnter={() => setProjectSubmenuOpen(true)}
                 onMouseLeave={() => setProjectSubmenuOpen(false)}
               >
                 <span>Projects</span>
-                <span style={{ fontSize: "18px", color: "#999", lineHeight: 0 }}>&#9656;</span>
+                <span style={flyoutArrow}>&#9656;</span>
                 {projectSubmenuOpen && (
-                  <div style={{
-                    position: "absolute", left: "100%", top: 0, zIndex: 101,
-                    background: "#fff", border: "1px solid #d0e8f7", borderRadius: "8px",
-                    boxShadow: "0 4px 16px rgba(0,0,0,0.12)", minWidth: "160px", overflow: "hidden",
-                  }}>
+                  <div style={submenuStyle}>
                     {projects.map(p => (
                       <div key={p.name}
                         style={{ ...menuItem, background: p.name === currentProject ? "#e8f4fd" : "transparent", color: p.name === currentProject ? "#1a6fa8" : "#1a1a1a", fontWeight: p.name === currentProject ? 600 : 400, justifyContent: "space-between", paddingRight: "8px" }}
@@ -209,31 +214,74 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                 onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
               >View YAML</div>
 
-              <div style={{ ...menuItem }}
-                onClick={() => { onEditTemplate(); setMenuOpen(false); }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-              >Frontmatter template</div>
+              {/* Frontmatter flyout */}
+              <div
+                style={{ ...menuItem, justifyContent: "space-between", position: "relative" }}
+                onMouseEnter={() => setFrontmatterSubmenuOpen(true)}
+                onMouseLeave={() => setFrontmatterSubmenuOpen(false)}
+              >
+                <span>Frontmatter</span>
+                <span style={flyoutArrow}>&#9656;</span>
+                {frontmatterSubmenuOpen && (
+                  <div style={submenuStyle}>
+                    <div style={{ ...menuItem }}
+                      onClick={() => { onEditTemplate(); setMenuOpen(false); setFrontmatterSubmenuOpen(false); }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    >Template</div>
+                    <div style={{ ...menuItem }}
+                      onClick={() => { onCheckCompliance(); setMenuOpen(false); setFrontmatterSubmenuOpen(false); }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    >Compliance</div>
+                  </div>
+                )}
+              </div>
 
               <div style={{ ...menuItem }}
-                onClick={() => { onCheckCompliance(); setMenuOpen(false); }}
+                onClick={() => { onRefresh(); setMenuOpen(false); }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-              >Frontmatter compliance</div>
+              >Refresh project</div>
 
+              {/* Restore Docs flyout (documentation project only) */}
+              {isDocumentation && (
+                <div
+                  style={{ ...menuItem, justifyContent: "space-between", position: "relative" }}
+                  onMouseEnter={() => setRestoreSubmenuOpen(true)}
+                  onMouseLeave={() => setRestoreSubmenuOpen(false)}
+                >
+                  <span>Restore Docs</span>
+                  <span style={flyoutArrow}>&#9656;</span>
+                  {restoreSubmenuOpen && (
+                    <div style={submenuStyle}>
+                      <div style={{ ...menuItem }}
+                        onClick={() => { onRestoreStructure(); setMenuOpen(false); setRestoreSubmenuOpen(false); }}
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                      >Structure only</div>
+                      <div style={{ ...menuItem }}
+                        onClick={() => { onRestoreAll(); setMenuOpen(false); setRestoreSubmenuOpen(false); }}
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                      >Structure &amp; content</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div style={{ height: "1px", background: "#e8f4fd", margin: "2px 0" }} />
+
+              {/* Import/Export flyouts */}
               <div
                 style={{ ...menuItem, justifyContent: "space-between", position: "relative" }}
                 onMouseEnter={() => setImportSubmenuOpen(true)}
                 onMouseLeave={() => setImportSubmenuOpen(false)}
               >
                 <span>Import from...</span>
-                <span style={{ fontSize: "18px", color: "#999", lineHeight: 0 }}>&#9656;</span>
+                <span style={flyoutArrow}>&#9656;</span>
                 {importSubmenuOpen && (
-                  <div style={{
-                    position: "absolute", left: "100%", top: 0, zIndex: 101,
-                    background: "#fff", border: "1px solid #d0e8f7", borderRadius: "8px",
-                    boxShadow: "0 4px 16px rgba(0,0,0,0.12)", minWidth: "160px", overflow: "hidden",
-                  }}>
+                  <div style={submenuStyle}>
                     {(["mkdocs", "docusaurus"] as const).map(fmt => (
                       <div key={fmt} style={{ ...menuItem }}
                         onClick={() => { onImport(fmt); setMenuOpen(false); setImportSubmenuOpen(false); }}
@@ -251,13 +299,9 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                 onMouseLeave={() => setExportSubmenuOpen(false)}
               >
                 <span>Export to...</span>
-                <span style={{ fontSize: "18px", color: "#999", lineHeight: 0 }}>&#9656;</span>
+                <span style={flyoutArrow}>&#9656;</span>
                 {exportSubmenuOpen && (
-                  <div style={{
-                    position: "absolute", left: "100%", top: 0, zIndex: 101,
-                    background: "#fff", border: "1px solid #d0e8f7", borderRadius: "8px",
-                    boxShadow: "0 4px 16px rgba(0,0,0,0.12)", minWidth: "160px", overflow: "hidden",
-                  }}>
+                  <div style={submenuStyle}>
                     {(["mkdocs", "docusaurus"] as const).map(fmt => (
                       <div key={fmt} style={{ ...menuItem }}
                         onClick={() => { onExport(fmt); setMenuOpen(false); setExportSubmenuOpen(false); }}
@@ -268,12 +312,6 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                   </div>
                 )}
               </div>
-
-              <div style={{ ...menuItem }}
-                onClick={() => { onRefresh(); setMenuOpen(false); }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-              >Refresh project</div>
 
               <div style={{ height: "1px", background: "#e8f4fd", margin: "2px 0" }} />
 
@@ -288,22 +326,6 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                 onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
               >&#65291; New file</div>
-
-              {isDocumentation && (
-                <>
-                  <div style={{ height: "1px", background: "#e8f4fd", margin: "2px 0" }} />
-                  <div style={{ ...menuItem }}
-                    onClick={() => { onRestoreStructure(); setMenuOpen(false); }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                  >Restore structure</div>
-                  <div style={{ ...menuItem }}
-                    onClick={() => { onRestoreAll(); setMenuOpen(false); }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                  >Restore structure &amp; content</div>
-                </>
-              )}
 
               <div style={{ height: "1px", background: "#e8f4fd", margin: "2px 0" }} />
 

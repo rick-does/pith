@@ -28,7 +28,7 @@ The file's frontmatter keys, types, and values become the project template.
 
 ### Editing the template manually
 
-Click the **Frontmatter** button in the top bar to open the template editor. Here you can:
+Click **⋮** on the project chip, then **Frontmatter → Template** to open the template editor. Here you can:
 
 - Add, remove, or reorder fields
 - Set the key name, type (string, list, enum, boolean, date), and default value
@@ -46,7 +46,7 @@ Click the **Frontmatter** button in the top bar to open the template editor. Her
 
 ## Compliance
 
-Click the **Compliance** button in the top bar to scan all files against the current template. The report shows:
+Click **⋮** on the project chip, then **Frontmatter → Compliance** to scan all files against the current template. The report shows:
 
 - **Missing keys** — keys in the template that a file doesn't have
 - **Extra keys** — keys in a file that aren't in the template

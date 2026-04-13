@@ -1,9 +1,3 @@
----
-Title: Title
-Author: 
-Keywords: 
-Required: 
----
 # Introduction
 
 PiTH is a local tool for managing large collections of markdown files. It gives you a visual, drag-and-drop interface for organizing files into a hierarchy — so you never have to hand-edit a YAML nav file or sidebar config again.
