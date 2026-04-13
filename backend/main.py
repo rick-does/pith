@@ -524,7 +524,7 @@ async def api_export_html(project: str):
             toc_entries.append({"title": node.title, "id": sid, "depth": depth})
             body_sections.append(
                 f'<section id="{sid}" class="doc-section depth-{depth}">'
-                f"<h1>{node.title}</h1>\n{html}\n</section>"
+                f"\n{html}\n</section>"
             )
             if node.children:
                 render_nodes(node.children, depth + 1)
@@ -650,6 +650,7 @@ async def api_export_html(project: str):
 <body>
 <div class="toolbar">
   <span>{project_title}</span>
+  <button onclick="saveHtml()">Save as HTML</button>
   <button onclick="window.print()">Print / Save as PDF</button>
 </div>
 <div class="cover">
@@ -658,6 +659,20 @@ async def api_export_html(project: str):
 </div>
 {toc_html}
 {chr(10).join(body_sections)}
+<script>
+function saveHtml() {{
+  var toolbar = document.querySelector('.toolbar');
+  toolbar.style.display = 'none';
+  var html = '<!DOCTYPE html>' + document.documentElement.outerHTML;
+  toolbar.style.display = '';
+  var blob = new Blob([html], {{type: 'text/html'}});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '{project}.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}}
+</script>
 </body>
 </html>"""
 
