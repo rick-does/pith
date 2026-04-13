@@ -12,3 +12,7 @@ standalone/
 *.exe
 *.bak
 .env
+
+# Only track the bundled documentation project; ignore user-created projects
+projects/*
+!projects/documentation/
