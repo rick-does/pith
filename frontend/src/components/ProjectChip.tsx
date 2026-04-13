@@ -259,7 +259,7 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                 onClick={() => { onExportHtml(); setMenuOpen(false); }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-              >Export as HTML</div>
+              >View HTML/PDF</div>
 
               {/* Restore Docs flyout (documentation project only) */}
               {isDocumentation && (

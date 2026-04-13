@@ -106,7 +106,7 @@ export default function OrphanPane({
             <span style={{ color: hasOrphans ? "#f90" : "rgba(255,255,255,0.45)", marginRight: "6px", fontSize: "13px", position: "relative", top: "-1px" }}>&#9888;</span>
             Unlinked
           </span>
-          {showIndicators && (
+          {showIndicators && hasOrphans && (
             <span
               title="Reveal all chip status"
               style={{
