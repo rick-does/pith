@@ -246,6 +246,7 @@ async def api_batch_update(project: str, request: Request):
         project, template,
         add_defaults=data.get("add_defaults", True),
         strip_extra=data.get("strip_extra", False),
+        only_files=data.get("files"),
     )
     return {"updated": updated, "count": len(updated)}
 

@@ -1,3 +1,10 @@
+---
+Author: ''
+Keywords: null
+Required: false
+Title: Managing projects
+---
+
 # Managing Projects
 
 A project is a self-contained set of markdown files with its own hierarchy. You can have as many projects as you like and switch between them freely.
@@ -12,7 +19,7 @@ The orange chip at the top of the hierarchy pane is the project chip. It shows t
 2. Click **Projects**, then **＋ New project**
 3. Type a name and press Enter
 
-Project names use hyphens instead of spaces. The display title comes from the `# H1` heading in the project's `project.md` file.
+Project names use hyphens instead of spaces. The display title comes from the `# H1` heading in the project notes file.
 
 ## Switching projects
 
@@ -26,7 +33,7 @@ Double-click the project chip label to rename it inline, or use **⋮ → Projec
 
 ## Project notes
 
-Each project has a `project.md` file for notes, a description, or anything else you want to keep alongside the files. Open it with **⋮ → Info**.
+Each project has a notes file for a description or anything else you want to keep alongside the files. Open it with **⋮ → Info**.
 
 ## Archiving a project
 

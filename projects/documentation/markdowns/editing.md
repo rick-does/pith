@@ -1,3 +1,8 @@
+Title: Title
+Author:
+Required:
+---
+
 # Editing Files
 
 ## Opening a file
@@ -27,4 +32,4 @@ Click the **✕** button in the top right corner of the editor panel, or press `
 
 ## Project notes
 
-The project's `project.md` file can also be opened for editing via **⋮ → Info** on the project chip. This file does not appear in the hierarchy and cannot be renamed.
+The project notes file can also be opened for editing via **⋮ → Info** on the project chip. This file does not appear in the hierarchy and cannot be renamed.

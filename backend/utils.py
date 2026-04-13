@@ -26,7 +26,7 @@ def get_collection_file(project: str) -> Path:
 
 
 def get_project_md(project: str) -> Path:
-    return PROJECTS_DIR / project / "project.md"
+    return PROJECTS_DIR / project / ".pith-project"
 
 
 def safe_path(project: str, rel_path: str) -> Path:
@@ -51,7 +51,7 @@ def list_projects() -> list[dict]:
         if not entry.is_dir() or entry.name.startswith("_"):
             continue
         title = entry.name
-        pmd = entry / "project.md"
+        pmd = entry / ".pith-project"
         if pmd.exists():
             t = extract_title(pmd.read_text(encoding="utf-8"))
             if t:
@@ -324,8 +324,9 @@ def scan_compliance(project: str, template: dict) -> list[dict]:
     return results
 
 
-def batch_update_frontmatter(project: str, template: dict, add_defaults: bool = True, strip_extra: bool = False) -> list[str]:
-    """Apply template to all files: add missing keys with defaults, optionally strip extra keys."""
+def batch_update_frontmatter(project: str, template: dict, add_defaults: bool = True, strip_extra: bool = False, only_files: list[str] | None = None) -> list[str]:
+    """Apply template to files: add missing keys with defaults, optionally strip extra keys.
+    If only_files is provided, only update those specific files."""
     fields = template.get("fields", [])
     if not fields:
         return []
@@ -339,6 +340,8 @@ def batch_update_frontmatter(project: str, template: dict, add_defaults: bool = 
     for fp in md_dir.rglob("*.md"):
         rel = fp.relative_to(md_dir).as_posix()
         if "_archive" in rel.split("/"):
+            continue
+        if only_files is not None and rel not in only_files:
             continue
         try:
             content = fp.read_text(encoding="utf-8")

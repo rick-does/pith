@@ -3,16 +3,35 @@ import type { ComplianceItem } from "../api";
 
 interface Props {
   items: ComplianceItem[];
-  onBatchUpdate: (addDefaults: boolean, stripExtra: boolean) => void;
+  onBatchUpdate: (addDefaults: boolean, stripExtra: boolean, files: string[]) => void;
   onClose: () => void;
 }
 
 export default function ComplianceReport({ items, onBatchUpdate, onClose }: Props) {
   const [addDefaults, setAddDefaults] = useState(true);
   const [stripExtra, setStripExtra] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(items.map(i => i.path)));
+
+  const toggleFile = (path: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selected.size === items.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(items.map(i => i.path)));
+    }
+  };
 
   const totalMissing = items.reduce((s, i) => s + i.missing.length, 0);
   const totalExtra = items.reduce((s, i) => s + i.extra.length, 0);
+  const selectedCount = selected.size;
 
   return (
     <div style={backdrop} onClick={onClose}>
@@ -32,25 +51,53 @@ export default function ComplianceReport({ items, onBatchUpdate, onClose }: Prop
               {totalExtra > 0 && ` ${totalExtra} extra key${totalExtra !== 1 ? "s" : ""}.`}
             </p>
 
+            <div style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+              <label style={{ fontSize: 12, color: "#1a6fa8", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                <input
+                  type="checkbox"
+                  checked={selected.size === items.length}
+                  onChange={toggleAll}
+                />
+                {selected.size === items.length ? "Deselect all" : "Select all"}
+              </label>
+              <span style={{ fontSize: 12, color: "#888" }}>({selectedCount} selected)</span>
+            </div>
+
             <div style={{ maxHeight: 350, overflowY: "auto", marginBottom: 16 }}>
               {items.map((item) => (
-                <div key={item.path} style={{ padding: "8px 0", borderBottom: "1px solid #eee" }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: "#1a1a1a" }}>{item.title}</div>
-                  <div style={{ fontSize: 12, color: "#888" }}>{item.path}</div>
-                  {item.missing.length > 0 && (
-                    <div style={{ fontSize: 12, color: "#c00", marginTop: 2 }}>
-                      Missing: {item.missing.map(k => (
-                        <span key={k} style={tagStyle}>{k}</span>
-                      ))}
+                <div
+                  key={item.path}
+                  style={{
+                    padding: "8px 0", borderBottom: "1px solid #eee",
+                    opacity: selected.has(item.path) ? 1 : 0.5,
+                  }}
+                >
+                  <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={selected.has(item.path)}
+                      onChange={() => toggleFile(item.path)}
+                      style={{ marginTop: 2, flexShrink: 0 }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: "#1a1a1a" }}>{item.title}</div>
+                      <div style={{ fontSize: 12, color: "#888" }}>{item.path}</div>
+                      {item.missing.length > 0 && (
+                        <div style={{ fontSize: 12, color: "#c00", marginTop: 2 }}>
+                          Missing: {item.missing.map(k => (
+                            <span key={k} style={tagStyle}>{k}</span>
+                          ))}
+                        </div>
+                      )}
+                      {item.extra.length > 0 && (
+                        <div style={{ fontSize: 12, color: "#996600", marginTop: 2 }}>
+                          Extra: {item.extra.map(k => (
+                            <span key={k} style={{ ...tagStyle, background: "#fff3e0", color: "#996600" }}>{k}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {item.extra.length > 0 && (
-                    <div style={{ fontSize: 12, color: "#996600", marginTop: 2 }}>
-                      Extra: {item.extra.map(k => (
-                        <span key={k} style={{ ...tagStyle, background: "#fff3e0", color: "#996600" }}>{k}</span>
-                      ))}
-                    </div>
-                  )}
+                  </label>
                 </div>
               ))}
             </div>
@@ -70,10 +117,15 @@ export default function ComplianceReport({ items, onBatchUpdate, onClose }: Prop
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button onClick={onClose} style={{ ...actionBtn, background: "#eee", color: "#333" }}>Close</button>
               <button
-                onClick={() => onBatchUpdate(addDefaults, stripExtra)}
-                style={actionBtn}
+                onClick={() => onBatchUpdate(addDefaults, stripExtra, [...selected])}
+                disabled={selectedCount === 0}
+                style={{
+                  ...actionBtn,
+                  opacity: selectedCount === 0 ? 0.5 : 1,
+                  cursor: selectedCount === 0 ? "default" : "pointer",
+                }}
               >
-                Update {items.length} file{items.length !== 1 ? "s" : ""}
+                Update {selectedCount} file{selectedCount !== 1 ? "s" : ""}
               </button>
             </div>
           </>

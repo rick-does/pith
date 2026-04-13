@@ -281,9 +281,9 @@ export default function App() {
     setTemplate(t);
   }, [currentProject, selectedPath]);
 
-  const handleBatchUpdate = useCallback(async (addDefaults: boolean, stripExtra: boolean) => {
+  const handleBatchUpdate = useCallback(async (addDefaults: boolean, stripExtra: boolean, files: string[]) => {
     if (!currentProject) return;
-    await batchUpdateFrontmatter(currentProject, addDefaults, stripExtra);
+    await batchUpdateFrontmatter(currentProject, addDefaults, stripExtra, files);
     setComplianceItems(null);
     await loadCollection(currentProject);
   }, [currentProject, loadCollection]);
@@ -495,7 +495,7 @@ export default function App() {
         {overlayType === "project-md" && currentProject && (
           <MarkdownEditor
             key={`project-md-${currentProject}`}
-            path={`${currentProject}/project.md`}
+            path="Project Notes"
             content={projectMdContent}
             savedContent={projectMdContent}
             onContentChange={setProjectMdContent}

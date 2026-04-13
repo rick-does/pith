@@ -212,11 +212,11 @@ export async function fetchCompliance(project: string): Promise<ComplianceItem[]
   return r.json();
 }
 
-export async function batchUpdateFrontmatter(project: string, addDefaults: boolean, stripExtra: boolean): Promise<{ updated: string[]; count: number }> {
+export async function batchUpdateFrontmatter(project: string, addDefaults: boolean, stripExtra: boolean, files?: string[]): Promise<{ updated: string[]; count: number }> {
   const r = await fetch(`${BASE}/projects/${project}/frontmatter-batch-update`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ add_defaults: addDefaults, strip_extra: stripExtra }),
+    body: JSON.stringify({ add_defaults: addDefaults, strip_extra: stripExtra, files }),
   });
   if (!r.ok) throw new Error("Batch update failed");
   return r.json();
