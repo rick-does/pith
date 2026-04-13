@@ -65,11 +65,14 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 - Settings flyout in project menu: Labels toggle, show/hide status indicators (persists in localStorage)
 - Filesystem polling (3s interval, detects new/deleted files without browser refresh)
 - Import/Export: MkDocs and Docusaurus sidebar formats
-- Standalone executable (PyInstaller, Win/Mac/Linux)
+- View HTML/PDF: whole-collection export to single HTML with TOC and print CSS (browser: new tab; pywebview: overlay)
+- Mermaid diagram rendering in preview pane (flowcharts, sequence diagrams, etc.)
+- Copy to new sub-page: duplicates parent content as a child file with "-copy" title
+- New files/sub-pages added at bottom of list (not top)
+- Settings persist in localStorage: title/filename mode, status indicators on/off
+- Standalone executable (PyInstaller, Win/Mac/Linux); pywebview-safe (no window.open)
 - GitHub Actions CI (3 OS), standalone builds, MkDocs docs deploy
 - Bundled documentation project (11 pages, golden copy with restore via project menu)
-- Mermaid diagram rendering in preview pane (flowcharts, sequence diagrams, etc.)
-- Whole-collection export to single HTML with TOC and print-friendly CSS (print to PDF from browser)
 - Project menu: flyout submenus for Projects, Frontmatter, Restore Docs, Import, Export, Settings
 
 ### To build

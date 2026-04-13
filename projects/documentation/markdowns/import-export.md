@@ -28,6 +28,14 @@ Click **⋮ → Export to... → MkDocs**. The exported `mkdocs.yml` is written 
 
 Click **⋮ → Export to... → Docusaurus**. The exported `sidebars.js` is written to `projects/{name}/sidebars.js`. Copy it back to your Docusaurus project.
 
+## Exporting as HTML / PDF
+
+Click **⋮ → View HTML/PDF** to generate a single HTML document containing all files in hierarchy order. The document includes a cover page, table of contents, and all sections with print-friendly styling.
+
+In a browser, the page opens in a new tab with **Save as HTML** and **Print / Save as PDF** buttons. In the standalone app, it opens in an overlay with a Save button.
+
+To create a PDF, open the HTML file in your browser and use `Ctrl+P` (or `Cmd+P` on Mac) to print to PDF.
+
 ## Notes
 
 - Import replaces the current hierarchy entirely

@@ -4,9 +4,11 @@ The hierarchy pane shows your files as a tree. Files can be nested to any depth.
 
 ## Adding a file
 
-Click **⋮** on the project chip and choose **＋ New file**. The file is created in `markdowns/` and added to the top of the hierarchy.
+Click **⋮** on the project chip and choose **＋ New file**. The file is created in `markdowns/` and added to the bottom of the hierarchy.
 
-To add a file as a child of an existing file, click **⋮** on that file chip and choose **Add sub-page**.
+To add a child of an existing file, click **⋮** on that file chip and choose **New sub-page**. The child is added at the bottom of the parent's children.
+
+To create a child that starts as a copy of the parent, choose **Copy to new sub-page**. The new file gets the parent's content with "-copy" appended to the title and filename.
 
 ## Reordering with drag and drop
 

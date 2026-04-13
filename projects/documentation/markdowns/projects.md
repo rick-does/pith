@@ -57,3 +57,10 @@ The bundled Documentation project includes a golden copy of its original structu
 - **Structure & content** — restores both the hierarchy and all markdown files to their original state
 
 This option only appears when the Documentation project is selected. Other projects do not have a golden copy.
+
+## Settings
+
+Click **⋮ → Settings** on the project chip. Available options:
+
+- **Labels** — toggle between showing file titles or filenames on chips. This preference persists across sessions.
+- **Status indicators** — show or hide the link validation and frontmatter compliance dots on chips. This preference persists across sessions.
