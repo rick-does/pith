@@ -4,7 +4,7 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "pith"
-version = "2.0.0"
+version = "0.1.0"
 description = "Visual markdown hierarchy editor with prose analysis CLI"
 readme = "README.md"
 license = {text = "MIT"}
