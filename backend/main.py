@@ -31,6 +31,9 @@ from .utils import (
     save_collection,
     save_template,
     scan_compliance,
+    validate_file_links,
+    validate_project_links,
+    find_incoming_links,
     PROJECTS_DIR,
 )
 from .converters import (
@@ -291,6 +294,31 @@ async def api_restore_all():
     for fp in golden_md.glob("*.md"):
         shutil.copy2(str(fp), str(target_md / fp.name))
     return {"status": "restored", "scope": "all"}
+
+# ---------------------------------------------------------------------------
+# Link validation
+# ---------------------------------------------------------------------------
+
+@app.get("/api/projects/{project}/links/validate")
+async def api_validate_links(project: str):
+    if not (PROJECTS_DIR / project).exists():
+        raise HTTPException(404, "Project not found")
+    return validate_project_links(project)
+
+
+@app.get("/api/projects/{project}/links/validate/{file_path:path}")
+async def api_validate_file_links(project: str, file_path: str):
+    fp = safe_path(project, file_path)
+    if not fp.exists():
+        raise HTTPException(404, "File not found")
+    return validate_file_links(project, file_path)
+
+
+@app.get("/api/projects/{project}/links/incoming/{file_path:path}")
+async def api_incoming_links(project: str, file_path: str):
+    if not (PROJECTS_DIR / project).exists():
+        raise HTTPException(404, "Project not found")
+    return find_incoming_links(project, file_path)
 
 # ---------------------------------------------------------------------------
 # Markdown files

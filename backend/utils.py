@@ -186,6 +186,90 @@ def delete_project(name: str) -> None:
         shutil.rmtree(proj_dir)
 
 
+LINK_RE = re.compile(r"\[([^\]]*)\]\(([^)]+)\)")
+
+
+def extract_internal_links(content: str) -> list[dict]:
+    """Extract all markdown links from content. Returns list of {text, target, line}."""
+    links = []
+    for i, line in enumerate(content.split("\n")):
+        for match in LINK_RE.finditer(line):
+            target = match.group(2)
+            if target.startswith("http://") or target.startswith("https://") or target.startswith("#"):
+                continue
+            target = target.split("#")[0].split("?")[0]
+            if not target:
+                continue
+            links.append({
+                "text": match.group(1),
+                "target": target,
+                "line": i + 1,
+            })
+    return links
+
+
+def validate_file_links(project: str, rel_path: str) -> list[dict]:
+    """Check all internal links in a single file. Returns broken links."""
+    fp = safe_path(project, rel_path)
+    if not fp.exists():
+        return []
+    content = fp.read_text(encoding="utf-8")
+    md_dir = get_markdowns_dir(project)
+    links = extract_internal_links(content)
+    broken = []
+    for link in links:
+        target_path = (md_dir / Path(rel_path).parent / link["target"]).resolve()
+        if not target_path.exists():
+            broken.append(link)
+    return broken
+
+
+def validate_project_links(project: str) -> list[dict]:
+    """Scan all files in a project for broken internal links."""
+    md_dir = get_markdowns_dir(project)
+    if not md_dir.exists():
+        return []
+    results = []
+    for fp in md_dir.rglob("*.md"):
+        rel = fp.relative_to(md_dir).as_posix()
+        if "_archive" in rel.split("/"):
+            continue
+        broken = validate_file_links(project, rel)
+        if broken:
+            title = extract_title(fp.read_text(encoding="utf-8")) or fp.stem
+            results.append({
+                "path": rel,
+                "title": title,
+                "broken_links": broken,
+            })
+    results.sort(key=lambda r: len(r["broken_links"]), reverse=True)
+    return results
+
+
+def find_incoming_links(project: str, target_path: str) -> list[dict]:
+    """Find all files that link to a given path."""
+    md_dir = get_markdowns_dir(project)
+    if not md_dir.exists():
+        return []
+    results = []
+    for fp in md_dir.rglob("*.md"):
+        rel = fp.relative_to(md_dir).as_posix()
+        if "_archive" in rel.split("/"):
+            continue
+        content = fp.read_text(encoding="utf-8")
+        links = extract_internal_links(content)
+        matching = [l for l in links if l["target"] == target_path or
+                    (md_dir / Path(rel).parent / l["target"]).resolve() == (md_dir / target_path).resolve()]
+        if matching:
+            title = extract_title(content) or fp.stem
+            results.append({
+                "path": rel,
+                "title": title,
+                "links": matching,
+            })
+    return results
+
+
 def get_template_file(project: str) -> Path:
     return PROJECTS_DIR / project / "frontmatter.yaml"
 

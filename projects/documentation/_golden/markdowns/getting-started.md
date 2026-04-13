@@ -54,4 +54,4 @@ To stop the server, press `Ctrl+C` in the terminal.
 
 ## First use
 
-Both versions open to the **Documentation** project by default. After that, the app remembers the last project you had open.
+Both versions open to the **Documentation** project by default. After that, the app remembers the last project you had open. See [Managing Projects](projects.md) for how to create and switch between projects.

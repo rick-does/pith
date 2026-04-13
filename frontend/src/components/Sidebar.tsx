@@ -84,9 +84,10 @@ interface SidebarProps {
   onCheckCompliance: () => void;
   onRestoreStructure: () => void;
   onRestoreAll: () => void;
+  onValidateLinks: () => void;
 }
 
-export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onDeleteFile, onRenameFile, onCreateChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onCreateProject, onDeleteProject, onArchiveProject, onRenameProject, onOpenProjectMd, onRefresh, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll }: SidebarProps) {
+export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onDeleteFile, onRenameFile, onCreateChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onCreateProject, onDeleteProject, onArchiveProject, onRenameProject, onOpenProjectMd, onRefresh, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks }: SidebarProps) {
   const [titleMode, setTitleMode] = useState(true);
   const [orphanSort, setOrphanSort] = useState<"recent" | "alpha" | "custom">("recent");
   const [orphanOrder, setOrphanOrder] = useState<string[]>([]);
@@ -501,6 +502,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
                   onCheckCompliance={onCheckCompliance}
                   onRestoreStructure={onRestoreStructure}
                   onRestoreAll={onRestoreAll}
+                  onValidateLinks={onValidateLinks}
                   isDocumentation={currentProject === "documentation"}
                 />
               )}

@@ -29,7 +29,7 @@ Select a file chip by clicking it. The d-pad arrow buttons appear in the left ma
 
 ## Renaming a file
 
-Click **⋮** on a file chip and choose **Rename** to rename it inline. Spaces are replaced with hyphens automatically. The file on disk is renamed to match. You can also rename from the editor toolbar — double-click the filename there.
+Click **⋮** on a file chip and choose **Rename** to rename it inline. Spaces are replaced with hyphens automatically. The file on disk is renamed to match. You can also rename from the [editor toolbar](editing.md) — double-click the filename there.
 
 ## Deleting a file
 
@@ -37,4 +37,4 @@ Click **⋮** on a file chip and choose **Delete**. The file is moved to `markdo
 
 ## Expanding and collapsing
 
-Click the triangle next to any file that has children to expand or collapse it.
+Click the triangle next to any file that has children to expand or collapse it. See [Keyboard Shortcuts](keyboard-shortcuts.md) for the full list of navigation keys.

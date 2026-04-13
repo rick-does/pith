@@ -4,7 +4,7 @@ PiTH can import a hierarchy from MkDocs or Docusaurus config files, and export b
 
 ## Importing from MkDocs
 
-1. Create a new project in PiTH (use **⋮ → Projects → ＋ New project** on the project chip)
+1. [Create a new project](projects.md) in PiTH (use **⋮ → Projects → ＋ New project** on the project chip)
 2. Copy your `mkdocs.yml` into the project folder at `projects/{name}/mkdocs.yml`
 3. Copy your markdown files into `projects/{name}/markdowns/`
 4. Click **⋮** on the project chip, then **Import from... → MkDocs**
@@ -13,7 +13,7 @@ The hierarchy is built from the `nav:` section of your config. Category-only nod
 
 ## Importing from Docusaurus
 
-1. Create a new project in PiTH (use **⋮ → Projects → ＋ New project** on the project chip)
+1. [Create a new project](projects.md) in PiTH (use **⋮ → Projects → ＋ New project** on the project chip)
 2. Copy your `sidebars.js` (or `sidebars.ts`) into the project folder at `projects/{name}/sidebars.js`
 3. Copy your markdown files into `projects/{name}/markdowns/`
 4. Click **⋮** on the project chip, then **Import from... → Docusaurus**

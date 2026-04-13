@@ -4,7 +4,7 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import CodeEditor from "./CodeEditor";
 import FrontmatterPanel from "./FrontmatterPanel";
-import type { FrontmatterField } from "../api";
+import type { FrontmatterField, BrokenLink } from "../api";
 
 interface Props {
   path: string;
@@ -19,10 +19,11 @@ interface Props {
   frontmatter?: Record<string, any>;
   templateFields?: FrontmatterField[];
   onFrontmatterChange?: (key: string, value: any) => void;
+  brokenLinks?: BrokenLink[];
   onUseAsTemplate?: () => void;
 }
 
-export default function MarkdownEditor({ path, content, savedContent, onContentChange, viMode, onViModeChange, onSaved, onSave, onRename, frontmatter, templateFields, onFrontmatterChange, onUseAsTemplate }: Props) {
+export default function MarkdownEditor({ path, content, savedContent, onContentChange, viMode, onViModeChange, onSaved, onSave, onRename, frontmatter, templateFields, onFrontmatterChange, onUseAsTemplate, brokenLinks }: Props) {
   const [view, setView] = useState<"edit" | "preview" | "split">("split");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
@@ -95,6 +96,11 @@ export default function MarkdownEditor({ path, content, savedContent, onContentC
             {saving ? "..." : "Save"}
           </button>
           {saveMsg && <span style={{ color: "#5f9", fontSize: "13px", flexShrink: 0 }}>{saveMsg}</span>}
+          {brokenLinks && brokenLinks.length > 0 && (
+            <span style={{ color: "#f66", fontSize: "12px", flexShrink: 0, display: "flex", alignItems: "center", gap: 4 }}>
+              &#9888; {brokenLinks.length} broken link{brokenLinks.length !== 1 ? "s" : ""}
+            </span>
+          )}
         </div>
         <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
           {["edit", "split", "preview"].map((v) => (
@@ -116,6 +122,21 @@ export default function MarkdownEditor({ path, content, savedContent, onContentC
           onChange={onFrontmatterChange}
           onUseAsTemplate={onUseAsTemplate}
         />
+      )}
+
+      {brokenLinks && brokenLinks.length > 0 && (
+        <div style={{ borderBottom: "1px solid #333", background: "#2a1a1a", padding: "6px 12px", flexShrink: 0 }}>
+          <div style={{ fontSize: 12, color: "#f66", fontWeight: 600, marginBottom: 4 }}>
+            Broken links ({brokenLinks.length})
+          </div>
+          {brokenLinks.map((link, i) => (
+            <div key={i} style={{ fontSize: 12, color: "#ccc", padding: "2px 0", display: "flex", gap: 8 }}>
+              <span style={{ color: "#666" }}>L{link.line}</span>
+              <span style={{ color: "#f66", fontFamily: "monospace" }}>{link.target}</span>
+              {link.text && <span style={{ color: "#888" }}>"{link.text}"</span>}
+            </div>
+          ))}
+        </div>
       )}
 
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>

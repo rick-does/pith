@@ -7,6 +7,7 @@ import ExportModal from "./components/ExportModal";
 import SearchPanel from "./components/SearchPanel";
 import TemplateEditor from "./components/TemplateEditor";
 import ComplianceReport from "./components/ComplianceReport";
+import LinkReport from "./components/LinkReport";
 import {
   listProjects, createProject, deleteProject, archiveProject, renameProject,
   fetchProjectMd, saveProjectMd,
@@ -14,10 +15,11 @@ import {
   fetchOrphans, createFile, deleteFile, archiveFile, renameFile,
   fetchTemplate, saveTemplate as apiSaveTemplate, fetchFileFrontmatter,
   restoreDocStructure, restoreDocAll,
+  validateProjectLinks, validateFileLinks,
   fetchCompliance, batchUpdateFrontmatter, inferTemplateFromFile,
 } from "./api";
 import type { CollectionStructure, FileInfo, FileNode, ProjectInfo } from "./types";
-import type { FrontmatterTemplate, FrontmatterField, ComplianceItem } from "./api";
+import type { FrontmatterTemplate, FrontmatterField, ComplianceItem, FileLinkReport, BrokenLink } from "./api";
 import { insertAsChild, reorder, removeNode } from "./treeHelpers";
 
 const LAST_PROJECT_KEY = "pith_project";
@@ -83,6 +85,8 @@ export default function App() {
   const [fileFrontmatter, setFileFrontmatter] = useState<Record<string, any>>({});
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
   const [complianceItems, setComplianceItems] = useState<ComplianceItem[] | null>(null);
+  const [linkReport, setLinkReport] = useState<FileLinkReport[] | null>(null);
+  const [fileBrokenLinks, setFileBrokenLinks] = useState<BrokenLink[]>([]);
 
   const editorContentRef = useRef(editorContent);
   const savedContentRef = useRef(savedContent);
@@ -222,14 +226,16 @@ export default function App() {
 
   const handleSelect = useCallback(async (path: string) => {
     if (!currentProject) return;
-    const [text, fm] = await Promise.all([
+    const [text, fm, broken] = await Promise.all([
       fetchMarkdown(currentProject, path).catch(() => "# Error loading file"),
       fetchFileFrontmatter(currentProject, path).catch(() => ({ frontmatter: {} })),
+      validateFileLinks(currentProject, path).catch(() => []),
     ]);
     setSelectedPath(path);
     setEditorContent(text);
     setSavedContent(text);
     setFileFrontmatter(fm.frontmatter ?? {});
+    setFileBrokenLinks(broken);
     setOverlayType("editor");
   }, [currentProject]);
 
@@ -298,6 +304,12 @@ export default function App() {
     if (!currentProject) return;
     const items = await fetchCompliance(currentProject);
     setComplianceItems(items);
+  }, [currentProject]);
+
+  const handleShowLinkReport = useCallback(async () => {
+    if (!currentProject) return;
+    const items = await validateProjectLinks(currentProject);
+    setLinkReport(items);
   }, [currentProject]);
 
   const handleUseAsTemplate = useCallback(async () => {
@@ -470,6 +482,7 @@ export default function App() {
           onCheckCompliance={handleShowCompliance}
           onRestoreStructure={handleRestoreStructure}
           onRestoreAll={handleRestoreAll}
+          onValidateLinks={handleShowLinkReport}
         />
       </div>
 
@@ -494,6 +507,7 @@ export default function App() {
             templateFields={template.fields}
             onFrontmatterChange={handleFrontmatterChange}
             onUseAsTemplate={handleUseAsTemplate}
+            brokenLinks={fileBrokenLinks}
           />
         )}
         {overlayType === "yaml" && (
@@ -564,6 +578,14 @@ export default function App() {
           items={complianceItems}
           onBatchUpdate={handleBatchUpdate}
           onClose={() => setComplianceItems(null)}
+        />
+      )}
+
+      {linkReport !== null && (
+        <LinkReport
+          items={linkReport}
+          onOpen={handleSelect}
+          onClose={() => setLinkReport(null)}
         />
       )}
     </div>

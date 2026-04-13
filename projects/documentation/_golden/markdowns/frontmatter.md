@@ -62,4 +62,4 @@ Click **Update** to apply changes to the selected files. Key order is preserved 
 
 ## New files
 
-When a frontmatter template is defined, new files created in PiTH are pre-filled with the template's keys and default values.
+When a frontmatter template is defined, new files created in PiTH are pre-filled with the template's keys and default values. See [Building Your Hierarchy](hierarchy.md) for how to create files.

@@ -28,7 +28,7 @@ Double-click the filename in the editor toolbar to rename the file inline. The f
 
 ## Closing the editor
 
-Click the **✕** button in the top right corner of the editor panel, or press `Escape`.
+Click the **✕** button in the top right corner of the editor panel, or press `Escape`. See [Keyboard Shortcuts](keyboard-shortcuts.md) for all editor keys.
 
 ## Project notes
 

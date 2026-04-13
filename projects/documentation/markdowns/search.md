@@ -20,7 +20,7 @@ Up to 10 matching lines per file and 50 files total are shown.
 
 ## Opening a result
 
-Click any result — the file title or any matching line — to open that file in the editor. The search panel closes automatically.
+Click any result — the file title or any matching line — to open that file in the [editor](editing.md). The search panel closes automatically.
 
 ## Closing search
 

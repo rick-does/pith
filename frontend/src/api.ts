@@ -257,3 +257,41 @@ export async function restoreDocAll(): Promise<void> {
   const r = await fetch(`${BASE}/projects/documentation/restore-all`, { method: "POST" });
   if (!r.ok) throw new Error("Restore failed");
 }
+
+// Link validation
+
+export interface BrokenLink {
+  text: string;
+  target: string;
+  line: number;
+}
+
+export interface FileLinkReport {
+  path: string;
+  title: string;
+  broken_links: BrokenLink[];
+}
+
+export interface IncomingLink {
+  path: string;
+  title: string;
+  links: BrokenLink[];
+}
+
+export async function validateProjectLinks(project: string): Promise<FileLinkReport[]> {
+  const r = await fetch(`${BASE}/projects/${project}/links/validate`);
+  if (!r.ok) throw new Error("Validation failed");
+  return r.json();
+}
+
+export async function validateFileLinks(project: string, path: string): Promise<BrokenLink[]> {
+  const r = await fetch(`${BASE}/projects/${project}/links/validate/${path}`);
+  if (!r.ok) throw new Error("Validation failed");
+  return r.json();
+}
+
+export async function fetchIncomingLinks(project: string, path: string): Promise<IncomingLink[]> {
+  const r = await fetch(`${BASE}/projects/${project}/links/incoming/${path}`);
+  if (!r.ok) throw new Error("Failed to fetch incoming links");
+  return r.json();
+}
