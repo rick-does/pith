@@ -68,12 +68,10 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 - Standalone executable (PyInstaller, Win/Mac/Linux)
 - GitHub Actions CI (3 OS), standalone builds, MkDocs docs deploy
 - Bundled documentation project (11 pages, golden copy with restore via project menu)
+- Mermaid diagram rendering in preview pane (flowcharts, sequence diagrams, etc.)
 - Project menu: flyout submenus for Projects, Frontmatter, Restore Docs, Import, Export, Settings
 
 ### To build
-
-**High value:**
-- **Mermaid diagram rendering** — in the preview pane
 
 **Medium value:**
 - **Whole-collection export to single HTML/PDF** — render full doc set as one document

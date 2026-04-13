@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import CodeEditor from "./CodeEditor";
+import MermaidBlock from "./MermaidBlock";
 import FrontmatterPanel from "./FrontmatterPanel";
 import type { FrontmatterField, BrokenLink } from "../api";
 
@@ -151,7 +152,28 @@ export default function MarkdownEditor({ path, content, savedContent, onContentC
             background: "#fafafa", color: "#1a1a1a", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
             lineHeight: "1.7",
           }}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeHighlight]}
+              components={{
+                pre({ children, node }) {
+                  const codeEl = node?.children?.[0];
+                  if (codeEl && "properties" in codeEl) {
+                    const cls = (codeEl.properties as any)?.className;
+                    if (Array.isArray(cls) && cls.some((c: string) => c === "language-mermaid")) {
+                      return <>{children}</>;
+                    }
+                  }
+                  return <pre>{children}</pre>;
+                },
+                code({ className, children, ...props }) {
+                  if (/language-mermaid/.test(className || "")) {
+                    return <MermaidBlock chart={String(children).trim()} />;
+                  }
+                  return <code className={className} {...props}>{children}</code>;
+                },
+              }}
+            >
               {stripFrontmatter(content)}
             </ReactMarkdown>
           </div>
