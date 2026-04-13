@@ -347,9 +347,16 @@ export default function App() {
     setBrokenLinkMap(map);
   }, [currentProject]);
 
-  const handleExportHtml = useCallback(() => {
+  const handleExportHtml = useCallback(async () => {
     if (!currentProject) return;
-    window.open(`/api/projects/${encodeURIComponent(currentProject)}/export/html`, "_blank");
+    const r = await fetch(`/api/projects/${encodeURIComponent(currentProject)}/export/html`);
+    const html = await r.text();
+    const blob = new Blob([html], { type: "text/html" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${currentProject}.html`;
+    a.click();
+    URL.revokeObjectURL(a.href);
   }, [currentProject]);
 
   const handleUseAsTemplate = useCallback(async () => {
