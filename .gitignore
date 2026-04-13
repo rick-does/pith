@@ -4,6 +4,7 @@ __pycache__/
 dist/
 build/
 *.spec
+!pith.spec
 .venv/
 venv/
 node_modules/
