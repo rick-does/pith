@@ -17,8 +17,19 @@ The GUI is the primary interface. The CLI is a companion tool available from the
 
 ## Repo Structure
 
-This repo (`rick-does/pith`) is PiTH 2.0 — the full package.
-The CLI lives in `rick-does/pith-cli` as a standalone installable dependency.
+This repo (`rick-does/pith`) is the PiTH GUI app.
+The CLI lives in `rick-does/pith-cli` as a standalone installable dependency (not yet integrated).
+
+```
+backend/          FastAPI app (main.py, models, utils, converters, launcher)
+frontend/src/     React/TypeScript (App, Sidebar, SortableItem, ProjectChip, etc.)
+frontend/dist/    Built frontend (gitignored, served by FastAPI)
+projects/         User project data (only documentation/ is tracked)
+docs/             GitHub Pages source (index.md redirect + styles; CI copies markdowns in)
+.github/workflows CI, standalone builds, docs deploy
+pith.spec         PyInstaller config
+mkdocs.yml        MkDocs Material config for GitHub Pages
+```
 
 
 ---
@@ -37,16 +48,19 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 
 ## GUI Features
 
-### Core features (build from scratch)
-- Drag-and-drop markdown hierarchy editor
-- Live markdown preview with CodeMirror editor
-- Project management (create, archive, switch projects)
-- Orphan file management (files not in hierarchy)
+### Implemented (v0.1.0)
+- Drag-and-drop markdown hierarchy editor with connector lines
+- Live markdown preview with CodeMirror editor (vi mode, split/edit/preview)
+- Project management (create, archive, rename, switch projects)
+- Orphan/unlinked file management with rubber-band multi-select, 3 sort modes
+- Keyboard navigation (arrow keys + dpad for hierarchy; arrow keys for orphans)
+- Alt+click file preview tooltips
 - Import/Export: MkDocs and Docusaurus sidebar formats
-- Standalone executable (PyInstaller)
-- GitHub Actions CI
+- Standalone executable (PyInstaller, Win/Mac/Linux)
+- GitHub Actions CI (3 OS), standalone builds, MkDocs docs deploy
+- Bundled documentation project (golden copy for GitHub Pages)
 
-### Additional features (to build)
+### To build
 
 **High value:**
 - **Full-text search** — search across all files in the current project
