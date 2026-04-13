@@ -59,17 +59,20 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 - Frontmatter template management (per-project schema, infer from file via "Use as template", compliance scan with selective batch update, Jekyll-style support)
 - Frontmatter panel in editor (collapsible, defaults closed, type-aware inputs)
 - Preview pane strips frontmatter (both standard and Jekyll-style)
+- Internal link validation (project-wide scan, per-file broken link panel in editor, re-validates on save)
+- Status indicators on chips: stacked dots (green outline = OK, red filled = broken links, yellow filled = frontmatter mismatch)
+- Unlinked chip eye icon: hover to reveal all orphan chip status/menus at once
+- Settings flyout in project menu: Labels toggle, show/hide status indicators (persists in localStorage)
 - Filesystem polling (3s interval, detects new/deleted files without browser refresh)
 - Import/Export: MkDocs and Docusaurus sidebar formats
 - Standalone executable (PyInstaller, Win/Mac/Linux)
 - GitHub Actions CI (3 OS), standalone builds, MkDocs docs deploy
-- Bundled documentation project (10 pages, golden copy with restore via project menu)
-- Project menu: flyout submenus for Projects, Frontmatter, Restore Docs, Import, Export
+- Bundled documentation project (11 pages, golden copy with restore via project menu)
+- Project menu: flyout submenus for Projects, Frontmatter, Restore Docs, Import, Export, Settings
 
 ### To build
 
 **High value:**
-- **Internal link validation** — detect broken `[links](file.md)`, highlight after rename
 - **Mermaid diagram rendering** — in the preview pane
 
 **Medium value:**

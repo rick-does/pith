@@ -83,9 +83,12 @@ export interface ItemProps {
   dragDeltaX: number;
   showTopIndicator?: boolean;
   currentProject: string;
+  brokenLinkMap?: Record<string, number>;
+  frontmatterIssueMap?: Record<string, boolean>;
+  showIndicators?: boolean;
 }
 
-export function SortableItem({ node, depth, isLast, ancestors, selectedPath, titleMode, onSelect, onOpen, onDelete, onRename, onCreateChild, expanded, toggleExpand, overId, activeId, activeLabel, dragDeltaX, showTopIndicator, currentProject }: ItemProps) {
+export function SortableItem({ node, depth, isLast, ancestors, selectedPath, titleMode, onSelect, onOpen, onDelete, onRename, onCreateChild, expanded, toggleExpand, overId, activeId, activeLabel, dragDeltaX, showTopIndicator, currentProject, brokenLinkMap, frontmatterIssueMap, showIndicators }: ItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: node.path });
   const [renaming, setRenaming] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -119,6 +122,9 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
   const isOver = activeId !== null && overId === node.path && activeId !== node.path;
   const label = titleMode ? node.title : node.path;
   const tooltip = titleMode ? node.path : node.title;
+  const brokenCount = brokenLinkMap?.[node.path] ?? 0;
+  const hasFmIssue = frontmatterIssueMap?.[node.path] ?? false;
+  const hasAnyIssue = brokenCount > 0 || hasFmIssue;
 
   const dropAction = isOver
     ? dragDeltaX > 30 ? "nest" : dragDeltaX < -30 ? "unnest" : "sibling"
@@ -180,7 +186,7 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => { setHovered(false); setPreviewContent(null); }}
           >
-            <div style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0, gap: "2px", padding: "5px 36px 5px 12px", position: "relative" }}>
+            <div style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0, gap: "2px", padding: `5px ${showIndicators ? "45px" : "31px"} 5px 12px`, position: "relative" }}>
               {hasChildren ? (
                 <span onClick={(e) => { e.stopPropagation(); toggleExpand(node.path); }} style={{ width: "16px", flexShrink: 0, marginTop: "-5px", marginBottom: "-5px", marginRight: "3px", paddingTop: "5px", paddingBottom: "5px", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                   <svg width="9" height="13" viewBox="0 0 11 16" fill="none" stroke="#888" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isExpanded ? "rotate(90deg)" : "none", transition: "transform 0.15s", flexShrink: 0 }}><polyline points="2,2 9,8 2,14"/></svg>
@@ -202,10 +208,22 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
                   {label}
                 </span>
               )}
+              {showIndicators && (
+                <span style={{ position: "absolute", right: "31px", top: 0, bottom: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "14px", gap: "4px" }}>
+                  <span
+                    title={brokenCount > 0 ? `${brokenCount} broken link${brokenCount !== 1 ? "s" : ""}` : "Links OK"}
+                    style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, ...(brokenCount > 0 ? { background: "#c00" } : { border: "1.5px solid #3a7d44" }) }}
+                  />
+                  <span
+                    title={hasFmIssue ? "Frontmatter does not match template" : "Frontmatter OK"}
+                    style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, ...(hasFmIssue ? { background: "#cc8800" } : { border: "1.5px solid #3a7d44" }) }}
+                  />
+                </span>
+              )}
               <span
                 ref={menuTriggerRef}
                 onClick={(e) => { e.stopPropagation(); onSelect(node.path); if (!menuOpen && menuTriggerRef.current) { const r = menuTriggerRef.current.getBoundingClientRect(); setMenuPos({ top: r.top + r.height / 2, left: r.left + r.width / 2 }); } setMenuOpen(o => !o); }}
-                style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "36px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "16px", fontWeight: "bold", color: "#bbb" }}
+                style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "31px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "16px", fontWeight: "bold", color: "#bbb" }}
               >
                 &#8942;
                 {menuOpen && (
@@ -305,6 +323,9 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
             activeLabel={activeLabel}
             dragDeltaX={dragDeltaX}
             currentProject={currentProject}
+            brokenLinkMap={brokenLinkMap}
+            frontmatterIssueMap={frontmatterIssueMap}
+            showIndicators={showIndicators}
           />
         ))
       )}

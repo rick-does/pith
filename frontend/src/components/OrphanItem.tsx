@@ -15,9 +15,13 @@ export interface OrphanItemProps {
   currentProject: string;
   setChipRef: (el: HTMLElement | null) => void;
   activeId: string | null;
+  brokenLinkMap?: Record<string, number>;
+  frontmatterIssueMap?: Record<string, boolean>;
+  showIndicators?: boolean;
+  forceShowIndicators?: boolean;
 }
 
-export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSelect, onAddToSelection, onOpen, onDelete, onAddToHierarchy, currentProject, setChipRef, activeId }: OrphanItemProps) {
+export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSelect, onAddToSelection, onOpen, onDelete, onAddToHierarchy, currentProject, setChipRef, activeId, brokenLinkMap, frontmatterIssueMap, showIndicators, forceShowIndicators }: OrphanItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: path });
   const [hovered, setHovered] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -56,7 +60,7 @@ export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSel
           style={{
             position: "relative", display: "inline-flex", alignItems: "stretch",
             width: "2.5in", overflow: "visible",
-            background: isMultiSelected ? "#fff3e0" : hovered ? "#fff8f0" : "transparent",
+            background: isMultiSelected ? "#fff3e0" : (hovered || forceShowIndicators) ? "#fff8f0" : "transparent",
             boxShadow: isMultiSelected ? "inset 5px 0 0 0 #ff8c00" : "none",
             borderRadius: "4px", cursor: "pointer", userSelect: "none", outline: "none",
           }}
@@ -81,12 +85,28 @@ export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSel
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => { setHovered(false); setPreviewContent(null); setPreviewFixed(null); }}
         >
-          <div style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0, padding: "5px 10px 5px 12px" }}>
+          <div style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0, padding: "5px 10px 5px 12px", position: "relative" }}>
             <span style={{ fontSize: "15px", fontWeight: 500, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }} title={tooltip}>
               {label}
             </span>
           </div>
-          {(isMultiSelected || hovered) && (
+          {showIndicators && (isMultiSelected || hovered || forceShowIndicators) && (() => {
+            const bc = brokenLinkMap?.[path] ?? 0;
+            const fm = frontmatterIssueMap?.[path] ?? false;
+            return (
+              <span style={{ position: "absolute", right: "36px", top: 0, bottom: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "14px", gap: "4px" }}>
+                <span
+                  title={bc > 0 ? `${bc} broken link${bc !== 1 ? "s" : ""}` : "Links OK"}
+                  style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, ...(bc > 0 ? { background: "#c00" } : { border: "1.5px solid #3a7d44" }) }}
+                />
+                <span
+                  title={fm ? "Frontmatter does not match template" : "Frontmatter OK"}
+                  style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, ...(fm ? { background: "#cc8800" } : { border: "1.5px solid #3a7d44" }) }}
+                />
+              </span>
+            );
+          })()}
+          {(isMultiSelected || hovered || forceShowIndicators) && (
             <span
               ref={menuTriggerRef}
               onClick={(e) => { e.stopPropagation(); onAddToSelection(path); setMenuOpen(o => !o); }}

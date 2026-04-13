@@ -24,9 +24,11 @@ export interface ProjectChipProps {
   onRestoreAll: () => void;
   onValidateLinks: () => void;
   isDocumentation: boolean;
+  showIndicators: boolean;
+  onToggleIndicators: () => void;
 }
 
-export default function ProjectChip({ currentProject, currentProjectTitle, projects, titleMode, setTitleMode, onSwitchProject, onCreateProject, onArchiveProject, onRenameProject, onOpenProjectMd, onRefresh, onCreateFile, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, isDocumentation }: ProjectChipProps) {
+export default function ProjectChip({ currentProject, currentProjectTitle, projects, titleMode, setTitleMode, onSwitchProject, onCreateProject, onArchiveProject, onRenameProject, onOpenProjectMd, onRefresh, onCreateFile, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, isDocumentation, showIndicators, onToggleIndicators }: ProjectChipProps) {
   const [renamingProject, setRenamingProject] = useState(false);
   const [renameProjectValue, setRenameProjectValue] = useState("");
   const [renameProjectError, setRenameProjectError] = useState("");
@@ -39,6 +41,7 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
   const [exportSubmenuOpen, setExportSubmenuOpen] = useState(false);
   const [frontmatterSubmenuOpen, setFrontmatterSubmenuOpen] = useState(false);
   const [restoreSubmenuOpen, setRestoreSubmenuOpen] = useState(false);
+  const [settingsSubmenuOpen, setSettingsSubmenuOpen] = useState(false);
   const menuRef = useRef<HTMLSpanElement>(null);
   const menuButtonRef = useRef<HTMLSpanElement>(null);
 
@@ -106,7 +109,7 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
   const menuItem: CSSProperties = {
     display: "flex", alignItems: "center", gap: "8px",
     padding: "7px 14px", fontSize: "13px", cursor: "pointer",
-    color: "#1a1a1a", whiteSpace: "nowrap",
+    color: "#666", whiteSpace: "nowrap",
   };
   const flyoutArrow: CSSProperties = { fontSize: "18px", color: "#999", lineHeight: 0 };
   const submenuStyle: CSSProperties = {
@@ -336,15 +339,36 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
 
               <div style={{ height: "1px", background: "#e8f4fd", margin: "2px 0" }} />
 
-              <div style={{ padding: "7px 14px", display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ fontSize: "12px", color: "#666" }}>Labels:</span>
-                <div style={{ display: "flex", border: "1px solid #b3d9f7", borderRadius: "4px", overflow: "hidden" }}>
-                  {([["Filename", false], ["Title", true]] as const).map(([label, mode]) => (
-                    <button key={String(label)} onClick={() => { setTitleMode(mode); setMenuOpen(false); }} style={{ padding: "3px 8px", border: "none", cursor: "pointer", fontSize: "12px", background: titleMode === mode ? "#1a6fa8" : "#e8f4fd", color: titleMode === mode ? "#fff" : "#1a6fa8" }}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
+              {/* Settings flyout */}
+              <div
+                style={{ ...menuItem, justifyContent: "space-between", position: "relative" }}
+                onMouseEnter={() => setSettingsSubmenuOpen(true)}
+                onMouseLeave={() => setSettingsSubmenuOpen(false)}
+              >
+                <span>Settings</span>
+                <span style={flyoutArrow}>&#9656;</span>
+                {settingsSubmenuOpen && (
+                  <div style={{ ...submenuStyle, minWidth: "200px" }}>
+                    <div style={{ padding: "7px 14px", display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{ fontSize: "12px", color: "#666" }}>Labels:</span>
+                      <div style={{ display: "flex", border: "1px solid #b3d9f7", borderRadius: "4px", overflow: "hidden" }}>
+                        {([["Filename", false], ["Title", true]] as const).map(([label, mode]) => (
+                          <button key={String(label)} onClick={() => { setTitleMode(mode); }} style={{ padding: "3px 8px", border: "none", cursor: "pointer", fontSize: "12px", background: titleMode === mode ? "#1a6fa8" : "#e8f4fd", color: titleMode === mode ? "#fff" : "#1a6fa8" }}>
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div
+                      style={{ ...menuItem }}
+                      onClick={() => { onToggleIndicators(); }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    >
+                      <span style={{ fontSize: "13px" }}>{showIndicators ? "Hide" : "Show"} status indicators</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

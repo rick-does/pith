@@ -28,5 +28,6 @@ nav:
   - Unlinked Files: unlinked-files.md
   - Search: search.md
   - Frontmatter: frontmatter.md
+  - Link Validation: link-validation.md
   - Import & Export: import-export.md
   - Keyboard Shortcuts: keyboard-shortcuts.md

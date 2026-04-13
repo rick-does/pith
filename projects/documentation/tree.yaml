@@ -31,11 +31,15 @@ root:
   title: Frontmatter
   order: 7
   children: []
+- path: link-validation.md
+  title: Link Validation
+  order: 8
+  children: []
 - path: import-export.md
   title: Import & Export
-  order: 8
+  order: 9
   children: []
 - path: keyboard-shortcuts.md
   title: Keyboard Shortcuts
-  order: 9
+  order: 10
   children: []

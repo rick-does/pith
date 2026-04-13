@@ -24,6 +24,9 @@ interface OrphanPaneProps {
   onAddOrphansToCollection: (paths: string[]) => void;
   onRefresh: () => Promise<void>;
   arrowBtnRef?: RefObject<HTMLButtonElement | null>;
+  brokenLinkMap?: Record<string, number>;
+  frontmatterIssueMap?: Record<string, boolean>;
+  showIndicators?: boolean;
 }
 
 export default function OrphanPane({
@@ -32,9 +35,10 @@ export default function OrphanPane({
   orphanSort, setOrphanSort, orphanOrder,
   rubberBand, orphanSectionRef, orphanChipRefs,
   onOpen, onDelete, onAddOrphansToCollection, onRefresh,
-  arrowBtnRef,
+  arrowBtnRef, brokenLinkMap, frontmatterIssueMap, showIndicators,
 }: OrphanPaneProps) {
   const hasOrphans = orphans.length > 0;
+  const [forceShowIndicators, setForceShowIndicators] = useState(false);
   const [orphansExpanded, setOrphansExpanded] = useState(true);
 
   const [creatingFile, setCreatingFile] = useState(false);
@@ -102,6 +106,19 @@ export default function OrphanPane({
             <span style={{ color: hasOrphans ? "#f90" : "rgba(255,255,255,0.45)", marginRight: "6px", fontSize: "13px", position: "relative", top: "-1px" }}>&#9888;</span>
             Unlinked
           </span>
+          {showIndicators && (
+            <span
+              title="Reveal all chip status"
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: "24px", height: "24px", borderRadius: "4px", cursor: "default",
+                fontSize: "14px", flexShrink: 0,
+                color: "rgba(255,255,255,0.45)",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; setForceShowIndicators(true); }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.45)"; setForceShowIndicators(false); }}
+            >&#128065;</span>
+          )}
           <span ref={menuButtonRef} style={{ position: "relative", flexShrink: 0 }}>
             <span
               onClick={() => {
@@ -219,6 +236,10 @@ export default function OrphanPane({
                 }} currentProject={currentProject}
                 setChipRef={(el) => { if (el) orphanChipRefs.current.set(o.path, el); else orphanChipRefs.current.delete(o.path); }}
                 activeId={activeId}
+                brokenLinkMap={brokenLinkMap}
+                frontmatterIssueMap={frontmatterIssueMap}
+                showIndicators={showIndicators}
+                forceShowIndicators={forceShowIndicators}
               />
             ))}
             {rubberBand && (

@@ -87,6 +87,9 @@ export default function App() {
   const [complianceItems, setComplianceItems] = useState<ComplianceItem[] | null>(null);
   const [linkReport, setLinkReport] = useState<FileLinkReport[] | null>(null);
   const [fileBrokenLinks, setFileBrokenLinks] = useState<BrokenLink[]>([]);
+  const [brokenLinkMap, setBrokenLinkMap] = useState<Record<string, number>>({});
+  const [frontmatterIssueMap, setFrontmatterIssueMap] = useState<Record<string, boolean>>({});
+  const [showIndicators, setShowIndicators] = useState(() => localStorage.getItem("pith_indicators") !== "false");
 
   const editorContentRef = useRef(editorContent);
   const savedContentRef = useRef(savedContent);
@@ -106,6 +109,24 @@ export default function App() {
 
   const lastFileCountRef = useRef<number>(-1);
 
+  const refreshBrokenLinks = useCallback(async (project: string) => {
+    try {
+      const reports = await validateProjectLinks(project);
+      const map: Record<string, number> = {};
+      for (const r of reports) map[r.path] = r.broken_links.length;
+      setBrokenLinkMap(map);
+    } catch {}
+  }, []);
+
+  const refreshFrontmatterIssues = useCallback(async (project: string) => {
+    try {
+      const items = await fetchCompliance(project);
+      const map: Record<string, boolean> = {};
+      for (const item of items) map[item.path] = true;
+      setFrontmatterIssueMap(map);
+    } catch {}
+  }, []);
+
   const loadCollection = useCallback(async (project: string) => {
     try {
       const [c, o, t] = await Promise.all([
@@ -116,6 +137,8 @@ export default function App() {
       setCollection(c);
       setOrphans(o);
       setTemplate(t);
+      refreshBrokenLinks(project);
+      refreshFrontmatterIssues(project);
     } catch {
       setError("Failed to load collection");
     }
@@ -306,10 +329,21 @@ export default function App() {
     setComplianceItems(items);
   }, [currentProject]);
 
+  const handleToggleIndicators = useCallback(() => {
+    setShowIndicators(prev => {
+      const next = !prev;
+      localStorage.setItem("pith_indicators", String(next));
+      return next;
+    });
+  }, []);
+
   const handleShowLinkReport = useCallback(async () => {
     if (!currentProject) return;
     const items = await validateProjectLinks(currentProject);
     setLinkReport(items);
+    const map: Record<string, number> = {};
+    for (const r of items) map[r.path] = r.broken_links.length;
+    setBrokenLinkMap(map);
   }, [currentProject]);
 
   const handleUseAsTemplate = useCallback(async () => {
@@ -330,12 +364,37 @@ export default function App() {
     // Re-parse frontmatter from saved content (standard or Jekyll-style)
     const meta = parseFrontmatterClient(content);
     setFileFrontmatter(meta);
+    // Re-validate links after save
+    if (currentProject) {
+      validateFileLinks(currentProject, path).then(broken => {
+        setFileBrokenLinks(broken);
+        setBrokenLinkMap(prev => {
+          const next = { ...prev };
+          if (broken.length > 0) next[path] = broken.length;
+          else delete next[path];
+          return next;
+        });
+      }).catch(() => {});
+    }
+    // Check frontmatter compliance after save
+    if (template.fields.length > 0) {
+      const expectedKeys = new Set(template.fields.map(f => f.key));
+      const fileKeys = new Set(Object.keys(meta));
+      const hasMissing = [...expectedKeys].some(k => !fileKeys.has(k));
+      const hasExtra = [...fileKeys].some(k => !expectedKeys.has(k));
+      setFrontmatterIssueMap(prev => {
+        const next = { ...prev };
+        if (hasMissing || hasExtra) next[path] = true;
+        else delete next[path];
+        return next;
+      });
+    }
     const h1 = content.match(/^#\s+(.+)$/m)?.[1]?.trim();
     if (!h1) return;
     const updateTitle = (nodes: FileNode[]): FileNode[] =>
       nodes.map(n => n.path === path ? { ...n, title: h1 } : { ...n, children: updateTitle(n.children ?? []) });
     setCollection(prev => ({ root: updateTitle(prev.root) }));
-  }, []);
+  }, [currentProject]);
 
   const handleCollectionChange = useCallback(async (c: CollectionStructure) => {
     if (!currentProject) return;
@@ -483,6 +542,10 @@ export default function App() {
           onRestoreStructure={handleRestoreStructure}
           onRestoreAll={handleRestoreAll}
           onValidateLinks={handleShowLinkReport}
+          brokenLinkMap={brokenLinkMap}
+          frontmatterIssueMap={frontmatterIssueMap}
+          showIndicators={showIndicators}
+          onToggleIndicators={handleToggleIndicators}
         />
       </div>
 

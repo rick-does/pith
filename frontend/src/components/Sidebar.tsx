@@ -85,9 +85,13 @@ interface SidebarProps {
   onRestoreStructure: () => void;
   onRestoreAll: () => void;
   onValidateLinks: () => void;
+  brokenLinkMap: Record<string, number>;
+  frontmatterIssueMap: Record<string, boolean>;
+  showIndicators: boolean;
+  onToggleIndicators: () => void;
 }
 
-export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onDeleteFile, onRenameFile, onCreateChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onCreateProject, onDeleteProject, onArchiveProject, onRenameProject, onOpenProjectMd, onRefresh, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks }: SidebarProps) {
+export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onDeleteFile, onRenameFile, onCreateChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onCreateProject, onDeleteProject, onArchiveProject, onRenameProject, onOpenProjectMd, onRefresh, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, brokenLinkMap, frontmatterIssueMap, showIndicators, onToggleIndicators }: SidebarProps) {
   const [titleMode, setTitleMode] = useState(true);
   const [orphanSort, setOrphanSort] = useState<"recent" | "alpha" | "custom">("recent");
   const [orphanOrder, setOrphanOrder] = useState<string[]>([]);
@@ -504,6 +508,8 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
                   onRestoreAll={onRestoreAll}
                   onValidateLinks={onValidateLinks}
                   isDocumentation={currentProject === "documentation"}
+                  showIndicators={showIndicators}
+                  onToggleIndicators={onToggleIndicators}
                 />
               )}
 
@@ -531,6 +537,9 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
                   activeLabel={activeLabel}
                   dragDeltaX={dragDeltaX}
                   currentProject={currentProject}
+                  brokenLinkMap={brokenLinkMap}
+                  frontmatterIssueMap={frontmatterIssueMap}
+                  showIndicators={showIndicators}
                 />
               ))}
 
@@ -549,6 +558,9 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
               rubberBand={rubberBand} orphanSectionRef={orphanSectionRef} orphanChipRefs={orphanChipRefs}
               onOpen={onOpen} onDelete={handleDelete} onAddOrphansToCollection={addOrphansToCollection} onRefresh={onRefresh}
               arrowBtnRef={orphanArrowRef}
+              brokenLinkMap={brokenLinkMap}
+              frontmatterIssueMap={frontmatterIssueMap}
+              showIndicators={showIndicators}
             />
 
           </div>
