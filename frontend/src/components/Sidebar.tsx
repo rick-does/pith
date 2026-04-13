@@ -65,6 +65,7 @@ interface SidebarProps {
   onDeleteFile: (path: string) => Promise<void>;
   onRenameFile: (oldPath: string, newName: string) => Promise<void>;
   onCreateChildFile: (parentPath: string, filename: string) => Promise<void>;
+  onCopyToChildFile: (parentPath: string) => Promise<void>;
   onOpenYaml: () => void;
   yamlOpen: boolean;
   orphans: FileInfo[];
@@ -92,7 +93,7 @@ interface SidebarProps {
   onToggleIndicators: () => void;
 }
 
-export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onDeleteFile, onRenameFile, onCreateChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onCreateProject, onDeleteProject, onArchiveProject, onRenameProject, onOpenProjectMd, onRefresh, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, brokenLinkMap, frontmatterIssueMap, showIndicators, onToggleIndicators }: SidebarProps) {
+export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onDeleteFile, onRenameFile, onCreateChildFile, onCopyToChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onCreateProject, onDeleteProject, onArchiveProject, onRenameProject, onOpenProjectMd, onRefresh, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, brokenLinkMap, frontmatterIssueMap, showIndicators, onToggleIndicators }: SidebarProps) {
   const [titleMode, setTitleMode] = useState(true);
   const [orphanSort, setOrphanSort] = useState<"recent" | "alpha" | "custom">("recent");
   const [orphanOrder, setOrphanOrder] = useState<string[]>([]);
@@ -534,6 +535,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
                   onDelete={handleDelete}
                   onRename={onRenameFile}
                   onCreateChild={onCreateChildFile}
+                  onCopyToChild={onCopyToChildFile}
                   expanded={expanded}
                   toggleExpand={toggleExpand}
                   overId={overId}

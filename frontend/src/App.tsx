@@ -465,6 +465,26 @@ export default function App() {
     setOverlayType("editor");
   }, [currentProject, collection]);
 
+  const handleCopyToChildFile = useCallback(async (parentPath: string) => {
+    if (!currentProject) return;
+    const source = await fetchMarkdown(currentProject, parentPath).catch(() => "");
+    const stem = parentPath.replace(/\.md$/, "");
+    const newFilename = `${stem}-copy.md`;
+    await createFile(currentProject, newFilename);
+    await saveMarkdown(currentProject, newFilename, source);
+    const title = newFilename.replace(/\.md$/, "").replace(/[-_]/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    const newNode: FileNode = { path: newFilename, title, order: 0, children: [] };
+    const newRoot = reorder(insertAsLastChild(collection.root, parentPath, newNode));
+    await saveCollection(currentProject, { root: newRoot });
+    setCollection({ root: newRoot });
+    const o = await fetchOrphans(currentProject);
+    setOrphans(o);
+    setSelectedPath(newFilename);
+    setEditorContent(source);
+    setSavedContent(source);
+    setOverlayType("editor");
+  }, [currentProject, collection]);
+
   const handleRenameFile = useCallback(async (oldPath: string, newName: string) => {
     if (!currentProject) return;
     let name = newName.trim().replace(/ /g, "-");
@@ -536,6 +556,7 @@ export default function App() {
           onDeleteFile={handleDeleteFile}
           onRenameFile={handleRenameFile}
           onCreateChildFile={handleCreateChildFile}
+          onCopyToChildFile={handleCopyToChildFile}
           onOpenYaml={handleOpenYaml}
           yamlOpen={overlayType === "yaml"}
           orphans={orphans}

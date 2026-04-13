@@ -48,7 +48,7 @@ export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSel
     ? `translate3d(${Math.round(transform.x)}px, ${Math.round(transform.y)}px, 0)`
     : undefined;
 
-  const mi: CSSProperties = { padding: "7px 14px", fontSize: "13px", cursor: "pointer", color: "#1a1a1a", whiteSpace: "nowrap" };
+  const mi: CSSProperties = { padding: "7px 14px", fontSize: "13px", cursor: "pointer", color: "#666", whiteSpace: "nowrap" };
 
   return (
     <div ref={setNodeRef} style={{ transform: (isDragging || activeId !== null) ? undefined : txStr, transition: (isDragging || activeId !== null) ? undefined : transition ?? undefined, opacity: isDragging ? 0 : 1, margin: "8px 0" }}>

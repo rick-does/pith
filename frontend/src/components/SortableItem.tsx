@@ -75,6 +75,7 @@ export interface ItemProps {
   onDelete: (path: string) => void;
   onRename: (path: string, newName: string) => void;
   onCreateChild: (parentPath: string, filename: string) => Promise<void>;
+  onCopyToChild: (parentPath: string) => Promise<void>;
   expanded: Set<string>;
   toggleExpand: (path: string) => void;
   overId: string | null;
@@ -88,7 +89,7 @@ export interface ItemProps {
   showIndicators?: boolean;
 }
 
-export function SortableItem({ node, depth, isLast, ancestors, selectedPath, titleMode, onSelect, onOpen, onDelete, onRename, onCreateChild, expanded, toggleExpand, overId, activeId, activeLabel, dragDeltaX, showTopIndicator, currentProject, brokenLinkMap, frontmatterIssueMap, showIndicators }: ItemProps) {
+export function SortableItem({ node, depth, isLast, ancestors, selectedPath, titleMode, onSelect, onOpen, onDelete, onRename, onCreateChild, onCopyToChild, expanded, toggleExpand, overId, activeId, activeLabel, dragDeltaX, showTopIndicator, currentProject, brokenLinkMap, frontmatterIssueMap, showIndicators }: ItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: node.path });
   const [renaming, setRenaming] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -147,7 +148,7 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
     ? `translate3d(${Math.round(transform.x)}px, ${Math.round(transform.y)}px, 0)`
     : undefined;
 
-  const mi: CSSProperties = { padding: "7px 14px", fontSize: "13px", fontWeight: "normal", cursor: "pointer", color: "#1a1a1a", whiteSpace: "nowrap" };
+  const mi: CSSProperties = { padding: "7px 14px", fontSize: "13px", fontWeight: "normal", cursor: "pointer", color: "#666", whiteSpace: "nowrap" };
   const connectorWidth = (ancestors.length + 1) * CHILD_INDENT;
 
   return (
@@ -230,7 +231,8 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
                   <div onClick={(e) => e.stopPropagation()} style={{ position: "fixed", top: menuPos?.top ?? 0, left: menuPos?.left ?? 0, zIndex: 200, background: "#fff", border: "1px solid #d0e8f7", borderRadius: "8px", boxShadow: "0 4px 16px rgba(0,0,0,0.12)", minWidth: "150px", overflow: "hidden" }}>
                     <div style={mi} onClick={() => { onOpen(node.path); setMenuOpen(false); }} onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }} onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = ""; }}>View/Edit</div>
                     <div style={mi} onClick={() => { setMenuOpen(false); setTimeout(() => setRenaming(true), 0); }} onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }} onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = ""; }}>Rename</div>
-                    <div style={mi} onClick={() => { setAddingChild(true); setChildName(""); setChildError(""); setMenuOpen(false); setTimeout(() => childInputRef.current?.focus(), 50); }} onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }} onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = ""; }}>Add sub-page</div>
+                    <div style={mi} onClick={() => { setAddingChild(true); setChildName(""); setChildError(""); setMenuOpen(false); setTimeout(() => childInputRef.current?.focus(), 50); }} onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }} onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = ""; }}>New sub-page</div>
+                    <div style={mi} onClick={() => { onCopyToChild(node.path); setMenuOpen(false); }} onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }} onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = ""; }}>Copy to sub-page</div>
                     <div style={{ ...mi, color: "#c00" }} onClick={() => { onDelete(node.path); setMenuOpen(false); }} onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#fff5f5"; }} onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = ""; }}>Delete</div>
                   </div>
                 )}
@@ -316,6 +318,7 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
             onDelete={onDelete}
             onRename={onRename}
             onCreateChild={onCreateChild}
+            onCopyToChild={onCopyToChild}
             expanded={expanded}
             toggleExpand={toggleExpand}
             overId={overId}
