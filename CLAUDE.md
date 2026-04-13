@@ -76,12 +76,12 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 **Medium value:**
 - **Whole-collection export to single HTML/PDF** — render full doc set as one document
 - **Word count / reading time** — per file, shown in sidebar chips
-- **External directory projects** — open/manage markdown files in any directory on the filesystem, not just the embedded projects/ folder
+- **External directory projects** — open/manage markdown files in any directory on the filesystem, not just the embedded projects/ folder. Includes file browser for project selection. Cross-platform (Win/Linux/Mac).
+- **Image management** — tied to external directory/file browser work. Image directory convention, UI for browsing/inserting images.
 
 **Lower priority:**
 - Dark mode
 - Templates for new files
-- Image management
 
 ---
 

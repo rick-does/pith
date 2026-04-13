@@ -416,6 +416,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
       setSelectedOrphans(new Set());
       onCollectionChange({ root: reorder(root) });
       setTimeout(() => onRefresh(), 300);
+      refocusTree();
       return;
     }
 
@@ -427,6 +428,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
       setSelectedOrphans(new Set());
       setTimeout(() => onRefresh(), 300);
     }
+    refocusTree();
   }
 
   const activeDepth = (() => {

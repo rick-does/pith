@@ -21,7 +21,7 @@ import {
 } from "./api";
 import type { CollectionStructure, FileInfo, FileNode, ProjectInfo } from "./types";
 import type { FrontmatterTemplate, FrontmatterField, ComplianceItem, FileLinkReport, BrokenLink } from "./api";
-import { insertAsChild, reorder, removeNode } from "./treeHelpers";
+import { insertAsChild, insertAsLastChild, reorder, removeNode } from "./treeHelpers";
 
 const LAST_PROJECT_KEY = "pith_project";
 
@@ -412,7 +412,7 @@ export default function App() {
     await createFile(currentProject, filename);
     const title = filename.replace(/\.md$/, "").replace(/[-_]/g, " ").replace(/\b\w/g, c => c.toUpperCase());
     const newNode: FileNode = { path: filename, title, order: 0, children: [] };
-    const newRoot = reorder([newNode, ...collection.root]);
+    const newRoot = reorder([...collection.root, newNode]);
     await saveCollection(currentProject, { root: newRoot });
     setCollection({ root: newRoot });
     const o = await fetchOrphans(currentProject);
@@ -440,7 +440,7 @@ export default function App() {
     await createFile(currentProject, filename);
     const title = filename.replace(/\.md$/, "").replace(/[-_]/g, " ").replace(/\b\w/g, c => c.toUpperCase());
     const newNode: FileNode = { path: filename, title, order: 0, children: [] };
-    const newRoot = reorder(insertAsChild(collection.root, parentPath, newNode));
+    const newRoot = reorder(insertAsLastChild(collection.root, parentPath, newNode));
     await saveCollection(currentProject, { root: newRoot });
     setCollection({ root: newRoot });
     const o = await fetchOrphans(currentProject);
