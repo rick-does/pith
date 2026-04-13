@@ -11,7 +11,7 @@ function RenameInput({ currentPath, onCommit, onCancel }: {
 }) {
   const [value, setValue] = useState(currentPath);
   const ref = useRef<HTMLInputElement>(null);
-  useState(() => { setTimeout(() => { ref.current?.select(); }, 30); });
+  useEffect(() => { setTimeout(() => { ref.current?.select(); }, 30); }, []);
   return (
     <input
       ref={ref}

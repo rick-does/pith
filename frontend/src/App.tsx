@@ -17,6 +17,7 @@ import {
   restoreDocStructure, restoreDocAll,
   validateProjectLinks, validateFileLinks,
   fetchCompliance, batchUpdateFrontmatter, inferTemplateFromFile,
+  importFromFormat, exportToFormat,
 } from "./api";
 import type { CollectionStructure, FileInfo, FileNode, ProjectInfo } from "./types";
 import type { FrontmatterTemplate, FrontmatterField, ComplianceItem, FileLinkReport, BrokenLink } from "./api";
@@ -142,7 +143,7 @@ export default function App() {
     } catch {
       setError("Failed to load collection");
     }
-  }, []);
+  }, [refreshBrokenLinks, refreshFrontmatterIssues]);
 
   useEffect(() => {
     (async () => {
@@ -606,8 +607,16 @@ export default function App() {
 
       {importModal && currentProject && (
         <ImportModal
-          onImportMkdocs={() => { setImportModal(null); loadCollection(currentProject); }}
-          onImportDocusaurus={() => { setImportModal(null); loadCollection(currentProject); }}
+          onImportMkdocs={async () => {
+            await importFromFormat(currentProject, "mkdocs");
+            setImportModal(null);
+            await loadCollection(currentProject);
+          }}
+          onImportDocusaurus={async (filename?: string) => {
+            await importFromFormat(currentProject, "docusaurus", filename);
+            setImportModal(null);
+            await loadCollection(currentProject);
+          }}
           onClose={() => setImportModal(null)}
         />
       )}
@@ -616,6 +625,11 @@ export default function App() {
         <ExportModal
           format={exportModal.format}
           resultPath=""
+          onExport={async () => {
+            const result = await exportToFormat(currentProject, exportModal.format);
+            setExportModal(null);
+            window.alert(`Exported to: ${result.file_path}`);
+          }}
           onClose={() => setExportModal(null)}
         />
       )}

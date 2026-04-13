@@ -8,9 +8,10 @@ interface Props {
   onSaved: () => void;
   viMode: boolean;
   readOnly?: boolean;
+  project?: string;
 }
 
-export default function YAMLEditor({ yamlContent, onYamlChange, onSaved, viMode, readOnly = false }: Props) {
+export default function YAMLEditor({ yamlContent, onYamlChange, onSaved, viMode, readOnly = false, project }: Props) {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -18,7 +19,8 @@ export default function YAMLEditor({ yamlContent, onYamlChange, onSaved, viMode,
     setSaving(true);
     setMsg("");
     try {
-      await saveCollectionYaml(yamlContent);
+      if (!project) throw new Error("No project");
+      await saveCollectionYaml(project, yamlContent);
       setMsg("Saved \u2713");
       onSaved();
       setTimeout(() => setMsg(""), 2000);

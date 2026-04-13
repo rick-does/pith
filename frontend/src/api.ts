@@ -128,8 +128,8 @@ export async function fetchCollectionYaml(project: string): Promise<string> {
   return data.content;
 }
 
-export async function saveCollectionYaml(content: string): Promise<void> {
-  const r = await fetch(`${BASE}/collection/yaml`, {
+export async function saveCollectionYaml(project: string, content: string): Promise<void> {
+  const r = await fetch(`${BASE}/projects/${project}/collection/yaml`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ content }),
