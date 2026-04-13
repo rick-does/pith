@@ -13,6 +13,7 @@ import {
   fetchCollection, saveCollection, fetchMarkdown, saveMarkdown, fetchCollectionYaml,
   fetchOrphans, createFile, deleteFile, archiveFile, renameFile,
   fetchTemplate, saveTemplate as apiSaveTemplate, fetchFileFrontmatter,
+  restoreDocStructure, restoreDocAll,
   fetchCompliance, batchUpdateFrontmatter, inferTemplateFromFile,
 } from "./api";
 import type { CollectionStructure, FileInfo, FileNode, ProjectInfo } from "./types";
@@ -395,6 +396,18 @@ export default function App() {
     await loadCollection(currentProject);
   }, [currentProject, loadCollection]);
 
+  const handleRestoreStructure = useCallback(async () => {
+    if (!window.confirm("Restore documentation hierarchy to the original structure? Your file contents will not change.")) return;
+    await restoreDocStructure();
+    await loadCollection("documentation");
+  }, [loadCollection]);
+
+  const handleRestoreAll = useCallback(async () => {
+    if (!window.confirm("Restore documentation hierarchy AND all file contents to the original? Any edits you made to documentation files will be lost.")) return;
+    await restoreDocAll();
+    await loadCollection("documentation");
+  }, [loadCollection]);
+
   const overlayOpen = overlayType !== null;
 
   if (loading) {
@@ -407,9 +420,10 @@ export default function App() {
 
   return (
     <div style={{ position: "relative", height: "100vh", width: "100vw", overflow: "hidden", background: "#ffffff", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", display: "flex", flexDirection: "column" }}>
-      <div style={{ height: "50px", flexShrink: 0, background: "#1a6fa8", display: "flex", alignItems: "center", padding: "0 1in" }}>
+      <div style={{ height: "50px", flexShrink: 0, background: "#1a6fa8", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 1in" }}>
         <span style={{ color: "#fff", fontWeight: "bold", fontSize: "20px" }}>Pi<span style={{ color: "#f90" }}>T</span>H</span>
-        <div style={{ flex: 1, display: "flex", justifyContent: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ color: "#fff", fontSize: "13px", fontStyle: "italic" }}>visual markdown workspace</span>
           <button
             onClick={() => setSearchOpen(o => !o)}
             title="Search (Ctrl+F)"
@@ -424,36 +438,7 @@ export default function App() {
           >
             &#128269; Search
           </button>
-          <button
-            onClick={() => setShowTemplateEditor(true)}
-            title="Frontmatter template"
-            style={{
-              background: "transparent",
-              border: "1px solid rgba(255,255,255,0.3)", borderRadius: 4,
-              color: "#fff", cursor: "pointer", padding: "4px 10px",
-              fontSize: 13,
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.15)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-          >
-            Frontmatter
-          </button>
-          <button
-            onClick={handleShowCompliance}
-            title="Check frontmatter compliance"
-            style={{
-              background: "transparent",
-              border: "1px solid rgba(255,255,255,0.3)", borderRadius: 4,
-              color: "#fff", cursor: "pointer", padding: "4px 10px",
-              fontSize: 13,
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.15)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-          >
-            Compliance
-          </button>
         </div>
-        <span style={{ color: "#fff", fontSize: "13px", fontStyle: "italic" }}>visual markdown workspace</span>
       </div>
       <div style={{ flex: 1, minHeight: 0 }}>
         <Sidebar
@@ -481,6 +466,10 @@ export default function App() {
           onRefresh={handleRefresh}
           onImport={(fmt) => setImportModal({ format: fmt })}
           onExport={(fmt) => setExportModal({ format: fmt })}
+          onEditTemplate={() => setShowTemplateEditor(true)}
+          onCheckCompliance={handleShowCompliance}
+          onRestoreStructure={handleRestoreStructure}
+          onRestoreAll={handleRestoreAll}
         />
       </div>
 

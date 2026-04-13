@@ -262,6 +262,36 @@ async def api_batch_update(project: str, request: Request):
     )
     return {"updated": updated, "count": len(updated)}
 
+
+@app.post("/api/projects/documentation/restore-structure")
+async def api_restore_structure():
+    """Restore the documentation project's tree.yaml from the bundled golden copy."""
+    golden = PROJECTS_DIR / "documentation" / "_golden" / "tree.yaml"
+    target = PROJECTS_DIR / "documentation" / "tree.yaml"
+    if not golden.exists():
+        raise HTTPException(404, "Golden copy not found")
+    import shutil
+    shutil.copy2(str(golden), str(target))
+    return {"status": "restored", "scope": "structure"}
+
+
+@app.post("/api/projects/documentation/restore-all")
+async def api_restore_all():
+    """Restore the documentation project's tree.yaml and all markdown files from the bundled golden copy."""
+    golden_dir = PROJECTS_DIR / "documentation" / "_golden"
+    if not golden_dir.exists():
+        raise HTTPException(404, "Golden copy not found")
+    import shutil
+    shutil.copy2(
+        str(golden_dir / "tree.yaml"),
+        str(PROJECTS_DIR / "documentation" / "tree.yaml"),
+    )
+    golden_md = golden_dir / "markdowns"
+    target_md = PROJECTS_DIR / "documentation" / "markdowns"
+    for fp in golden_md.glob("*.md"):
+        shutil.copy2(str(fp), str(target_md / fp.name))
+    return {"status": "restored", "scope": "all"}
+
 # ---------------------------------------------------------------------------
 # Markdown files
 # ---------------------------------------------------------------------------

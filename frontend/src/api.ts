@@ -247,3 +247,13 @@ export async function exportToFormat(project: string, format: "mkdocs" | "docusa
   if (!r.ok) throw new Error("Export failed");
   return r.json();
 }
+
+export async function restoreDocStructure(): Promise<void> {
+  const r = await fetch(`${BASE}/projects/documentation/restore-structure`, { method: "POST" });
+  if (!r.ok) throw new Error("Restore failed");
+}
+
+export async function restoreDocAll(): Promise<void> {
+  const r = await fetch(`${BASE}/projects/documentation/restore-all`, { method: "POST" });
+  if (!r.ok) throw new Error("Restore failed");
+}

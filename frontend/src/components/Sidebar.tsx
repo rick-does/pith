@@ -80,9 +80,13 @@ interface SidebarProps {
   onRefresh: () => Promise<void>;
   onImport: (format: "mkdocs" | "docusaurus") => void;
   onExport: (format: "mkdocs" | "docusaurus") => void;
+  onEditTemplate: () => void;
+  onCheckCompliance: () => void;
+  onRestoreStructure: () => void;
+  onRestoreAll: () => void;
 }
 
-export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onDeleteFile, onRenameFile, onCreateChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onCreateProject, onDeleteProject, onArchiveProject, onRenameProject, onOpenProjectMd, onRefresh, onImport, onExport }: SidebarProps) {
+export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onDeleteFile, onRenameFile, onCreateChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onCreateProject, onDeleteProject, onArchiveProject, onRenameProject, onOpenProjectMd, onRefresh, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll }: SidebarProps) {
   const [titleMode, setTitleMode] = useState(true);
   const [orphanSort, setOrphanSort] = useState<"recent" | "alpha" | "custom">("recent");
   const [orphanOrder, setOrphanOrder] = useState<string[]>([]);
@@ -493,6 +497,11 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
                   onOpenYaml={onOpenYaml}
                   onImport={onImport}
                   onExport={onExport}
+                  onEditTemplate={onEditTemplate}
+                  onCheckCompliance={onCheckCompliance}
+                  onRestoreStructure={onRestoreStructure}
+                  onRestoreAll={onRestoreAll}
+                  isDocumentation={currentProject === "documentation"}
                 />
               )}
 

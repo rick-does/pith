@@ -18,9 +18,14 @@ export interface ProjectChipProps {
   onOpenYaml: () => void;
   onImport: (format: "mkdocs" | "docusaurus") => void;
   onExport: (format: "mkdocs" | "docusaurus") => void;
+  onEditTemplate: () => void;
+  onCheckCompliance: () => void;
+  onRestoreStructure: () => void;
+  onRestoreAll: () => void;
+  isDocumentation: boolean;
 }
 
-export default function ProjectChip({ currentProject, currentProjectTitle, projects, titleMode, setTitleMode, onSwitchProject, onCreateProject, onArchiveProject, onRenameProject, onOpenProjectMd, onRefresh, onCreateFile, onOpenYaml, onImport, onExport }: ProjectChipProps) {
+export default function ProjectChip({ currentProject, currentProjectTitle, projects, titleMode, setTitleMode, onSwitchProject, onCreateProject, onArchiveProject, onRenameProject, onOpenProjectMd, onRefresh, onCreateFile, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, isDocumentation }: ProjectChipProps) {
   const [renamingProject, setRenamingProject] = useState(false);
   const [renameProjectValue, setRenameProjectValue] = useState("");
   const [renameProjectError, setRenameProjectError] = useState("");
@@ -204,6 +209,18 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                 onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
               >View YAML</div>
 
+              <div style={{ ...menuItem }}
+                onClick={() => { onEditTemplate(); setMenuOpen(false); }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+              >Frontmatter template</div>
+
+              <div style={{ ...menuItem }}
+                onClick={() => { onCheckCompliance(); setMenuOpen(false); }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+              >Frontmatter compliance</div>
+
               <div
                 style={{ ...menuItem, justifyContent: "space-between", position: "relative" }}
                 onMouseEnter={() => setImportSubmenuOpen(true)}
@@ -271,6 +288,22 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                 onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
               >&#65291; New file</div>
+
+              {isDocumentation && (
+                <>
+                  <div style={{ height: "1px", background: "#e8f4fd", margin: "2px 0" }} />
+                  <div style={{ ...menuItem }}
+                    onClick={() => { onRestoreStructure(); setMenuOpen(false); }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                  >Restore structure</div>
+                  <div style={{ ...menuItem }}
+                    onClick={() => { onRestoreAll(); setMenuOpen(false); }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                  >Restore structure &amp; content</div>
+                </>
+              )}
 
               <div style={{ height: "1px", background: "#e8f4fd", margin: "2px 0" }} />
 
