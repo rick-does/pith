@@ -94,7 +94,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onDeleteFile, onRenameFile, onCreateChildFile, onCopyToChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onCreateProject, onDeleteProject, onArchiveProject, onRenameProject, onOpenProjectMd, onRefresh, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, brokenLinkMap, frontmatterIssueMap, showIndicators, onToggleIndicators }: SidebarProps) {
-  const [titleMode, setTitleMode] = useState(true);
+  const [titleMode, setTitleMode] = useState(() => localStorage.getItem("pith_title_mode") !== "false");
   const [orphanSort, setOrphanSort] = useState<"recent" | "alpha" | "custom">("recent");
   const [orphanOrder, setOrphanOrder] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(flatIds(collection.root)));
@@ -495,7 +495,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
                   currentProjectTitle={currentProjectTitle}
                   projects={projects}
                   titleMode={titleMode}
-                  setTitleMode={setTitleMode}
+                  setTitleMode={(mode: boolean) => { setTitleMode(mode); localStorage.setItem("pith_title_mode", String(mode)); }}
                   onSwitchProject={onSwitchProject}
                   onCreateProject={onCreateProject}
                   onArchiveProject={onArchiveProject}
