@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - "projects/documentation/markdowns/**"
+      - "projects/documentation/_golden/markdowns/**"
       - "mkdocs.yml"
       - "docs/**"
       - ".github/workflows/docs.yml"
@@ -34,7 +34,7 @@ jobs:
 
       - run: pip install mkdocs-material
 
-      - run: cp projects/documentation/markdowns/*.md docs/
+      - run: cp projects/documentation/_golden/markdowns/*.md docs/
 
       - run: mkdocs build
 
