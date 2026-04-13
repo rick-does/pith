@@ -12,6 +12,8 @@ from .models import CollectionStructure, DocusaurusImportRequest, FileNode
 from .utils import (
     archive_file,
     archive_project,
+    batch_update_frontmatter,
+    infer_template_from_file,
     create_project,
     delete_project,
     flatten_paths,
@@ -22,9 +24,13 @@ from .utils import (
     get_project_md,
     list_projects,
     load_collection,
+    load_template,
+    parse_frontmatter,
     rename_file,
     safe_path,
     save_collection,
+    save_template,
+    scan_compliance,
     PROJECTS_DIR,
 )
 from .converters import (
@@ -179,6 +185,69 @@ async def api_search(project: str, q: str = ""):
             })
     results.sort(key=lambda r: len(r["matches"]), reverse=True)
     return results[:50]
+
+# ---------------------------------------------------------------------------
+# Frontmatter template
+# ---------------------------------------------------------------------------
+
+@app.get("/api/projects/{project}/frontmatter-template")
+async def api_get_template(project: str):
+    if not (PROJECTS_DIR / project).exists():
+        raise HTTPException(404, "Project not found")
+    return load_template(project)
+
+
+@app.put("/api/projects/{project}/frontmatter-template")
+async def api_save_template(project: str, request: Request):
+    if not (PROJECTS_DIR / project).exists():
+        raise HTTPException(404, "Project not found")
+    data = await request.json()
+    save_template(project, data)
+    return {"status": "saved"}
+
+
+@app.post("/api/projects/{project}/frontmatter-template/from-file/{file_path:path}")
+async def api_infer_template(project: str, file_path: str):
+    if not (PROJECTS_DIR / project).exists():
+        raise HTTPException(404, "Project not found")
+    fp = safe_path(project, file_path)
+    if not fp.exists():
+        raise HTTPException(404, "File not found")
+    template = infer_template_from_file(project, file_path)
+    save_template(project, template)
+    return template
+
+
+@app.get("/api/projects/{project}/frontmatter/{file_path:path}")
+async def api_get_file_frontmatter(project: str, file_path: str):
+    fp = safe_path(project, file_path)
+    if not fp.exists():
+        raise HTTPException(404, "File not found")
+    content = fp.read_text(encoding="utf-8")
+    meta, _ = parse_frontmatter(content)
+    return {"path": file_path, "frontmatter": meta}
+
+
+@app.get("/api/projects/{project}/frontmatter-compliance")
+async def api_compliance(project: str):
+    if not (PROJECTS_DIR / project).exists():
+        raise HTTPException(404, "Project not found")
+    template = load_template(project)
+    return scan_compliance(project, template)
+
+
+@app.post("/api/projects/{project}/frontmatter-batch-update")
+async def api_batch_update(project: str, request: Request):
+    if not (PROJECTS_DIR / project).exists():
+        raise HTTPException(404, "Project not found")
+    data = await request.json()
+    template = load_template(project)
+    updated = batch_update_frontmatter(
+        project, template,
+        add_defaults=data.get("add_defaults", True),
+        strip_extra=data.get("strip_extra", False),
+    )
+    return {"updated": updated, "count": len(updated)}
 
 # ---------------------------------------------------------------------------
 # Markdown files

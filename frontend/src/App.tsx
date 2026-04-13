@@ -5,16 +5,59 @@ import YAMLEditor from "./components/YAMLEditor";
 import ImportModal from "./components/ImportModal";
 import ExportModal from "./components/ExportModal";
 import SearchPanel from "./components/SearchPanel";
+import TemplateEditor from "./components/TemplateEditor";
+import ComplianceReport from "./components/ComplianceReport";
 import {
   listProjects, createProject, deleteProject, archiveProject, renameProject,
   fetchProjectMd, saveProjectMd,
   fetchCollection, saveCollection, fetchMarkdown, saveMarkdown, fetchCollectionYaml,
   fetchOrphans, createFile, deleteFile, archiveFile, renameFile,
+  fetchTemplate, saveTemplate as apiSaveTemplate, fetchFileFrontmatter,
+  fetchCompliance, batchUpdateFrontmatter, inferTemplateFromFile,
 } from "./api";
 import type { CollectionStructure, FileInfo, FileNode, ProjectInfo } from "./types";
+import type { FrontmatterTemplate, FrontmatterField, ComplianceItem } from "./api";
 import { insertAsChild, reorder, removeNode } from "./treeHelpers";
 
 const LAST_PROJECT_KEY = "pith_project";
+
+function parseFrontmatterClient(content: string): Record<string, any> {
+  const lines = content.split("\n");
+  let yamlLines: string[] = [];
+
+  if (lines[0]?.trim() === "---") {
+    // Standard format
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].trim() === "---") { yamlLines = lines.slice(1, i); break; }
+    }
+  } else if (lines[0] && /^\w[\w\s]*:/.test(lines[0])) {
+    // Jekyll-style: key: value lines terminated by ---
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].trim() === "---") { yamlLines = lines.slice(0, i); break; }
+    }
+  }
+
+  if (yamlLines.length === 0) return {};
+
+  const meta: Record<string, any> = {};
+  for (const line of yamlLines) {
+    const match = line.match(/^([\w][\w\s]*?)\s*:\s*(.*)$/);
+    if (match) {
+      const [, key, raw] = match;
+      const val = raw.trim();
+      if (val.startsWith("[") && val.endsWith("]")) {
+        meta[key.trim()] = val.slice(1, -1).split(",").map(s => s.trim()).filter(Boolean);
+      } else if (val === "true") {
+        meta[key.trim()] = true;
+      } else if (val === "false") {
+        meta[key.trim()] = false;
+      } else {
+        meta[key.trim()] = val;
+      }
+    }
+  }
+  return meta;
+}
 
 type OverlayType = "editor" | "yaml" | "project-md" | null;
 
@@ -35,6 +78,10 @@ export default function App() {
   const [importModal, setImportModal] = useState<{ format: "mkdocs" | "docusaurus" } | null>(null);
   const [exportModal, setExportModal] = useState<{ format: "mkdocs" | "docusaurus" } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [template, setTemplate] = useState<FrontmatterTemplate>({ fields: [] });
+  const [fileFrontmatter, setFileFrontmatter] = useState<Record<string, any>>({});
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false);
+  const [complianceItems, setComplianceItems] = useState<ComplianceItem[] | null>(null);
 
   const editorContentRef = useRef(editorContent);
   const savedContentRef = useRef(savedContent);
@@ -54,9 +101,14 @@ export default function App() {
 
   const loadCollection = useCallback(async (project: string) => {
     try {
-      const [c, o] = await Promise.all([fetchCollection(project), fetchOrphans(project)]);
+      const [c, o, t] = await Promise.all([
+        fetchCollection(project),
+        fetchOrphans(project),
+        fetchTemplate(project),
+      ]);
       setCollection(c);
       setOrphans(o);
+      setTemplate(t);
     } catch {
       setError("Failed to load collection");
     }
@@ -145,10 +197,14 @@ export default function App() {
 
   const handleSelect = useCallback(async (path: string) => {
     if (!currentProject) return;
-    const text = await fetchMarkdown(currentProject, path).catch(() => "# Error loading file");
+    const [text, fm] = await Promise.all([
+      fetchMarkdown(currentProject, path).catch(() => "# Error loading file"),
+      fetchFileFrontmatter(currentProject, path).catch(() => ({ frontmatter: {} })),
+    ]);
     setSelectedPath(path);
     setEditorContent(text);
     setSavedContent(text);
+    setFileFrontmatter(fm.frontmatter ?? {});
     setOverlayType("editor");
   }, [currentProject]);
 
@@ -181,8 +237,62 @@ export default function App() {
     if (currentProject) loadCollection(currentProject);
   }, [currentProject, loadCollection]);
 
+  const handleFrontmatterChange = useCallback((key: string, value: any) => {
+    const newMeta = { ...fileFrontmatter, [key]: value };
+    setFileFrontmatter(newMeta);
+    // Rebuild content with updated frontmatter (always standard --- format)
+    const lines = editorContentRef.current.split("\n");
+    let bodyStart = 0;
+    if (lines[0]?.trim() === "---") {
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim() === "---") { bodyStart = i + 1; break; }
+      }
+    } else if (lines[0] && /^\w[\w\s]*:/.test(lines[0])) {
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].trim() === "---") { bodyStart = i + 1; break; }
+      }
+    }
+    const body = lines.slice(bodyStart).join("\n");
+    const yamlLines = Object.entries(newMeta).map(([k, v]) => {
+      if (Array.isArray(v)) return `${k}: [${v.join(", ")}]`;
+      if (typeof v === "boolean") return `${k}: ${v}`;
+      return `${k}: ${v}`;
+    });
+    const newContent = `---\n${yamlLines.join("\n")}\n---\n${body}`;
+    setEditorContent(newContent);
+  }, [fileFrontmatter]);
+
+  const handleSaveTemplate = useCallback(async (t: FrontmatterTemplate) => {
+    if (!currentProject) return;
+    await apiSaveTemplate(currentProject, t);
+    setTemplate(t);
+    setShowTemplateEditor(false);
+  }, [currentProject]);
+
+  const handleShowCompliance = useCallback(async () => {
+    if (!currentProject) return;
+    const items = await fetchCompliance(currentProject);
+    setComplianceItems(items);
+  }, [currentProject]);
+
+  const handleUseAsTemplate = useCallback(async () => {
+    if (!currentProject || !selectedPath) return;
+    const t = await inferTemplateFromFile(currentProject, selectedPath);
+    setTemplate(t);
+  }, [currentProject, selectedPath]);
+
+  const handleBatchUpdate = useCallback(async (addDefaults: boolean, stripExtra: boolean) => {
+    if (!currentProject) return;
+    await batchUpdateFrontmatter(currentProject, addDefaults, stripExtra);
+    setComplianceItems(null);
+    await loadCollection(currentProject);
+  }, [currentProject, loadCollection]);
+
   const handleFileSaved = useCallback((path: string, content: string) => {
     setSavedContent(content);
+    // Re-parse frontmatter from saved content (standard or Jekyll-style)
+    const meta = parseFrontmatterClient(content);
+    setFileFrontmatter(meta);
     const h1 = content.match(/^#\s+(.+)$/m)?.[1]?.trim();
     if (!h1) return;
     const updateTitle = (nodes: FileNode[]): FileNode[] =>
@@ -273,9 +383,9 @@ export default function App() {
 
   return (
     <div style={{ position: "relative", height: "100vh", width: "100vw", overflow: "hidden", background: "#ffffff", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", display: "flex", flexDirection: "column" }}>
-      <div style={{ height: "50px", flexShrink: 0, background: "#1a6fa8", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 1in" }}>
+      <div style={{ height: "50px", flexShrink: 0, background: "#1a6fa8", display: "flex", alignItems: "center", padding: "0 1in" }}>
         <span style={{ color: "#fff", fontWeight: "bold", fontSize: "20px" }}>Pi<span style={{ color: "#f90" }}>T</span>H</span>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ flex: 1, display: "flex", justifyContent: "center", gap: 8 }}>
           <button
             onClick={() => setSearchOpen(o => !o)}
             title="Search (Ctrl+F)"
@@ -290,8 +400,36 @@ export default function App() {
           >
             &#128269; Search
           </button>
-          <span style={{ color: "#fff", fontSize: "13px", fontStyle: "italic" }}>visual markdown workspace</span>
+          <button
+            onClick={() => setShowTemplateEditor(true)}
+            title="Frontmatter template"
+            style={{
+              background: "transparent",
+              border: "1px solid rgba(255,255,255,0.3)", borderRadius: 4,
+              color: "#fff", cursor: "pointer", padding: "4px 10px",
+              fontSize: 13,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.15)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            Frontmatter
+          </button>
+          <button
+            onClick={handleShowCompliance}
+            title="Check frontmatter compliance"
+            style={{
+              background: "transparent",
+              border: "1px solid rgba(255,255,255,0.3)", borderRadius: 4,
+              color: "#fff", cursor: "pointer", padding: "4px 10px",
+              fontSize: 13,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.15)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            Compliance
+          </button>
         </div>
+        <span style={{ color: "#fff", fontSize: "13px", fontStyle: "italic" }}>visual markdown workspace</span>
       </div>
       <div style={{ flex: 1, minHeight: 0 }}>
         <Sidebar
@@ -339,6 +477,10 @@ export default function App() {
               await saveMarkdown(currentProject, path, content);
             }}
             onRename={handleRenameFile}
+            frontmatter={fileFrontmatter}
+            templateFields={template.fields}
+            onFrontmatterChange={handleFrontmatterChange}
+            onUseAsTemplate={handleUseAsTemplate}
           />
         )}
         {overlayType === "yaml" && (
@@ -393,6 +535,22 @@ export default function App() {
           currentProject={currentProject}
           onOpen={(path) => { setSearchOpen(false); handleSelect(path); }}
           onClose={() => setSearchOpen(false)}
+        />
+      )}
+
+      {showTemplateEditor && (
+        <TemplateEditor
+          template={template}
+          onSave={handleSaveTemplate}
+          onClose={() => setShowTemplateEditor(false)}
+        />
+      )}
+
+      {complianceItems !== null && (
+        <ComplianceReport
+          items={complianceItems}
+          onBatchUpdate={handleBatchUpdate}
+          onClose={() => setComplianceItems(null)}
         />
       )}
     </div>

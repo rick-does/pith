@@ -55,6 +55,10 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 - Orphan/unlinked file management with rubber-band multi-select, 3 sort modes
 - Keyboard navigation (arrow keys + dpad for hierarchy; arrow keys for orphans)
 - Alt+click file preview tooltips
+- Full-text search across all files (Ctrl+F or top bar button, debounced, highlighted matches)
+- Frontmatter template management (per-project schema, infer from existing file, compliance scan, batch update, Jekyll-style support)
+- Frontmatter panel in editor (collapsible, type-aware inputs, "Use as template" button)
+- Preview pane strips frontmatter (both standard and Jekyll-style)
 - Import/Export: MkDocs and Docusaurus sidebar formats
 - Standalone executable (PyInstaller, Win/Mac/Linux)
 - GitHub Actions CI (3 OS), standalone builds, MkDocs docs deploy
@@ -63,8 +67,6 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 ### To build
 
 **High value:**
-- **Full-text search** — search across all files in the current project
-- **Frontmatter display** — read YAML frontmatter, show tags/metadata in sidebar or panel
 - **Internal link validation** — detect broken `[links](file.md)`, highlight after rename
 - **Mermaid diagram rendering** — in the preview pane
 

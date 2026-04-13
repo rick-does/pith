@@ -3,6 +3,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import CodeEditor from "./CodeEditor";
+import FrontmatterPanel from "./FrontmatterPanel";
+import type { FrontmatterField } from "../api";
 
 interface Props {
   path: string;
@@ -14,9 +16,13 @@ interface Props {
   onSaved?: (path: string, content: string) => void;
   onSave: (path: string, content: string) => Promise<void>;
   onRename?: (oldPath: string, newName: string) => void;
+  frontmatter?: Record<string, any>;
+  templateFields?: FrontmatterField[];
+  onFrontmatterChange?: (key: string, value: any) => void;
+  onUseAsTemplate?: () => void;
 }
 
-export default function MarkdownEditor({ path, content, savedContent, onContentChange, viMode, onViModeChange, onSaved, onSave, onRename }: Props) {
+export default function MarkdownEditor({ path, content, savedContent, onContentChange, viMode, onViModeChange, onSaved, onSave, onRename, frontmatter, templateFields, onFrontmatterChange, onUseAsTemplate }: Props) {
   const [view, setView] = useState<"edit" | "preview" | "split">("split");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
@@ -103,6 +109,15 @@ export default function MarkdownEditor({ path, content, savedContent, onContentC
         <div style={{ flex: 1 }} />
       </div>
 
+      {frontmatter && templateFields && onFrontmatterChange && (
+        <FrontmatterPanel
+          metadata={frontmatter}
+          templateFields={templateFields}
+          onChange={onFrontmatterChange}
+          onUseAsTemplate={onUseAsTemplate}
+        />
+      )}
+
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
         {(view === "edit" || view === "split") && (
           <div style={{ flex: view === "split" ? "0 0 559px" : 1, minWidth: 0, overflow: "hidden", borderRight: view === "split" ? "1px solid #333" : "none" }}>
@@ -116,11 +131,33 @@ export default function MarkdownEditor({ path, content, savedContent, onContentC
             lineHeight: "1.7",
           }}>
             <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-              {content}
+              {stripFrontmatter(content)}
             </ReactMarkdown>
           </div>
         )}
       </div>
     </div>
   );
+}
+
+function stripFrontmatter(content: string): string {
+  const lines = content.split("\n");
+  // Standard: starts with ---
+  if (lines[0]?.trim() === "---") {
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].trim() === "---") {
+        return lines.slice(i + 1).join("\n");
+      }
+    }
+    return content;
+  }
+  // Jekyll-style: starts with Key: value, terminated by ---
+  if (lines[0] && /^\w[\w\s]*:/.test(lines[0])) {
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].trim() === "---") {
+        return lines.slice(i + 1).join("\n");
+      }
+    }
+  }
+  return content;
 }

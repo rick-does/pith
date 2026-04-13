@@ -157,6 +157,71 @@ export async function searchProject(project: string, query: string): Promise<Sea
   return r.json();
 }
 
+// Frontmatter template
+
+export interface FrontmatterField {
+  key: string;
+  type: "string" | "list" | "enum" | "boolean" | "date";
+  default?: string | string[] | boolean | null;
+  options?: string[];
+}
+
+export interface FrontmatterTemplate {
+  fields: FrontmatterField[];
+}
+
+export interface ComplianceItem {
+  path: string;
+  title: string;
+  missing: string[];
+  extra: string[];
+}
+
+export async function fetchTemplate(project: string): Promise<FrontmatterTemplate> {
+  const r = await fetch(`${BASE}/projects/${project}/frontmatter-template`);
+  if (!r.ok) throw new Error("Failed to fetch template");
+  return r.json();
+}
+
+export async function saveTemplate(project: string, template: FrontmatterTemplate): Promise<void> {
+  const r = await fetch(`${BASE}/projects/${project}/frontmatter-template`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(template),
+  });
+  if (!r.ok) throw new Error("Failed to save template");
+}
+
+export async function fetchFileFrontmatter(project: string, path: string): Promise<{ path: string; frontmatter: Record<string, any> }> {
+  const r = await fetch(`${BASE}/projects/${project}/frontmatter/${path}`);
+  if (!r.ok) throw new Error("Failed to fetch frontmatter");
+  return r.json();
+}
+
+export async function inferTemplateFromFile(project: string, path: string): Promise<FrontmatterTemplate> {
+  const r = await fetch(`${BASE}/projects/${project}/frontmatter-template/from-file/${path}`, {
+    method: "POST",
+  });
+  if (!r.ok) throw new Error("Failed to infer template");
+  return r.json();
+}
+
+export async function fetchCompliance(project: string): Promise<ComplianceItem[]> {
+  const r = await fetch(`${BASE}/projects/${project}/frontmatter-compliance`);
+  if (!r.ok) throw new Error("Failed to fetch compliance");
+  return r.json();
+}
+
+export async function batchUpdateFrontmatter(project: string, addDefaults: boolean, stripExtra: boolean): Promise<{ updated: string[]; count: number }> {
+  const r = await fetch(`${BASE}/projects/${project}/frontmatter-batch-update`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ add_defaults: addDefaults, strip_extra: stripExtra }),
+  });
+  if (!r.ok) throw new Error("Batch update failed");
+  return r.json();
+}
+
 export async function fetchOrphans(project: string): Promise<FileInfo[]> {
   const r = await fetch(`${BASE}/projects/${project}/orphans`);
   if (!r.ok) throw new Error("Failed to fetch orphans");

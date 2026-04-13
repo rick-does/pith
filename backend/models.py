@@ -25,3 +25,14 @@ class ReorderRequest(BaseModel):
 
 class DocusaurusImportRequest(BaseModel):
     filename: str | None = None
+
+
+class FrontmatterField(BaseModel):
+    key: str
+    type: str = "string"  # string, list, enum, boolean, date
+    default: str | list | bool | None = None
+    options: list[str] | None = None  # for enum type
+
+
+class FrontmatterTemplate(BaseModel):
+    fields: list[FrontmatterField] = []

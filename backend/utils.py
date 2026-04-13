@@ -184,3 +184,200 @@ def delete_project(name: str) -> None:
     proj_dir = PROJECTS_DIR / name
     if proj_dir.exists():
         shutil.rmtree(proj_dir)
+
+
+def get_template_file(project: str) -> Path:
+    return PROJECTS_DIR / project / "frontmatter.yaml"
+
+
+def load_template(project: str) -> dict:
+    tf = get_template_file(project)
+    if not tf.exists():
+        return {"fields": []}
+    data = yaml.safe_load(tf.read_text(encoding="utf-8"))
+    return data if data else {"fields": []}
+
+
+def save_template(project: str, template: dict) -> None:
+    tf = get_template_file(project)
+    tf.write_text(yaml.dump(template, default_flow_style=False), encoding="utf-8")
+
+
+def infer_template_from_file(project: str, rel_path: str) -> dict:
+    """Infer a frontmatter template from an existing file's frontmatter."""
+    fp = safe_path(project, rel_path)
+    content = fp.read_text(encoding="utf-8")
+    meta, _ = parse_frontmatter(content)
+    fields = []
+    for key, value in meta.items():
+        if isinstance(value, bool):
+            fields.append({"key": key, "type": "boolean", "default": value})
+        elif isinstance(value, list):
+            fields.append({"key": key, "type": "list", "default": value})
+        elif isinstance(value, (int, float)):
+            fields.append({"key": key, "type": "string", "default": str(value)})
+        else:
+            fields.append({"key": key, "type": "string", "default": value if value else ""})
+    return {"fields": fields}
+
+
+def parse_frontmatter(content: str) -> tuple[dict, str]:
+    """Parse YAML frontmatter from markdown content. Returns (metadata, body).
+    Handles both standard (---/---) and Jekyll-style (no opening ---) formats."""
+    import frontmatter as fm
+
+    # Standard format: starts with ---
+    post = fm.loads(content)
+    if post.metadata:
+        return dict(post.metadata), post.content
+
+    # Jekyll-style: key: value lines at top, terminated by ---
+    lines = content.split("\n")
+    if not lines or not re.match(r"^\w[\w\s]*:", lines[0]):
+        return {}, content
+
+    end_idx = -1
+    for i, line in enumerate(lines):
+        if line.strip() == "---":
+            end_idx = i
+            break
+    if end_idx < 0:
+        return {}, content
+
+    yaml_block = "\n".join(lines[:end_idx])
+    try:
+        meta = yaml.safe_load(yaml_block)
+        if not isinstance(meta, dict):
+            return {}, content
+        body = "\n".join(lines[end_idx + 1:])
+        return meta, body
+    except Exception:
+        return {}, content
+
+
+def set_frontmatter(content: str, metadata: dict) -> str:
+    """Replace or add YAML frontmatter in markdown content.
+    Always writes standard --- delimited format."""
+    lines = content.split("\n")
+    body_start = 0
+
+    # Standard format
+    if lines[0].strip() == "---":
+        for i in range(1, len(lines)):
+            if lines[i].strip() == "---":
+                body_start = i + 1
+                break
+    # Jekyll-style: key: value at top, terminated by ---
+    elif re.match(r"^\w[\w\s]*:", lines[0]):
+        for i, line in enumerate(lines):
+            if line.strip() == "---":
+                body_start = i + 1
+                break
+
+    body = "\n".join(lines[body_start:])
+    # Write YAML preserving key order (yaml.dump sorts alphabetically)
+    yaml_lines = []
+    for key, value in metadata.items():
+        if isinstance(value, list):
+            yaml_lines.append(f"{key}: [{', '.join(str(v) for v in value)}]")
+        elif isinstance(value, bool):
+            yaml_lines.append(f"{key}: {str(value).lower()}")
+        elif value is None:
+            yaml_lines.append(f"{key}:")
+        else:
+            yaml_lines.append(f"{key}: {value}")
+    yaml_str = "\n".join(yaml_lines)
+    return f"---\n{yaml_str}\n---\n{body}"
+
+
+def scan_compliance(project: str, template: dict) -> list[dict]:
+    """Scan all files against the template. Returns per-file compliance reports."""
+    fields = template.get("fields", [])
+    if not fields:
+        return []
+    expected_keys = {f["key"] for f in fields}
+    md_dir = get_markdowns_dir(project)
+    if not md_dir.exists():
+        return []
+
+    results = []
+    for fp in md_dir.rglob("*.md"):
+        rel = fp.relative_to(md_dir).as_posix()
+        if "_archive" in rel.split("/"):
+            continue
+        try:
+            content = fp.read_text(encoding="utf-8")
+        except Exception:
+            continue
+        meta, _ = parse_frontmatter(content)
+        file_keys = set(meta.keys())
+        missing = sorted(expected_keys - file_keys)
+        extra = sorted(file_keys - expected_keys)
+        if missing or extra:
+            results.append({
+                "path": rel,
+                "title": extract_title(content) or fp.stem,
+                "missing": missing,
+                "extra": extra,
+            })
+    results.sort(key=lambda r: len(r["missing"]) + len(r["extra"]), reverse=True)
+    return results
+
+
+def batch_update_frontmatter(project: str, template: dict, add_defaults: bool = True, strip_extra: bool = False) -> list[str]:
+    """Apply template to all files: add missing keys with defaults, optionally strip extra keys."""
+    fields = template.get("fields", [])
+    if not fields:
+        return []
+    field_map = {f["key"]: f for f in fields}
+    expected_keys = set(field_map.keys())
+    md_dir = get_markdowns_dir(project)
+    if not md_dir.exists():
+        return []
+
+    updated = []
+    for fp in md_dir.rglob("*.md"):
+        rel = fp.relative_to(md_dir).as_posix()
+        if "_archive" in rel.split("/"):
+            continue
+        try:
+            content = fp.read_text(encoding="utf-8")
+        except Exception:
+            continue
+        meta, _ = parse_frontmatter(content)
+        changed = False
+
+        if add_defaults:
+            for key in (f["key"] for f in fields):
+                if key not in meta:
+                    f = field_map[key]
+                    default = f.get("default")
+                    if f["type"] == "list" and default is None:
+                        default = []
+                    elif f["type"] == "boolean" and default is None:
+                        default = False
+                    elif default is None:
+                        default = ""
+                    meta[key] = default
+                    changed = True
+
+        if strip_extra:
+            for key in list(meta.keys()):
+                if key not in expected_keys:
+                    del meta[key]
+                    changed = True
+
+        if changed:
+            # Rebuild in template order: template keys first, then any extras
+            ordered = {}
+            for f in fields:
+                if f["key"] in meta:
+                    ordered[f["key"]] = meta[f["key"]]
+            for key in meta:
+                if key not in ordered:
+                    ordered[key] = meta[key]
+            new_content = set_frontmatter(content, ordered)
+            fp.write_text(new_content, encoding="utf-8")
+            updated.append(rel)
+
+    return updated
