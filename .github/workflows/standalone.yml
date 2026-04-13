@@ -1,0 +1,57 @@
+name: Standalone Build
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          node node_modules/vite/bin/vite.js build
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r backend/requirements.txt
+          pip install pyinstaller
+
+      - name: Build standalone
+        run: pyinstaller pith.spec --distpath dist --workpath build --noconfirm
+
+      - name: Zip output (Unix)
+        if: runner.os != 'Windows'
+        run: cd dist && zip -r ../pith-${{ runner.os }}.zip pith/
+
+      - name: Zip output (Windows)
+        if: runner.os == 'Windows'
+        run: Compress-Archive -Path dist\pith -DestinationPath pith-Windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pith-${{ runner.os }}
+          path: pith-*.zip
+
+      - name: Upload to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: pith-*.zip

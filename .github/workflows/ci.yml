@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  health-check:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Start server
+        shell: bash
+        run: |
+          python -m uvicorn backend.main:app --host 0.0.0.0 --port 8003 &
+          for i in $(seq 1 30); do
+            curl -s http://127.0.0.1:8003/health && break
+            sleep 1
+          done
+
+      - name: Verify health endpoint
+        run: curl -sf http://127.0.0.1:8003/health
+
+      - name: Verify projects endpoint
+        run: curl -sf http://127.0.0.1:8003/api/projects

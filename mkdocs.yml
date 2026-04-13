@@ -1,0 +1,30 @@
+site_name: PiTH
+site_url: https://rick-does.github.io/pith/
+site_description: A visual markdown workspace with hierarchy editing and prose analysis
+repo_url: https://github.com/rick-does/pith
+repo_name: rick-does/pith
+
+docs_dir: docs
+
+theme:
+  name: material
+  palette:
+    primary: custom
+    accent: custom
+  features:
+    - navigation.sections
+    - navigation.top
+    - toc.integrate
+
+extra_css:
+  - stylesheets/extra.css
+
+nav:
+  - Introduction: introduction.md
+  - Getting Started: getting-started.md
+  - Managing Projects: projects.md
+  - Editing Files: editing.md
+  - Building Your Hierarchy: hierarchy.md
+  - Unlinked Files: unlinked-files.md
+  - Import & Export: import-export.md
+  - Keyboard Shortcuts: keyboard-shortcuts.md

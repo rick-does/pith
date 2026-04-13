@@ -1,0 +1,17 @@
+root:
+- children:
+  - children: []
+    order: 0
+    path: eee.md
+    title: Eee
+  order: 0
+  path: xxx.md
+  title: Xxx
+- children: []
+  order: 1
+  path: bbb.md
+  title: Bbb
+- children: []
+  order: 2
+  path: zzz.md
+  title: Zzz
