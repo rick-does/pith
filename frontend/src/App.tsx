@@ -347,6 +347,11 @@ export default function App() {
     setBrokenLinkMap(map);
   }, [currentProject]);
 
+  const handleExportHtml = useCallback(() => {
+    if (!currentProject) return;
+    window.open(`/api/projects/${encodeURIComponent(currentProject)}/export/html`, "_blank");
+  }, [currentProject]);
+
   const handleUseAsTemplate = useCallback(async () => {
     if (!currentProject || !selectedPath) return;
     const t = await inferTemplateFromFile(currentProject, selectedPath);
@@ -543,6 +548,7 @@ export default function App() {
           onRestoreStructure={handleRestoreStructure}
           onRestoreAll={handleRestoreAll}
           onValidateLinks={handleShowLinkReport}
+          onExportHtml={handleExportHtml}
           brokenLinkMap={brokenLinkMap}
           frontmatterIssueMap={frontmatterIssueMap}
           showIndicators={showIndicators}

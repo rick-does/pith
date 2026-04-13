@@ -69,12 +69,10 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 - GitHub Actions CI (3 OS), standalone builds, MkDocs docs deploy
 - Bundled documentation project (11 pages, golden copy with restore via project menu)
 - Mermaid diagram rendering in preview pane (flowcharts, sequence diagrams, etc.)
+- Whole-collection export to single HTML with TOC and print-friendly CSS (print to PDF from browser)
 - Project menu: flyout submenus for Projects, Frontmatter, Restore Docs, Import, Export, Settings
 
 ### To build
-
-**Medium value:**
-- **Whole-collection export to single HTML/PDF** — render full doc set as one document
 - **Word count / reading time** — per file, shown in sidebar chips
 - **External directory projects** — open/manage markdown files in any directory on the filesystem, not just the embedded projects/ folder. Includes file browser for project selection. Cross-platform (Win/Linux/Mac).
 - **Image management** — tied to external directory/file browser work. Image directory convention, UI for browsing/inserting images.
