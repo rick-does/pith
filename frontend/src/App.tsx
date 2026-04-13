@@ -4,6 +4,7 @@ import MarkdownEditor from "./components/MarkdownEditor";
 import YAMLEditor from "./components/YAMLEditor";
 import ImportModal from "./components/ImportModal";
 import ExportModal from "./components/ExportModal";
+import SearchPanel from "./components/SearchPanel";
 import {
   listProjects, createProject, deleteProject, archiveProject, renameProject,
   fetchProjectMd, saveProjectMd,
@@ -33,11 +34,23 @@ export default function App() {
   const [error, setError] = useState("");
   const [importModal, setImportModal] = useState<{ format: "mkdocs" | "docusaurus" } | null>(null);
   const [exportModal, setExportModal] = useState<{ format: "mkdocs" | "docusaurus" } | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const editorContentRef = useRef(editorContent);
   const savedContentRef = useRef(savedContent);
   useEffect(() => { editorContentRef.current = editorContent; }, [editorContent]);
   useEffect(() => { savedContentRef.current = savedContent; }, [savedContent]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "f" && !overlayType) {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [overlayType]);
 
   const loadCollection = useCallback(async (project: string) => {
     try {
@@ -262,7 +275,23 @@ export default function App() {
     <div style={{ position: "relative", height: "100vh", width: "100vw", overflow: "hidden", background: "#ffffff", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", display: "flex", flexDirection: "column" }}>
       <div style={{ height: "50px", flexShrink: 0, background: "#1a6fa8", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 1in" }}>
         <span style={{ color: "#fff", fontWeight: "bold", fontSize: "20px" }}>Pi<span style={{ color: "#f90" }}>T</span>H</span>
-        <span style={{ color: "#fff", fontSize: "13px", fontStyle: "italic" }}>visual markdown workspace</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button
+            onClick={() => setSearchOpen(o => !o)}
+            title="Search (Ctrl+F)"
+            style={{
+              background: searchOpen ? "rgba(255,255,255,0.2)" : "transparent",
+              border: "1px solid rgba(255,255,255,0.3)", borderRadius: 4,
+              color: "#fff", cursor: "pointer", padding: "4px 10px",
+              fontSize: 13, display: "flex", alignItems: "center", gap: 6,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.15)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = searchOpen ? "rgba(255,255,255,0.2)" : "transparent"; }}
+          >
+            &#128269; Search
+          </button>
+          <span style={{ color: "#fff", fontSize: "13px", fontStyle: "italic" }}>visual markdown workspace</span>
+        </div>
       </div>
       <div style={{ flex: 1, minHeight: 0 }}>
         <Sidebar
@@ -356,6 +385,14 @@ export default function App() {
           format={exportModal.format}
           resultPath=""
           onClose={() => setExportModal(null)}
+        />
+      )}
+
+      {searchOpen && currentProject && (
+        <SearchPanel
+          currentProject={currentProject}
+          onOpen={(path) => { setSearchOpen(false); handleSelect(path); }}
+          onClose={() => setSearchOpen(false)}
         />
       )}
     </div>

@@ -139,6 +139,48 @@ async def api_get_orphans(project: str):
     return get_orphans(project, collection)
 
 # ---------------------------------------------------------------------------
+# Search
+# ---------------------------------------------------------------------------
+
+@app.get("/api/projects/{project}/search")
+async def api_search(project: str, q: str = ""):
+    if not (PROJECTS_DIR / project).exists():
+        raise HTTPException(404, "Project not found")
+    query = q.strip().lower()
+    if not query:
+        return []
+    md_dir = get_markdowns_dir(project)
+    if not md_dir.exists():
+        return []
+    results = []
+    for fp in md_dir.rglob("*.md"):
+        rel = fp.relative_to(md_dir).as_posix()
+        if "_archive" in rel.split("/"):
+            continue
+        try:
+            content = fp.read_text(encoding="utf-8")
+        except Exception:
+            continue
+        lines = content.split("\n")
+        matches = []
+        for i, line in enumerate(lines):
+            if query in line.lower():
+                matches.append({
+                    "line": i + 1,
+                    "text": line.strip()[:200],
+                })
+        if matches:
+            title_match = __import__("re").search(r"^#\s+(.+)$", content, __import__("re").MULTILINE)
+            title = title_match.group(1).strip() if title_match else fp.stem
+            results.append({
+                "path": rel,
+                "title": title,
+                "matches": matches[:10],
+            })
+    results.sort(key=lambda r: len(r["matches"]), reverse=True)
+    return results[:50]
+
+# ---------------------------------------------------------------------------
 # Markdown files
 # ---------------------------------------------------------------------------
 

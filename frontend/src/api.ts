@@ -140,6 +140,23 @@ export async function saveCollectionYaml(content: string): Promise<void> {
   }
 }
 
+export interface SearchMatch {
+  line: number;
+  text: string;
+}
+
+export interface SearchResult {
+  path: string;
+  title: string;
+  matches: SearchMatch[];
+}
+
+export async function searchProject(project: string, query: string): Promise<SearchResult[]> {
+  const r = await fetch(`${BASE}/projects/${project}/search?q=${encodeURIComponent(query)}`);
+  if (!r.ok) throw new Error("Search failed");
+  return r.json();
+}
+
 export async function fetchOrphans(project: string): Promise<FileInfo[]> {
   const r = await fetch(`${BASE}/projects/${project}/orphans`);
   if (!r.ok) throw new Error("Failed to fetch orphans");
