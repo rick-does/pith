@@ -76,13 +76,25 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 - Project menu: flyout submenus for Projects, Frontmatter, Restore Docs, Import, Export, Settings
 
 ### To build
-- **Word count / reading time** — per file, shown in sidebar chips
-- **External directory projects** — open/manage markdown files in any directory on the filesystem, not just the embedded projects/ folder. Includes file browser for project selection. Cross-platform (Win/Linux/Mac).
-- **Image management** — tied to external directory/file browser work. Image directory convention, UI for browsing/inserting images.
+
+**pith-cli integration (stats panel) — next up, fully planned:**
+- Add `pith-cli` (rick-does/pith-cli) as a pip dependency in `pyproject.toml`
+- New FastAPI endpoint that imports `pith.commands.stats` directly and returns data as JSON (no subprocess)
+- New collapsible **Stats** panel in the editor pane, below the frontmatter panel, defaults closed
+- Panel shows: word count, sentence count, paragraph count, avg sentence length, then a readability sub-section with: Flesch Reading Ease (with label e.g. "Standard"), Flesch-Kincaid Grade, Gunning Fog, Automated Readability Index, Coleman-Liau
+- No reading time — dropped by design
+- `pth check` not surfaced in GUI — requires spaCy + post-install model download (`python -m spacy download en_core_web_sm`), not bundleable as a normal pip dep or PyInstaller artifact
+- Stats run on demand when panel is expanded, not on every file open
+
+**External directory projects:**
+- Open/manage markdown files in any directory on the filesystem, not just the embedded `projects/` folder
+- Includes file browser for project selection
+- Cross-platform (Win/Linux/Mac)
+
+**Image management** — tied to external directory work; image directory convention, UI for browsing/inserting images
 
 **Lower priority:**
-- Dark mode
-- Templates for new files
+- Templates for new files — pre-populate new files with a skeleton (frontmatter, title heading, section stubs); configurable per project
 
 ---
 
