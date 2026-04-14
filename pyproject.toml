@@ -18,6 +18,7 @@ dependencies = [
     "python-multipart>=0.0.9",
     "aiofiles>=24.1.0",
     "pywebview>=5.0",
+    "textstat>=0.7.0",
 ]
 
 [project.scripts]

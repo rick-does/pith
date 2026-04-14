@@ -340,8 +340,7 @@ def parse_frontmatter(content: str) -> tuple[dict, str]:
 
 
 def set_frontmatter(content: str, metadata: dict) -> str:
-    """Replace or add YAML frontmatter in markdown content.
-    Always writes standard --- delimited format."""
+    """Replace or add YAML frontmatter in markdown content."""
     lines = content.split("\n")
     body_start = 0
 
@@ -359,7 +358,6 @@ def set_frontmatter(content: str, metadata: dict) -> str:
                 break
 
     body = "\n".join(lines[body_start:])
-    # Write YAML preserving key order (yaml.dump sorts alphabetically)
     yaml_lines = []
     for key, value in metadata.items():
         if isinstance(value, list):

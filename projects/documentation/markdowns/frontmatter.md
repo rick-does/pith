@@ -2,15 +2,11 @@
 
 PiTH supports YAML frontmatter in markdown files — both the standard format (with opening and closing `---` delimiters) and Jekyll-style (no opening `---`, just key-value lines terminated by `---`).
 
-## Viewing frontmatter
+Frontmatter is automatically stripped from the rendered preview so it doesn't appear in the output.
 
-When you open a file that has frontmatter, a collapsible **Frontmatter** panel appears below the editor toolbar. Click the header to expand or collapse it. The panel shows each key with a type-appropriate input field.
+## The Frontmatter panel
 
-Frontmatter is automatically stripped from the rendered preview.
-
-## Editing frontmatter
-
-Expand the Frontmatter panel and edit values directly. Changes update the YAML in the editor content in real time. Save with `Ctrl+S` as usual.
+When editing a file, a collapsible **Frontmatter** section appears below the editor toolbar. Click the header to expand or collapse it. The panel contains action buttons for working with the project template. Frontmatter itself is edited directly in the text editor.
 
 ## Frontmatter templates
 
@@ -21,14 +17,18 @@ A template defines the expected frontmatter keys for a project — their names, 
 The easiest way to set up a template:
 
 1. Open a file that already has the frontmatter structure you want
-2. Expand the Frontmatter panel
+2. Expand the Frontmatter panel in the editor
 3. Click **Use as template**
 
 The file's frontmatter keys, types, and values become the project template.
 
+### Applying the template to the current file
+
+Click **Apply template** in the Frontmatter panel. This adds any missing template keys (with their default values) and removes any keys not in the template, for the current file only.
+
 ### Editing the template manually
 
-Click **⋮** on the project chip, then **Frontmatter → Template** to open the template editor. Here you can:
+Click **View template** in the Frontmatter panel, or click **⋮** on the project chip and choose **Frontmatter → Template**. In the template editor you can:
 
 - Add, remove, or reorder fields
 - Set the key name, type (string, list, enum, boolean, date), and default value
@@ -36,17 +36,17 @@ Click **⋮** on the project chip, then **Frontmatter → Template** to open the
 
 ### Supported types
 
-| Type | Input | Default |
-|------|-------|---------|
-| string | Text field | Empty string |
-| list | Comma-separated text | Empty list |
-| enum | Dropdown of defined options | First option |
-| boolean | Checkbox | false |
-| date | Text field | Empty string |
+| Type | Default |
+|------|---------|
+| string | Empty string |
+| list | Empty list |
+| enum | First defined option |
+| boolean | false |
+| date | Empty string |
 
 ## Compliance
 
-Click **⋮** on the project chip, then **Frontmatter → Compliance** to scan all files against the current template. The report shows:
+Click **View compliance** in the Frontmatter panel, or click **⋮** on the project chip and choose **Frontmatter → Compliance**, to scan all files against the current template. The report shows files with:
 
 - **Missing keys** — keys in the template that a file doesn't have
 - **Extra keys** — keys in a file that aren't in the template
@@ -56,9 +56,16 @@ Click **⋮** on the project chip, then **Frontmatter → Compliance** to scan a
 Each file in the compliance report has a checkbox. Select the files you want to update, then choose:
 
 - **Add missing keys with default values** — fills in template keys that the file is missing
-- **Remove extra keys not in template** — strips keys that aren't in the template
+- **Remove extra keys not in template** — strips keys that aren't in the template (checked by default)
 
-Click **Update** to apply changes to the selected files. Key order is preserved from the template.
+Click **Update** to apply changes to the selected files. Key order follows the template.
+
+## Status indicators
+
+File chips in the hierarchy show a small dot for frontmatter status:
+
+- **Pale green outline** — frontmatter matches the template (or no template is defined)
+- **Yellow filled dot** — frontmatter has missing or extra keys relative to the template
 
 ## New files
 

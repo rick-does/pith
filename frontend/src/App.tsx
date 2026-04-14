@@ -24,6 +24,7 @@ import type { FrontmatterTemplate, FrontmatterField, ComplianceItem, FileLinkRep
 import { insertAsChild, insertAsLastChild, reorder, removeNode } from "./treeHelpers";
 
 const LAST_PROJECT_KEY = "pith_project";
+const LAST_FILE_KEY = "pith_selected_file";
 
 function parseFrontmatterClient(content: string): Record<string, any> {
   const lines = content.split("\n");
@@ -168,6 +169,12 @@ export default function App() {
   }, [loadCollection]);
 
   useEffect(() => {
+    if (loading || !currentProject) return;
+    const savedPath = localStorage.getItem(LAST_FILE_KEY);
+    if (savedPath) handleSelect(savedPath).catch(() => localStorage.removeItem(LAST_FILE_KEY));
+  }, [loading]);
+
+  useEffect(() => {
     if (!currentProject) return;
     lastFileCountRef.current = -1;
     const interval = setInterval(async () => {
@@ -189,6 +196,7 @@ export default function App() {
   const handleSwitchProject = useCallback(async (name: string) => {
     setCurrentProject(name);
     localStorage.setItem(LAST_PROJECT_KEY, name);
+    localStorage.removeItem(LAST_FILE_KEY);
     setSelectedPath(null);
     setOverlayType(null);
     setCollection({ root: [] });
@@ -262,6 +270,7 @@ export default function App() {
     setFileFrontmatter(fm.frontmatter ?? {});
     setFileBrokenLinks(broken);
     setOverlayType("editor");
+    localStorage.setItem(LAST_FILE_KEY, path);
   }, [currentProject]);
 
   const handleCloseOverlay = useCallback(() => {
@@ -269,6 +278,7 @@ export default function App() {
       if (!window.confirm(`"${selectedPath}" has unsaved changes.\n\nClose without saving?`)) return;
     }
     setOverlayType(null);
+    localStorage.removeItem(LAST_FILE_KEY);
   }, [overlayType, selectedPath]);
 
   const handleOpenYaml = useCallback(async () => {
@@ -323,7 +333,8 @@ export default function App() {
     await apiSaveTemplate(currentProject, t);
     setTemplate(t);
     setShowTemplateEditor(false);
-  }, [currentProject]);
+    await refreshFrontmatterIssues(currentProject);
+  }, [currentProject, refreshFrontmatterIssues]);
 
   const handleShowCompliance = useCallback(async () => {
     if (!currentProject) return;
@@ -364,6 +375,16 @@ export default function App() {
     if (!currentProject || !selectedPath) return;
     const t = await inferTemplateFromFile(currentProject, selectedPath);
     setTemplate(t);
+    await apiSaveTemplate(currentProject, t);
+    await refreshFrontmatterIssues(currentProject);
+  }, [currentProject, selectedPath, refreshFrontmatterIssues]);
+
+  const handleApplyTemplate = useCallback(async () => {
+    if (!currentProject || !selectedPath) return;
+    await batchUpdateFrontmatter(currentProject, true, true, [selectedPath]);
+    const text = await fetchMarkdown(currentProject, selectedPath);
+    setEditorContent(text);
+    setSavedContent(text);
   }, [currentProject, selectedPath]);
 
   const handleBatchUpdate = useCallback(async (addDefaults: boolean, stripExtra: boolean, files: string[]) => {
@@ -375,6 +396,7 @@ export default function App() {
 
   const handleFileSaved = useCallback((path: string, content: string) => {
     setSavedContent(content);
+    savedContentRef.current = content;
     // Re-parse frontmatter from saved content (standard or Jekyll-style)
     const meta = parseFrontmatterClient(content);
     setFileFrontmatter(meta);
@@ -538,22 +560,27 @@ export default function App() {
   return (
     <div style={{ position: "relative", height: "100vh", width: "100vw", overflow: "hidden", background: "#ffffff", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", display: "flex", flexDirection: "column" }}>
       <div style={{ height: "50px", flexShrink: 0, background: "#1a6fa8", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 1in" }}>
-        <span style={{ color: "#fff", fontWeight: "bold", fontSize: "20px" }}>Pi<span style={{ color: "#f90" }}>T</span>H</span>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ color: "#fff", fontSize: "13px", fontStyle: "italic" }}>visual markdown workspace</span>
+          <span style={{ color: "#fff", fontWeight: "bold", fontSize: "20px", lineHeight: 1, position: "relative", top: -1 }}>Pi<span style={{ color: "#f90" }}>T</span>H</span>
+          <span style={{ color: "rgba(255,255,255,0.5)", fontSize: "13px", fontStyle: "italic" }}>visual markdown workspace</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button
             onClick={() => setSearchOpen(o => !o)}
             title="Search (Ctrl+F)"
             style={{
-              background: searchOpen ? "rgba(255,255,255,0.2)" : "transparent",
-              border: "1px solid rgba(255,255,255,0.3)", borderRadius: 4,
-              color: "#fff", cursor: "pointer", padding: "4px 10px",
-              fontSize: 13, display: "flex", alignItems: "center", gap: 6,
+              background: searchOpen ? "rgba(255,255,255,0.15)" : "transparent",
+              border: "none", borderRadius: 4,
+              color: "#fff", cursor: "pointer", padding: "4px 6px",
+              display: "flex", alignItems: "center",
             }}
             onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.15)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = searchOpen ? "rgba(255,255,255,0.2)" : "transparent"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = searchOpen ? "rgba(255,255,255,0.15)" : "transparent"; }}
           >
-            &#128269; Search
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
+              <circle cx="6.5" cy="6.5" r="4.5" stroke="white" strokeWidth="2"/>
+              <line x1="10" y1="10" x2="14.5" y2="14.5" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
           </button>
         </div>
       </div>
@@ -602,6 +629,7 @@ export default function App() {
         {overlayType === "editor" && selectedPath && (
           <MarkdownEditor
             key={selectedPath}
+            project={currentProject ?? undefined}
             path={selectedPath}
             content={editorContent}
             savedContent={savedContent}
@@ -614,10 +642,11 @@ export default function App() {
               await saveMarkdown(currentProject, path, content);
             }}
             onRename={handleRenameFile}
-            frontmatter={fileFrontmatter}
-            templateFields={template.fields}
-            onFrontmatterChange={handleFrontmatterChange}
             onUseAsTemplate={handleUseAsTemplate}
+            onApplyTemplate={handleApplyTemplate}
+            onEditTemplate={() => setShowTemplateEditor(true)}
+            onViewCompliance={handleShowCompliance}
+            onClose={handleCloseOverlay}
             brokenLinks={fileBrokenLinks}
           />
         )}
@@ -694,6 +723,7 @@ export default function App() {
           template={template}
           onSave={handleSaveTemplate}
           onClose={() => setShowTemplateEditor(false)}
+          onViewCompliance={handleShowCompliance}
         />
       )}
 

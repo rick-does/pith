@@ -5,7 +5,7 @@ import { defaultKeymap, historyKeymap, history } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
 import { yaml } from "@codemirror/lang-yaml";
 import { oneDark } from "@codemirror/theme-one-dark";
-import { vim } from "@replit/codemirror-vim";
+import { vim, Vim } from "@replit/codemirror-vim";
 
 interface Props {
   value: string;
@@ -14,13 +14,19 @@ interface Props {
   viMode?: boolean;
   dark?: boolean;
   readOnly?: boolean;
+  onSave?: () => Promise<void> | void;
+  onClose?: () => void;
 }
 
-export default function CodeEditor({ value, onChange, language = "markdown", viMode = true, dark = true, readOnly = false }: Props) {
+export default function CodeEditor({ value, onChange, language = "markdown", viMode = true, dark = true, readOnly = false, onSave, onClose }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -42,7 +48,11 @@ export default function CodeEditor({ value, onChange, language = "markdown", viM
       }),
     ];
 
-    if (viMode) extensions.push(vim());
+    if (viMode) {
+      Vim.defineEx("write", "w", () => { onSaveRef.current?.(); });
+      Vim.defineEx("xit", "x", () => { Promise.resolve(onSaveRef.current?.()).then(() => onCloseRef.current?.()); });
+      extensions.push(vim());
+    }
     if (dark) extensions.push(oneDark);
     if (language === "markdown") extensions.push(markdown());
     else extensions.push(yaml());

@@ -5,11 +5,12 @@ interface Props {
   template: FrontmatterTemplate;
   onSave: (template: FrontmatterTemplate) => void;
   onClose: () => void;
+  onViewCompliance?: () => void;
 }
 
 const FIELD_TYPES = ["string", "list", "enum", "boolean", "date"] as const;
 
-export default function TemplateEditor({ template, onSave, onClose }: Props) {
+export default function TemplateEditor({ template, onSave, onClose, onViewCompliance }: Props) {
   const [fields, setFields] = useState<FrontmatterField[]>(
     template.fields.map(f => ({ ...f })),
   );
@@ -112,7 +113,11 @@ export default function TemplateEditor({ template, onSave, onClose }: Props) {
           + Add field
         </button>
 
-        <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "flex-end" }}>
+        <div style={{ display: "flex", gap: 8, marginTop: 16, alignItems: "center" }}>
+          {onViewCompliance && (
+            <button onClick={onViewCompliance} style={actionBtn}>View compliance</button>
+          )}
+          <div style={{ flex: 1 }} />
           <button onClick={onClose} style={{ ...actionBtn, background: "#eee", color: "#333" }}>Cancel</button>
           <button onClick={handleSave} style={actionBtn}>Save template</button>
         </div>

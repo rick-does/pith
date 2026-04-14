@@ -97,11 +97,11 @@ export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSel
               <span style={{ position: "absolute", right: "36px", top: 0, bottom: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "14px", gap: "4px" }}>
                 <span
                   title={bc > 0 ? `${bc} broken link${bc !== 1 ? "s" : ""}` : "Links OK"}
-                  style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, ...(bc > 0 ? { background: "#c00" } : { border: "1.5px solid #3a7d44" }) }}
+                  style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, ...(bc > 0 ? { background: "#c00" } : { border: "1.5px solid #cce5d0" }) }}
                 />
                 <span
                   title={fm ? "Frontmatter does not match template" : "Frontmatter OK"}
-                  style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, ...(fm ? { background: "#cc8800" } : { border: "1.5px solid #3a7d44" }) }}
+                  style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, ...(fm ? { background: "#cc8800" } : { border: "1.5px solid #cce5d0" }) }}
                 />
               </span>
             );

@@ -9,7 +9,7 @@ interface Props {
 
 export default function ComplianceReport({ items, onBatchUpdate, onClose }: Props) {
   const [addDefaults, setAddDefaults] = useState(true);
-  const [stripExtra, setStripExtra] = useState(false);
+  const [stripExtra, setStripExtra] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(() => new Set(items.map(i => i.path)));
 
   const toggleFile = (path: string) => {

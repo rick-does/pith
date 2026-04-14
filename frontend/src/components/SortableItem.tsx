@@ -213,11 +213,11 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
                 <span style={{ position: "absolute", right: "31px", top: 0, bottom: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "14px", gap: "4px" }}>
                   <span
                     title={brokenCount > 0 ? `${brokenCount} broken link${brokenCount !== 1 ? "s" : ""}` : "Links OK"}
-                    style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, ...(brokenCount > 0 ? { background: "#c00" } : { border: "1.5px solid #3a7d44" }) }}
+                    style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, ...(brokenCount > 0 ? { background: "#c00" } : { border: "1.5px solid #cce5d0" }) }}
                   />
                   <span
                     title={hasFmIssue ? "Frontmatter does not match template" : "Frontmatter OK"}
-                    style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, ...(hasFmIssue ? { background: "#cc8800" } : { border: "1.5px solid #3a7d44" }) }}
+                    style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, ...(hasFmIssue ? { background: "#cc8800" } : { border: "1.5px solid #cce5d0" }) }}
                   />
                 </span>
               )}

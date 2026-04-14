@@ -56,10 +56,13 @@ export default function SearchPanel({ currentProject, onOpen, onClose }: Props) 
     }}>
       <div style={{
         display: "flex", alignItems: "center", gap: 8,
-        padding: "10px 12px", background: "#16213e",
+        padding: "10px 12px", background: "#111",
         borderBottom: "1px solid #333", flexShrink: 0,
       }}>
-        <span style={{ color: "#6b8cff", fontSize: 16, flexShrink: 0 }}>&#128269;</span>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+            <circle cx="6.5" cy="6.5" r="4.5" stroke="#888" strokeWidth="2"/>
+            <line x1="10" y1="10" x2="14.5" y2="14.5" stroke="#888" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
         <input
           ref={inputRef}
           value={query}

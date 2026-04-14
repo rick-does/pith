@@ -42,6 +42,7 @@ from .converters import (
     import_docusaurus,
     import_mkdocs,
 )
+from .stats import compute_stats
 
 app = FastAPI(title="PiTH")
 
@@ -294,6 +295,17 @@ async def api_restore_all():
     for fp in golden_md.glob("*.md"):
         shutil.copy2(str(fp), str(target_md / fp.name))
     return {"status": "restored", "scope": "all"}
+
+# ---------------------------------------------------------------------------
+# Stats
+# ---------------------------------------------------------------------------
+
+@app.get("/api/projects/{project}/stats/{file_path:path}")
+async def api_stats(project: str, file_path: str):
+    fp = safe_path(project, file_path)
+    if not fp.exists():
+        raise HTTPException(404, "File not found")
+    return compute_stats(fp)
 
 # ---------------------------------------------------------------------------
 # Link validation

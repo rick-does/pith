@@ -77,30 +77,34 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 
 ### To build
 
-**pith-cli integration (stats panel) — next up, fully planned:**
-- Add `pith-cli` (rick-does/pith-cli) as a pip dependency in `pyproject.toml`
-- New FastAPI endpoint that imports `pith.commands.stats` directly and returns data as JSON (no subprocess)
-- New collapsible **Stats** panel in the editor pane, below the frontmatter panel, defaults closed
-- Panel shows: word count, sentence count, paragraph count, avg sentence length, then a readability sub-section with: Flesch Reading Ease (with label e.g. "Standard"), Flesch-Kincaid Grade, Gunning Fog, Automated Readability Index, Coleman-Liau
-- No reading time — dropped by design (patronizing)
-- `pth check` not surfaced in GUI — requires spaCy + post-install model download (`python -m spacy download en_core_web_sm`), not bundleable as a normal pip dep or PyInstaller artifact; also unreliable (passive voice detection has high false positive/negative rate)
-- Stats run on demand when panel is expanded, not on every file open
+**Analysis panel — architecture decision:**
+pith and pith-cli are separate, independent projects. pith does NOT depend on pith-cli. Analysis functionality is embedded directly in pith's backend using `textstat` and `markdown-it-py` (both PyInstaller-friendly, no spaCy). pith-cli is a standalone CLI for power users; pith is a self-contained GUI executable for any user. No shared dep, no subprocess calls, no spaCy anywhere in pith.
 
-**pith-cli GUI integration decisions — full command list:**
+**Analysis panel — command plan:**
 
-| Command | GUI home | Status |
+| Feature | GUI home | Status |
 |---|---|---|
-| `pth stats` | Stats panel in editor | **Build next** |
-| `pth check` | — | **Dropped** — spaCy not bundleable, unreliable |
-| `pth scan` | Editor panel | Deferred |
-| `pth structure` | Editor panel | Deferred |
-| `pth report` | Export menu | Deferred |
-| `pth batch` | Project menu | Deferred |
-| `pth compare` | Unclear (right-click?) | Deferred |
-| `pth extract` | — | Terminal only |
-| `pth lint` | — | Terminal only |
-| `pth summary` | — | Terminal only (needs Claude API key) |
-| `pth watch` | — | Terminal only |
+| Stats | Editor panel — **build first (POC)** | Next |
+| Scan | Editor panel | After stats |
+| Structure | Editor panel | After stats |
+| Report | Export menu | After stats |
+| Batch | Project menu | After stats |
+| Compare | TBD (right-click?) | After stats |
+
+Stats is the proof of concept for the panel UI. Once it looks right, scan/structure/batch/compare/report follow the same pattern.
+
+**Stats panel spec:**
+- Add `textstat` and `markdown-it-py` to `pyproject.toml`
+- `backend/stats.py` — strips markdown, computes stat dict, returns it (no Rich, no CLI)
+- New FastAPI endpoint `POST /stats` — takes file path, returns JSON
+- New collapsible **Stats** panel in editor, below frontmatter panel, defaults closed
+- Panel shows: word count, sentence count, paragraph count, avg sentence length; readability sub-section: Flesch Reading Ease (with label e.g. "Standard"), Flesch-Kincaid Grade, Gunning Fog, Automated Readability Index, Coleman-Liau
+- No reading time — dropped by design
+- Runs on demand when panel is expanded, not on every file open
+
+**What's not in the GUI (ever):**
+- `pth check` — dropped; spaCy requires post-install model download, not bundleable, passive voice detection unreliable
+- `pth extract`, `pth lint`, `pth summary`, `pth watch` — terminal only
 
 **External directory projects:**
 - Open/manage markdown files in any directory on the filesystem, not just the embedded `projects/` folder
