@@ -82,9 +82,25 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 - New FastAPI endpoint that imports `pith.commands.stats` directly and returns data as JSON (no subprocess)
 - New collapsible **Stats** panel in the editor pane, below the frontmatter panel, defaults closed
 - Panel shows: word count, sentence count, paragraph count, avg sentence length, then a readability sub-section with: Flesch Reading Ease (with label e.g. "Standard"), Flesch-Kincaid Grade, Gunning Fog, Automated Readability Index, Coleman-Liau
-- No reading time — dropped by design
-- `pth check` not surfaced in GUI — requires spaCy + post-install model download (`python -m spacy download en_core_web_sm`), not bundleable as a normal pip dep or PyInstaller artifact
+- No reading time — dropped by design (patronizing)
+- `pth check` not surfaced in GUI — requires spaCy + post-install model download (`python -m spacy download en_core_web_sm`), not bundleable as a normal pip dep or PyInstaller artifact; also unreliable (passive voice detection has high false positive/negative rate)
 - Stats run on demand when panel is expanded, not on every file open
+
+**pith-cli GUI integration decisions — full command list:**
+
+| Command | GUI home | Status |
+|---|---|---|
+| `pth stats` | Stats panel in editor | **Build next** |
+| `pth check` | — | **Dropped** — spaCy not bundleable, unreliable |
+| `pth scan` | Editor panel | Deferred |
+| `pth structure` | Editor panel | Deferred |
+| `pth report` | Export menu | Deferred |
+| `pth batch` | Project menu | Deferred |
+| `pth compare` | Unclear (right-click?) | Deferred |
+| `pth extract` | — | Terminal only |
+| `pth lint` | — | Terminal only |
+| `pth summary` | — | Terminal only (needs Claude API key) |
+| `pth watch` | — | Terminal only |
 
 **External directory projects:**
 - Open/manage markdown files in any directory on the filesystem, not just the embedded `projects/` folder
