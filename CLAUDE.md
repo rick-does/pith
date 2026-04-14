@@ -72,7 +72,10 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 - Settings persist in localStorage: title/filename mode, status indicators on/off
 - Standalone executable (PyInstaller, Win/Mac/Linux); pywebview-safe (no window.open)
 - GitHub Actions CI (3 OS), standalone builds, MkDocs docs deploy
-- Bundled documentation project (11 pages, golden copy with restore via project menu)
+- Bundled documentation project (11 pages) — two-copy architecture:
+  - `projects/documentation/markdowns/` — user-editable copy, shown in the app
+  - `projects/documentation/_golden/markdowns/` — source of truth for GitHub Pages and Restore Docs; the docs workflow only triggers on changes here
+  - **Rule:** whenever doc markdowns are edited, sync both copies. Copy from `markdowns/` to `_golden/markdowns/` before committing.
 - Project menu: flyout submenus for Projects, Frontmatter, Restore Docs, Import, Export, Settings
 - Stats panel in editor (collapsible, on-demand): word count, sentence count, paragraph count, avg sentence length, 5 readability scores (Flesch, FK Grade, Gunning Fog, ARI, Coleman-Liau)
 - Vi keybindings in editor: :w saves, :x saves and closes
