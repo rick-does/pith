@@ -57,7 +57,7 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 - Alt+click file preview tooltips; tooltips show opposite of display (title vs path)
 - Full-text search across all files (Ctrl+F or top bar button, debounced, highlighted matches)
 - Frontmatter template management (per-project schema, infer from file via "Use as template", compliance scan with selective batch update, Jekyll-style support)
-- Frontmatter panel in editor (collapsible, defaults closed, type-aware inputs)
+- Frontmatter action bar in editor (collapsible pane with Apply template, Use as template, View template, View compliance buttons)
 - Preview pane strips frontmatter (both standard and Jekyll-style)
 - Internal link validation (project-wide scan, per-file broken link panel in editor, re-validates on save)
 - Status indicators on chips: stacked dots (green outline = OK, red filled = broken links, yellow filled = frontmatter mismatch)
@@ -74,6 +74,8 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 - GitHub Actions CI (3 OS), standalone builds, MkDocs docs deploy
 - Bundled documentation project (11 pages, golden copy with restore via project menu)
 - Project menu: flyout submenus for Projects, Frontmatter, Restore Docs, Import, Export, Settings
+- Stats panel in editor (collapsible, on-demand): word count, sentence count, paragraph count, avg sentence length, 5 readability scores (Flesch, FK Grade, Gunning Fog, ARI, Coleman-Liau)
+- Vi keybindings in editor: :w saves, :x saves and closes
 
 ### To build
 
@@ -84,23 +86,14 @@ pith and pith-cli are separate, independent projects. pith does NOT depend on pi
 
 | Feature | GUI home | Status |
 |---|---|---|
-| Stats | Editor panel — **build first (POC)** | Next |
-| Scan | Editor panel | After stats |
-| Structure | Editor panel | After stats |
-| Report | Export menu | After stats |
-| Batch | Project menu | After stats |
-| Compare | TBD (right-click?) | After stats |
+| Stats | Editor panel | Done |
+| Scan | Editor panel | Next |
+| Structure | Editor panel | After scan |
+| Report | Export menu | After scan |
+| Batch | Project menu | After scan |
+| Compare | TBD (right-click?) | After scan |
 
-Stats is the proof of concept for the panel UI. Once it looks right, scan/structure/batch/compare/report follow the same pattern.
-
-**Stats panel spec:**
-- Add `textstat` and `markdown-it-py` to `pyproject.toml`
-- `backend/stats.py` — strips markdown, computes stat dict, returns it (no Rich, no CLI)
-- New FastAPI endpoint `POST /stats` — takes file path, returns JSON
-- New collapsible **Stats** panel in editor, below frontmatter panel, defaults closed
-- Panel shows: word count, sentence count, paragraph count, avg sentence length; readability sub-section: Flesch Reading Ease (with label e.g. "Standard"), Flesch-Kincaid Grade, Gunning Fog, Automated Readability Index, Coleman-Liau
-- No reading time — dropped by design
-- Runs on demand when panel is expanded, not on every file open
+Stats panel is live. Same collapsible panel pattern applies to scan/structure/batch/compare/report.
 
 **What's not in the GUI (ever):**
 - `pth check` — dropped; spaCy requires post-install model download, not bundleable, passive voice detection unreliable
