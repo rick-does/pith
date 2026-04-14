@@ -4,7 +4,7 @@ PiTH includes full-text search across all files in the current project.
 
 ## Opening search
 
-Click the **Search** button in the top bar, or press `Ctrl+F` (`Cmd+F` on Mac). The search panel slides in from the right.
+Click the magnifying glass icon in the top-right of the header bar, or press `Ctrl+F` (`Cmd+F` on Mac). The search panel slides in from the right.
 
 ## Searching
 

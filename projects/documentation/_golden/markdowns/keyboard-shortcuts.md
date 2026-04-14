@@ -32,6 +32,15 @@ Using ↑ or ↓ in the Unlinked pane automatically switches the sort order to C
 | Ctrl+S / Cmd+S | Save the current file |
 | Escape | Close the editor |
 
+## Vi mode commands
+
+When vi mode is enabled, the following ex commands are available in addition to standard vi keybindings:
+
+| Command | Action |
+|---------|--------|
+| `:w` | Save the current file |
+| `:x` | Save the current file and close the editor |
+
 ## Renaming
 
 | Action | How |

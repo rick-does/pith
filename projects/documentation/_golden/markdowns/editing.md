@@ -1,3 +1,8 @@
+Title: Title
+Author:
+Required:
+---
+
 # Editing Files
 
 ## Opening a file
@@ -13,11 +18,50 @@ The editor opens as a panel that slides in from the right. It is split into two 
 
 The preview supports GitHub Flavored Markdown (GFM) including tables, strikethrough, and task lists. Mermaid diagram code blocks are rendered as actual diagrams — see [Mermaid Diagrams](#mermaid-diagrams) below.
 
+## View modes
+
+Use the **edit / split / preview** buttons in the top-right of the editor toolbar to switch between:
+
+- **edit** — text editor only
+- **split** — editor and preview side by side (default)
+- **preview** — rendered preview only
+
 ## Saving
 
-Press `Ctrl+S` (or `Cmd+S` on Mac) to save. The file title in the hierarchy updates automatically if you change the `# H1` heading.
+Press `Ctrl+S` (or `Cmd+S` on Mac) to save. The Save button in the toolbar turns green when there are unsaved changes and goes dim when the file is clean. The file title in the hierarchy updates automatically if you change the `# H1` heading.
 
-Unsaved changes are indicated by a dot in the editor toolbar.
+With vi mode enabled, `:w` saves and `:x` saves then closes the editor. See [Vi Mode](#vi-mode) below.
+
+## Vi mode
+
+Check the **vi** box in the editor toolbar to enable vi keybindings. Normal mode, insert mode, and visual mode all work as expected.
+
+Vi-specific save commands:
+
+| Command | Action |
+|---------|--------|
+| `:w` | Save |
+| `:x` | Save and close the editor |
+
+## Frontmatter
+
+Below the editor toolbar is a collapsible **Frontmatter** section. Click the header to expand it. When expanded, it shows action buttons for working with the project's frontmatter template:
+
+- **Apply template** — adds missing template keys (with defaults) and removes extra keys from this file
+- **Use as template** — sets this file's frontmatter as the project template
+- **View template** — opens the template editor
+- **View compliance** — opens the compliance report
+
+Frontmatter is edited directly in the text editor. The preview pane strips it from the rendered output. See [Frontmatter](frontmatter.md) for full details.
+
+## Stats
+
+Below the Frontmatter section is a collapsible **Stats** section. Click the header to load stats for the current file on demand.
+
+Stats shown:
+
+- Word count, sentence count, paragraph count, average sentence length
+- **Readability:** Flesch Reading Ease (with label), Flesch-Kincaid Grade, Gunning Fog, Automated Readability Index, Coleman-Liau Index
 
 ## Renaming from the editor
 
