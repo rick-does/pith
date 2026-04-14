@@ -13,10 +13,15 @@ If you've ever maintained a documentation site and found yourself hand-editing a
 
 ## Features
 
-- **Visual hierarchy management** — drag and drop files to reorder and nest them; use keyboard shortcuts for fine-grained control
-- **Built-in editor with live preview** — edit markdown in a split pane with syntax highlighting and rendered preview side by side
-- **Unlinked file detection** — files in your project folder that aren't in the hierarchy are surfaced automatically so nothing gets lost
-- **MkDocs and Docusaurus import/export** — bring in an existing nav config or export your hierarchy when you're ready to publish
+- **Visual hierarchy management** — drag and drop files to reorder and nest them; keyboard shortcuts for fine-grained control
+- **Built-in editor with live preview** — split pane with syntax highlighting, rendered preview, and vi mode (`:w` / `:x`)
+- **Readability stats** — on-demand word count, sentence length, and 5 readability scores per file
+- **Frontmatter templates** — define expected frontmatter keys per project, scan for compliance, batch-update files
+- **Internal link validation** — project-wide broken link scan; per-file broken link panel that re-checks on save
+- **Full-text search** — search across all files in a project with highlighted match context
+- **Unlinked file detection** — files not in the hierarchy are surfaced automatically so nothing gets lost
+- **Mermaid diagram rendering** — flowcharts, sequence diagrams, and more render live in the preview pane
+- **MkDocs and Docusaurus import/export** — bring in an existing nav config or export when ready to publish
 - **Multiple projects** — switch between doc sets without losing your place
 - **Runs locally** — your files stay on your machine; no cloud, no accounts
 
@@ -66,6 +71,7 @@ Then open `http://localhost:8002` in your browser.
 
 - **Backend:** Python, FastAPI
 - **Frontend:** React, Vite, TypeScript
-- **Editor:** CodeMirror 6
+- **Editor:** CodeMirror 6 (vi mode via @replit/codemirror-vim)
 - **Drag and drop:** dnd-kit
+- **Readability:** textstat
 - **Standalone:** PyInstaller, pywebview
