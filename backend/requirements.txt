@@ -5,4 +5,5 @@ markdown==3.7
 python-frontmatter==1.1.0
 python-multipart==0.0.9
 aiofiles==24.1.0
+textstat==0.7.13
 pywebview==6.1
