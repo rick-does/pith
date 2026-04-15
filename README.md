@@ -15,13 +15,16 @@ If you've ever maintained a documentation site and found yourself hand-editing a
 
 - **Visual hierarchy management** — drag and drop files to reorder and nest them; keyboard shortcuts for fine-grained control
 - **Built-in editor with live preview** — split pane with syntax highlighting, rendered preview, and vi mode (`:w` / `:x`)
-- **Readability stats** — on-demand word count, sentence length, and 5 readability scores per file
+- **Readability stats** — on-demand word count, sentence length, and 5 readability scores per file; project-wide Scan Project report with export to HTML/PDF
 - **Frontmatter templates** — define expected frontmatter keys per project, scan for compliance, batch-update files
 - **Internal link validation** — project-wide broken link scan; per-file broken link panel that re-checks on save
 - **Full-text search** — search across all files in a project with highlighted match context
-- **Unlinked file detection** — files not in the hierarchy are surfaced automatically so nothing gets lost
+- **Unlinked file management** — files not in the hierarchy are surfaced automatically; rubber-band multi-select, shift-click range select, ctrl-click toggle, multi-drag to hierarchy
+- **Import markdowns from any directory** — create a new project from an existing folder of `.md` files, or add individual files to a project with duplicate-safe naming
+- **Flatten / restore hierarchy** — flatten the tree to start fresh; restore the saved hierarchy if you change your mind
 - **Mermaid diagram rendering** — flowcharts, sequence diagrams, and more render live in the preview pane
 - **MkDocs and Docusaurus import/export** — bring in an existing nav config or export when ready to publish
+- **HTML/PDF export** — whole-collection export to a single HTML document with table of contents and print CSS
 - **Multiple projects** — switch between doc sets without losing your place
 - **Runs locally** — your files stay on your machine; no cloud, no accounts
 
