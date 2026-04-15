@@ -47,6 +47,7 @@ from .converters import (
 )
 from .stats import compute_stats
 from .issues import compute_issues
+from .structure import compute_structure
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -325,6 +326,14 @@ async def api_stats(project: str, file_path: str):
     if not fp.exists():
         raise HTTPException(404, "File not found")
     return compute_stats(fp)
+
+
+@app.get("/api/projects/{project}/structure/{file_path:path}")
+async def api_structure(project: str, file_path: str):
+    fp = safe_path(project, file_path)
+    if not fp.exists():
+        raise HTTPException(404, "File not found")
+    return compute_structure(fp)
 
 
 @app.get("/api/projects/{project}/issues/{file_path:path}")

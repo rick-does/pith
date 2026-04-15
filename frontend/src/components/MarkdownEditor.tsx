@@ -195,8 +195,10 @@ interface IssuesData {
   flags: IssueFlag[];
   shape: { headings: number; empty_sections: number; long_sentences: number; long_paragraphs: number; };
 }
+interface StructureSection { level: number; title: string; word_count: number; }
+interface StructureData { sections: StructureSection[]; max_depth: number; total_words: number; }
 
-type ActivePanel = "frontmatter" | "stats" | "issues" | null;
+type ActivePanel = "frontmatter" | "stats" | "issues" | "structure" | null;
 
 function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewCompliance, project, filePath }: {
   onApplyTemplate?: () => Promise<void> | void;
@@ -214,8 +216,11 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
   const [issues, setIssues] = useState<IssuesData | null>(null);
   const [issuesLoading, setIssuesLoading] = useState(false);
   const [issuesError, setIssuesError] = useState<string | null>(null);
+  const [structure, setStructure] = useState<StructureData | null>(null);
+  const [structureLoading, setStructureLoading] = useState(false);
+  const [structureError, setStructureError] = useState<string | null>(null);
 
-  useEffect(() => { setStats(null); setIssues(null); }, [filePath]);
+  useEffect(() => { setStats(null); setIssues(null); setStructure(null); }, [filePath]);
 
   useEffect(() => {
     if (active === "stats" && project && filePath) {
@@ -237,6 +242,16 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
     }
   }, [active, project, filePath]);
 
+  useEffect(() => {
+    if (active === "structure" && project && filePath) {
+      setStructure(null); setStructureError(null); setStructureLoading(true);
+      fetch(`/api/projects/${project}/structure/${filePath}`)
+        .then(r => { if (!r.ok) throw new Error("Failed to load structure"); return r.json(); })
+        .then(d => { setStructure(d); setStructureLoading(false); })
+        .catch(e => { setStructureError(e.message); setStructureLoading(false); });
+    }
+  }, [active, project, filePath]);
+
   const toggle = (panel: NonNullable<ActivePanel>) => setActive(p => p === panel ? null : panel);
 
   const runFm = async (fn: () => Promise<void> | void, label: string) => {
@@ -247,25 +262,134 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
 
   const hasFm = onApplyTemplate || onUseAsTemplate || onEditTemplate || onViewCompliance;
 
-  const Tab = ({ id, label }: { id: NonNullable<ActivePanel>; label: string }) => (
-    <div
-      onClick={() => toggle(id)}
-      style={{
-        display: "flex", alignItems: "center", gap: 6, padding: "4px 14px",
-        cursor: "pointer", userSelect: "none", borderRight: "1px solid #1e1e1e",
-      }}
-    >
-      <span style={{ fontSize: 10, color: "#888" }}>{active === id ? "\u25BC" : "\u25B6"}</span>
-      <span style={{ fontSize: 12, color: active === id ? "#bbb" : "#888", fontWeight: 600 }}>{label}</span>
-    </div>
-  );
+  const Tab = ({ id, label }: { id: NonNullable<ActivePanel>; label: string }) => {
+    const isActive = active === id;
+    return (
+      <div
+        onClick={() => toggle(id)}
+        style={{
+          display: "flex", alignItems: "center", gap: 6, padding: "4px 14px",
+          cursor: "pointer", userSelect: "none", borderRight: "1px solid #1e1e1e",
+          background: isActive ? "#1a3a5c" : "transparent",
+        }}
+      >
+        <span style={{ fontSize: 10, color: isActive ? "#7ec8f7" : "#888" }}>{isActive ? "\u25BC" : "\u25B6"}</span>
+        <span style={{ fontSize: 12, color: isActive ? "#7ec8f7" : "#888", fontWeight: 600 }}>{label}</span>
+      </div>
+    );
+  };
+
+  const overlayStyle: React.CSSProperties = {
+    position: "absolute", top: "100%", left: -20, zIndex: 50,
+    background: "#111", border: "1px solid #2a6a9a",
+    boxShadow: "0 6px 16px rgba(0,0,0,0.5)", padding: "6px 12px 10px",
+    minWidth: 280,
+  };
 
   return (
     <div style={{ borderBottom: "1px solid #333", background: "#111", flexShrink: 0 }}>
       <div style={{ display: "flex", alignItems: "stretch" }}>
-        {hasFm && <Tab id="frontmatter" label="Frontmatter" />}
-        {project && <Tab id="stats" label="Stats" />}
-        {project && <Tab id="issues" label="Issues" />}
+        {hasFm && (
+          <div style={{ position: "relative" }}>
+            <Tab id="frontmatter" label="Frontmatter" />
+          </div>
+        )}
+        {project && (
+          <div style={{ position: "relative" }}>
+            <Tab id="stats" label="Stats" />
+            {active === "stats" && (
+              <div style={overlayStyle}>
+                {statsLoading && <span style={{ fontSize: 13, color: "#888" }}>Loading…</span>}
+                {statsError && <span style={{ fontSize: 13, color: "#f66" }}>{statsError}</span>}
+                {stats && (
+                  <>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: 10 }}>
+                      <StatRow label="Words" value={String(stats.word_count)} />
+                      <StatRow label="Sentences" value={String(stats.sentence_count)} />
+                      <StatRow label="Paragraphs" value={String(stats.paragraph_count)} />
+                      <StatRow label="Avg sentence length" value={`${stats.avg_sentence_length} words`} />
+                    </div>
+                    <div style={{ fontSize: 12, color: "#888", fontWeight: 600, marginBottom: 4, paddingTop: 4, borderTop: "1px solid #222" }}>Readability</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                      <StatRow label="Flesch Reading Ease" value={`${stats.flesch_reading_ease}`} note={stats.flesch_reading_ease_label} />
+                      <StatRow label="Flesch-Kincaid Grade" value={`${stats.flesch_kincaid_grade}`} />
+                      <StatRow label="Gunning Fog" value={`${stats.gunning_fog}`} />
+                      <StatRow label="Automated Readability" value={`${stats.automated_readability_index}`} />
+                      <StatRow label="Coleman-Liau" value={`${stats.coleman_liau_index}`} />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+        {project && (
+          <div style={{ position: "relative" }}>
+            <Tab id="issues" label="Issues" />
+            {active === "issues" && (
+              <div style={overlayStyle}>
+                {issuesLoading && <span style={{ fontSize: 13, color: "#888" }}>Loading…</span>}
+                {issuesError && <span style={{ fontSize: 13, color: "#f66" }}>{issuesError}</span>}
+                {issues && (
+                  <>
+                    {issues.flags.length === 0 ? (
+                      <span style={{ fontSize: 13, color: "#5c5" }}>No issues found</span>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        {issues.flags.map((flag, i) => (
+                          <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                            <span style={{ fontSize: 12, color: flag.severity === "warn" ? "#fa0" : "#666", flexShrink: 0, marginTop: 1 }}>
+                              {flag.severity === "warn" ? "\u26A0" : "\u2022"}
+                            </span>
+                            <span style={{ fontSize: 13, color: "#ccc" }}>{flag.message}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{ marginTop: 8, paddingTop: 6, borderTop: "1px solid #222" }}>
+                      <span style={{ fontSize: 12, color: "#777" }}>{issues.shape.headings} heading{issues.shape.headings !== 1 ? "s" : ""}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+        {project && (
+          <div style={{ position: "relative" }}>
+            <Tab id="structure" label="Structure" />
+            {active === "structure" && (
+              <div style={overlayStyle}>
+                {structureLoading && <span style={{ fontSize: 13, color: "#888" }}>Loading…</span>}
+                {structureError && <span style={{ fontSize: 13, color: "#f66" }}>{structureError}</span>}
+                {structure && (
+                  <>
+                    {structure.sections.length === 0 ? (
+                      <span style={{ fontSize: 13, color: "#888" }}>No headings found</span>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2, maxHeight: 320, overflowY: "auto" }}>
+                        {structure.sections.map((s, i) => (
+                          <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 6, paddingLeft: (s.level - 1) * 12 }}>
+                            <span style={{ fontSize: 12, color: "#777", flexShrink: 0 }}>{"#".repeat(s.level)}</span>
+                            <span style={{ fontSize: 13, color: "#bbb", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title}</span>
+                            <span style={{ fontSize: 12, color: s.word_count === 0 ? "#555" : "#888", flexShrink: 0, paddingLeft: 8 }}>
+                              {s.word_count === 0 ? "—" : `${s.word_count}w`}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{ marginTop: 8, paddingTop: 6, borderTop: "1px solid #222", display: "flex", gap: 16 }}>
+                      <span style={{ fontSize: 12, color: "#777" }}>{structure.sections.length} heading{structure.sections.length !== 1 ? "s" : ""}</span>
+                      <span style={{ fontSize: 12, color: "#777" }}>depth {structure.max_depth}</span>
+                      <span style={{ fontSize: 12, color: "#777" }}>{structure.total_words}w total</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         <div style={{ flex: 1 }} />
         {active === "frontmatter" && fmMsg && (
           <span style={{ fontSize: 12, color: "#7ec8f7", padding: "4px 12px", alignSelf: "center" }}>{fmMsg}</span>
@@ -288,59 +412,6 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
           )}
         </div>
       )}
-
-      {active === "stats" && project && (
-        <div style={{ padding: "4px 12px 10px" }}>
-          {statsLoading && <span style={{ fontSize: 12, color: "#888" }}>Loading…</span>}
-          {statsError && <span style={{ fontSize: 12, color: "#f66" }}>{statsError}</span>}
-          {stats && (
-            <>
-              <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: 10 }}>
-                <StatRow label="Words" value={String(stats.word_count)} />
-                <StatRow label="Sentences" value={String(stats.sentence_count)} />
-                <StatRow label="Paragraphs" value={String(stats.paragraph_count)} />
-                <StatRow label="Avg sentence length" value={`${stats.avg_sentence_length} words`} />
-              </div>
-              <div style={{ fontSize: 11, color: "#888", fontWeight: 600, marginBottom: 4, paddingTop: 4, borderTop: "1px solid #222" }}>Readability</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                <StatRow label="Flesch Reading Ease" value={`${stats.flesch_reading_ease}`} note={stats.flesch_reading_ease_label} />
-                <StatRow label="Flesch-Kincaid Grade" value={`${stats.flesch_kincaid_grade}`} />
-                <StatRow label="Gunning Fog" value={`${stats.gunning_fog}`} />
-                <StatRow label="Automated Readability" value={`${stats.automated_readability_index}`} />
-                <StatRow label="Coleman-Liau" value={`${stats.coleman_liau_index}`} />
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {active === "issues" && project && (
-        <div style={{ padding: "4px 12px 10px" }}>
-          {issuesLoading && <span style={{ fontSize: 12, color: "#888" }}>Loading…</span>}
-          {issuesError && <span style={{ fontSize: 12, color: "#f66" }}>{issuesError}</span>}
-          {issues && (
-            <>
-              {issues.flags.length === 0 ? (
-                <span style={{ fontSize: 12, color: "#5c5" }}>No issues found</span>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  {issues.flags.map((flag, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                      <span style={{ fontSize: 11, color: flag.severity === "warn" ? "#fa0" : "#666", flexShrink: 0, marginTop: 1 }}>
-                        {flag.severity === "warn" ? "\u26A0" : "\u2022"}
-                      </span>
-                      <span style={{ fontSize: 12, color: "#ccc" }}>{flag.message}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div style={{ marginTop: 8, paddingTop: 6, borderTop: "1px solid #222" }}>
-                <span style={{ fontSize: 11, color: "#555" }}>{issues.shape.headings} heading{issues.shape.headings !== 1 ? "s" : ""}</span>
-              </div>
-            </>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -348,9 +419,9 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
 function StatRow({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <span style={{ fontSize: 12, color: "#888", width: 150, flexShrink: 0, textAlign: "right" }}>{label}</span>
-      <span style={{ fontSize: 12, color: "#ccc" }}>{value}</span>
-      {note && <span style={{ fontSize: 11, color: "#888" }}>{note}</span>}
+      <span style={{ fontSize: 13, color: "#888", width: 150, flexShrink: 0, textAlign: "left" }}>{label}</span>
+      <span style={{ fontSize: 13, color: "#ccc" }}>{value}</span>
+      {note && <span style={{ fontSize: 12, color: "#888" }}>{note}</span>}
     </div>
   );
 }

@@ -43,9 +43,9 @@ Vi-specific save commands:
 | `:w` | Save |
 | `:x` | Save and close the editor |
 
-## Frontmatter, Stats, and Issues
+## Frontmatter, Stats, Issues, and Structure
 
-Below the editor toolbar is a bar with three tabs: **Frontmatter**, **Stats**, and **Issues**. Click any tab header to expand it; clicking an open tab collapses it. Only one tab can be open at a time.
+Below the editor toolbar is a bar with four tabs: **Frontmatter**, **Stats**, **Issues**, and **Structure**. Click any tab header to expand it; clicking an open tab collapses it. Only one tab can be open at a time. The Stats, Issues, and Structure panels open as floating overlays so they don't push the editor down.
 
 ## Frontmatter
 
@@ -85,7 +85,13 @@ The **Issues** tab runs a structural triage of the current file and flags potent
 
 If no issues are found, the panel shows **No issues found**. The heading count for the file is always shown at the bottom.
 
-See [Issues Example](scan-test.md) for a sample file that triggers every scan flag.
+See [Issues Example](scan-test.md) for a sample file that triggers every Issues flag.
+
+## Structure
+
+The **Structure** tab shows the heading skeleton of the current file — the outline with per-section word counts.
+
+Each line shows the heading level (`#`, `##`, etc.), the heading title, and the word count for that section's direct body text (not including sub-sections). Sections with no body text show a dash. The footer shows total heading count, maximum nesting depth, and total word count.
 
 ## Renaming from the editor
 
