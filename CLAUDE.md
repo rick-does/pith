@@ -52,7 +52,7 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 - Drag-and-drop markdown hierarchy editor with connector lines
 - Live markdown preview with CodeMirror editor (vi mode, split/edit/preview)
 - Project management (create, archive, rename, switch projects)
-- Orphan/unlinked file management with rubber-band multi-select, 3 sort modes, multi-select drag/double-click
+- Orphan/unlinked file management with rubber-band multi-select, shift-click range select, 3 sort modes, multi-select drag/double-click
 - Keyboard navigation (arrow keys + dpad for hierarchy; arrow keys for orphans)
 - Alt+click file preview tooltips; tooltips show opposite of display (title vs path)
 - Full-text search across all files (Ctrl+F or top bar button, debounced, highlighted matches)
@@ -77,11 +77,14 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
   - `_golden/documentation/markdowns/` — source of truth for GitHub Pages and Restore Docs; tracked in git; the docs workflow only triggers on changes here
   - On first launch, the backend lifespan auto-populates `projects/documentation/` from `_golden/documentation/` if missing
   - **Rule:** whenever doc markdowns are edited, sync both copies. Copy from `projects/documentation/markdowns/` to `_golden/documentation/markdowns/` before committing.
-- Project menu: flyout submenus for Projects, Frontmatter, Restore Docs, Import, Export, Settings
+- Project menu: Projects (New project, New Project from Markdowns, project list with archive), File (New file, Add File from Markdown, Project info), View YAML, Flatten/Restore hierarchy, Frontmatter (Template, Compliance), Validate links, View HTML/PDF, Scan Project, Restore Docs (documentation only), Import from..., Export to..., Settings
 - Stats panel in editor (collapsible, on-demand): word count, sentence count, paragraph count, avg sentence length, 5 readability scores (Flesch, FK Grade, Gunning Fog, ARI, Coleman-Liau)
 - Vi keybindings in editor: :w saves, :x saves and closes
 - Scan Project: project-wide analysis report (stats + issues + structure on every file); accessible from Project menu and editor tab bar; renders in overlay with Save as HTML and Print/Save as PDF
-- External directory projects: open/manage markdown files in any filesystem directory (not just embedded `projects/`); "📁 Open folder…" in Project menu; pywebview uses native folder picker (`webview.FOLDER_DIALOG`), browser falls back to text-input modal; metadata stored in `projects/{name}/external.json`; `get_markdowns_dir()` transparently redirects all file ops to the external path; cross-platform (Win/Linux/Mac) — **implemented but not yet tested**
+- New Project from Markdowns: browse to any directory, copy all `.md` files into a new local project; dialog includes project title, directory name (auto-derived from title), and collapsible folder browser showing dirs + .md files; files land as orphans in the new project
+- Add File from Markdown: browse to a directory, select one or more `.md` files (default: all selected), copy into the current project's markdowns dir; duplicate filenames get incrementing index suffix (e.g. `notes-1.md`, `notes-2.md`) with matching title update
+- Flatten/Restore hierarchy: flatten moves all tree nodes to orphans (saves backup); restore brings back the saved hierarchy; backup is forgotten once user starts rebuilding the tree
+- Launcher kills stale processes on startup: `_kill_existing(port)` frees the port before uvicorn starts (Win + Unix)
 
 ### To build
 
@@ -104,13 +107,10 @@ All per-file analysis panels (Stats, Issues, Structure) are live in the editor t
 - `pth check` — dropped; spaCy requires post-install model download, not bundleable, passive voice detection unreliable
 - `pth extract`, `pth lint`, `pth summary`, `pth watch` — terminal only
 
-**External directory projects — finish testing and fix bugs** (code written, not yet tested by user)
-
-**Image management** — after external dirs are verified; tied to external directory work:
+**Image management:**
 - Image directory convention (e.g. `images/` or `assets/` sibling to markdown files)
 - UI for browsing images in the project directory
 - Insert image into editor (markdown syntax)
-- Works for both embedded projects and external directory projects
 
 **Lower priority:**
 - Templates for new files — pre-populate new files with a skeleton (frontmatter, title heading, section stubs); configurable per project

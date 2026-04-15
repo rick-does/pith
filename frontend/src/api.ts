@@ -248,24 +248,62 @@ export async function exportToFormat(project: string, format: "mkdocs" | "docusa
   return r.json();
 }
 
-export async function browseFolder(): Promise<string | null> {
-  const r = await fetch(`${BASE}/browse/folder`);
-  if (!r.ok) return null;
+
+export async function browseStartDir(project?: string): Promise<string> {
+  const q = project ? `?project=${encodeURIComponent(project)}` : "";
+  const r = await fetch(`${BASE}/browse/start-dir${q}`);
+  if (!r.ok) return "";
   const data = await r.json();
-  return data.path ?? null;
+  return data.path ?? "";
 }
 
-export async function openExternalProject(path: string): Promise<{ name: string; title: string }> {
-  const r = await fetch(`${BASE}/projects/open-external`, {
+export async function browseDirs(path: string = ""): Promise<{ path: string; parent: string | null; dirs: string[]; files: string[] }> {
+  const r = await fetch(`${BASE}/browse/dirs?path=${encodeURIComponent(path)}`);
+  if (!r.ok) throw new Error("Failed to list directory");
+  return r.json();
+}
+
+export async function importMarkdowns(path: string): Promise<{ name: string; title: string }> {
+  const r = await fetch(`${BASE}/projects/import-markdowns`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ path }),
   });
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));
-    throw new Error(err.detail ?? "Failed to open folder");
+    throw new Error(err.detail ?? "Failed to import markdowns");
   }
   return r.json();
+}
+
+export async function importFiles(project: string, files: string[]): Promise<{ copied: string[]; count: number }> {
+  const r = await fetch(`${BASE}/projects/import-files`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ project, files }),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.detail ?? "Failed to import files");
+  }
+  return r.json();
+}
+
+export async function flattenHierarchy(project: string): Promise<void> {
+  const r = await fetch(`${BASE}/projects/${encodeURIComponent(project)}/flatten`, { method: "POST" });
+  if (!r.ok) throw new Error("Failed to flatten hierarchy");
+}
+
+export async function restoreHierarchy(project: string): Promise<void> {
+  const r = await fetch(`${BASE}/projects/${encodeURIComponent(project)}/restore-hierarchy`, { method: "POST" });
+  if (!r.ok) throw new Error("Failed to restore hierarchy");
+}
+
+export async function checkHierarchyBackup(project: string): Promise<boolean> {
+  const r = await fetch(`${BASE}/projects/${encodeURIComponent(project)}/hierarchy-backup`);
+  if (!r.ok) return false;
+  const data = await r.json();
+  return data.exists ?? false;
 }
 
 export async function restoreDocStructure(): Promise<void> {

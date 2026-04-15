@@ -19,21 +19,7 @@ def get_projects_dir() -> Path:
     return PROJECTS_DIR
 
 
-def get_external_path(project: str) -> Path | None:
-    ext_file = PROJECTS_DIR / project / "external.json"
-    if ext_file.exists():
-        try:
-            data = json.loads(ext_file.read_text(encoding="utf-8"))
-            return Path(data["path"])
-        except Exception:
-            return None
-    return None
-
-
 def get_markdowns_dir(project: str) -> Path:
-    ext = get_external_path(project)
-    if ext is not None:
-        return ext
     return PROJECTS_DIR / project / "markdowns"
 
 
@@ -43,6 +29,10 @@ def get_collection_file(project: str) -> Path:
 
 def get_project_md(project: str) -> Path:
     return PROJECTS_DIR / project / ".pith-project"
+
+
+def get_hierarchy_backup_file(project: str) -> Path:
+    return PROJECTS_DIR / project / "tree-backup.yaml"
 
 
 def safe_path(project: str, rel_path: str) -> Path:
@@ -90,15 +80,25 @@ def create_project(name: str) -> None:
         pmd.write_text(f"# {name}\n", encoding="utf-8")
 
 
+def iter_md_files(md_dir: Path):
+    """Yield (Path, posix_rel_str) for every .md file under md_dir, excluding _archive."""
+    md_dir_str = str(md_dir)
+    for root, _dirs, files in os.walk(md_dir_str):
+        for filename in files:
+            if filename.lower().endswith(".md"):
+                fp = Path(root) / filename
+                rel = fp.relative_to(md_dir).as_posix()
+                if "_archive" in rel.split("/"):
+                    continue
+                yield fp, rel
+
+
 def get_all_md_files(project: str) -> list[dict]:
     md_dir = get_markdowns_dir(project)
     if not md_dir.exists():
         return []
     files = []
-    for fp in md_dir.rglob("*.md"):
-        rel = fp.relative_to(md_dir).as_posix()
-        if "_archive" in rel.split("/"):
-            continue
+    for fp, rel in iter_md_files(md_dir):
         title = extract_title(fp.read_text(encoding="utf-8"))
         if not title:
             title = fp.stem
@@ -157,6 +157,10 @@ def save_collection(project: str, collection: CollectionStructure) -> None:
     tree_file.parent.mkdir(parents=True, exist_ok=True)
     data = {"root": [node.model_dump() for node in collection.root]}
     tree_file.write_text(yaml.dump(data, default_flow_style=False), encoding="utf-8")
+    if collection.root:
+        backup = get_hierarchy_backup_file(project)
+        if backup.exists():
+            backup.unlink()
 
 
 def get_orphans(project: str, collection: CollectionStructure) -> list[dict]:
@@ -202,38 +206,41 @@ def delete_project(name: str) -> None:
         shutil.rmtree(proj_dir)
 
 
-def open_external_project(path: str) -> str:
-    """Register an external directory as a pith project. Returns the project name."""
-    ext_path = Path(path).resolve()
-    if not ext_path.exists() or not ext_path.is_dir():
+def import_markdowns(path: str) -> str:
+    """Copy all .md files from path into a new local project. Returns the project name."""
+    src = Path(path).resolve()
+    if not src.exists() or not src.is_dir():
         raise ValueError(f"Directory not found: {path}")
 
-    # Derive a safe project name from the directory name
-    base_name = re.sub(r"[^\w\-]", "-", ext_path.name).strip("-") or "external"
+    base_name = re.sub(r"[^\w\-]", "-", src.name).strip("-") or "imported"
     base_name = base_name.lower()
     name = base_name
     i = 1
     while (PROJECTS_DIR / name).exists():
-        existing = get_external_path(name)
-        if existing and existing.resolve() == ext_path:
-            return name  # Already registered, reuse it
         name = f"{base_name}-{i}"
         i += 1
 
-    proj_dir = PROJECTS_DIR / name
-    proj_dir.mkdir(parents=True, exist_ok=True)
-    (proj_dir / "external.json").write_text(
-        json.dumps({"path": str(ext_path)}, ensure_ascii=False),
-        encoding="utf-8",
-    )
+    md_dir = PROJECTS_DIR / name / "markdowns"
+    md_dir.mkdir(parents=True, exist_ok=True)
+
+    import glob as _glob
+    pattern = os.path.join(str(src), "**", "*.md")
+    found = _glob.glob(pattern, recursive=True)
+    if not found:
+        shutil.rmtree(str(PROJECTS_DIR / name))
+        raise ValueError(f"No .md files found in: {src}")
+    for src_file_str in found:
+        src_file = Path(src_file_str)
+        rel = src_file.relative_to(src)
+        dest = md_dir / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src_file_str, str(dest))
 
     tree_file = get_collection_file(name)
-    if not tree_file.exists():
-        tree_file.write_text("root: []\n", encoding="utf-8")
+    tree_file.write_text("root: []\n", encoding="utf-8")
 
     pmd = get_project_md(name)
-    if not pmd.exists():
-        pmd.write_text(f"# {ext_path.name}\n", encoding="utf-8")
+    pmd.write_text(f"# {src.name}\n", encoding="utf-8")
 
     return name
 
@@ -282,10 +289,7 @@ def validate_project_links(project: str) -> list[dict]:
     if not md_dir.exists():
         return []
     results = []
-    for fp in md_dir.rglob("*.md"):
-        rel = fp.relative_to(md_dir).as_posix()
-        if "_archive" in rel.split("/"):
-            continue
+    for fp, rel in iter_md_files(md_dir):
         broken = validate_file_links(project, rel)
         if broken:
             title = extract_title(fp.read_text(encoding="utf-8")) or fp.stem
@@ -304,10 +308,7 @@ def find_incoming_links(project: str, target_path: str) -> list[dict]:
     if not md_dir.exists():
         return []
     results = []
-    for fp in md_dir.rglob("*.md"):
-        rel = fp.relative_to(md_dir).as_posix()
-        if "_archive" in rel.split("/"):
-            continue
+    for fp, rel in iter_md_files(md_dir):
         content = fp.read_text(encoding="utf-8")
         links = extract_internal_links(content)
         matching = [l for l in links if l["target"] == target_path or
@@ -435,10 +436,7 @@ def scan_compliance(project: str, template: dict) -> list[dict]:
         return []
 
     results = []
-    for fp in md_dir.rglob("*.md"):
-        rel = fp.relative_to(md_dir).as_posix()
-        if "_archive" in rel.split("/"):
-            continue
+    for fp, rel in iter_md_files(md_dir):
         try:
             content = fp.read_text(encoding="utf-8")
         except Exception:
@@ -471,10 +469,7 @@ def batch_update_frontmatter(project: str, template: dict, add_defaults: bool = 
         return []
 
     updated = []
-    for fp in md_dir.rglob("*.md"):
-        rel = fp.relative_to(md_dir).as_posix()
-        if "_archive" in rel.split("/"):
-            continue
+    for fp, rel in iter_md_files(md_dir):
         if only_files is not None and rel not in only_files:
             continue
         try:

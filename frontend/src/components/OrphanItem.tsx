@@ -7,7 +7,7 @@ export interface OrphanItemProps {
   title: string;
   titleMode: boolean;
   isMultiSelected: boolean;
-  onMultiSelect: (path: string, ctrl: boolean) => void;
+  onMultiSelect: (path: string, ctrl: boolean, shift: boolean) => void;
   onAddToSelection: (path: string) => void;
   onOpen: (path: string) => void;
   onDelete: (path: string) => void;
@@ -78,7 +78,7 @@ export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSel
             } else {
               clickTimerRef.current = setTimeout(() => {
                 clickTimerRef.current = null;
-                onMultiSelect(path, e.ctrlKey || e.metaKey);
+                onMultiSelect(path, e.ctrlKey || e.metaKey, e.shiftKey);
               }, 250);
             }
           }}

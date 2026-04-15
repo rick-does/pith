@@ -11,7 +11,7 @@ interface OrphanPaneProps {
   activeId: string | null;
   currentProject: string;
   selectedOrphans: Set<string>;
-  onOrphanSelect: (path: string, ctrl: boolean) => void;
+  onOrphanSelect: (path: string, ctrl: boolean, shift: boolean) => void;
   onAddToSelection: (path: string) => void;
   orphanSort: "recent" | "alpha" | "custom";
   setOrphanSort: (sort: "recent" | "alpha" | "custom") => void;

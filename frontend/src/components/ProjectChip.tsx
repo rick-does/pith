@@ -9,12 +9,11 @@ export interface ProjectChipProps {
   titleMode: boolean;
   setTitleMode: (mode: boolean) => void;
   onSwitchProject: (name: string) => void;
-  onCreateProject: (name: string) => Promise<void>;
+  onNewProject: (expandMarkdowns: boolean) => void;
   onArchiveProject: (name: string) => Promise<void>;
-  onRenameProject: (oldName: string, newName: string) => Promise<void>;
   onOpenProjectMd: () => void;
-  onRefresh: () => Promise<void>;
   onCreateFile: (filename: string) => Promise<void>;
+  onAddFileFromMd: () => void;
   onOpenYaml: () => void;
   onImport: (format: "mkdocs" | "docusaurus") => void;
   onExport: (format: "mkdocs" | "docusaurus") => void;
@@ -25,17 +24,19 @@ export interface ProjectChipProps {
   onValidateLinks: () => void;
   onExportHtml: () => void;
   onReport: () => void;
-  onOpenFolder: () => void;
+
+
+  hasHierarchyBackup: boolean;
+  onFlattenHierarchy: () => void;
+  onRestoreHierarchy: () => void;
   isDocumentation: boolean;
   showIndicators: boolean;
   onToggleIndicators: () => void;
 }
 
-export default function ProjectChip({ currentProject, currentProjectTitle, projects, titleMode, setTitleMode, onSwitchProject, onCreateProject, onArchiveProject, onRenameProject, onOpenProjectMd, onRefresh, onCreateFile, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, onOpenFolder, isDocumentation, showIndicators, onToggleIndicators }: ProjectChipProps) {
-  const [renamingProject, setRenamingProject] = useState(false);
-  const [renameProjectValue, setRenameProjectValue] = useState("");
-  const [renameProjectError, setRenameProjectError] = useState("");
-  const renameProjectInputRef = useRef<HTMLInputElement>(null);
+export default function ProjectChip({ currentProject, currentProjectTitle, projects, titleMode, setTitleMode, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onCreateFile, onAddFileFromMd, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, isDocumentation, showIndicators, onToggleIndicators }: ProjectChipProps) {
+
+
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
@@ -44,14 +45,13 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
   const [exportSubmenuOpen, setExportSubmenuOpen] = useState(false);
   const [frontmatterSubmenuOpen, setFrontmatterSubmenuOpen] = useState(false);
   const [restoreSubmenuOpen, setRestoreSubmenuOpen] = useState(false);
+  const [fileSubmenuOpen, setFileSubmenuOpen] = useState(false);
   const [settingsSubmenuOpen, setSettingsSubmenuOpen] = useState(false);
   const menuRef = useRef<HTMLSpanElement>(null);
   const menuButtonRef = useRef<HTMLSpanElement>(null);
 
-  const [creatingProject, setCreatingProject] = useState(false);
-  const [newProjectName, setNewProjectName] = useState("");
-  const [projectError, setProjectError] = useState("");
-  const projectInputRef = useRef<HTMLInputElement>(null);
+
+
 
   const [creatingFile, setCreatingFile] = useState(false);
   const [newFileName, setNewFileName] = useState("");
@@ -67,32 +67,11 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
     return () => document.removeEventListener("mousedown", handler);
   }, [menuOpen]);
 
-  const normalizeProjectName = (raw: string) =>
-    raw.trim().replace(/\s+/g, "-").replace(/[/\\<>:"|?*\0]/g, "");
 
-  const commitRenameProject = async () => {
-    const name = normalizeProjectName(renameProjectValue);
-    if (!name || name === "." || name === "..") { setRenameProjectError("Invalid name"); return; }
-    if (name === currentProject) { setRenamingProject(false); return; }
-    try {
-      await onRenameProject(currentProject, name);
-      setRenamingProject(false);
-      setRenameProjectError("");
-    } catch (e: any) { setRenameProjectError(e.message ?? "Error"); }
-  };
 
-  const cancelCreatingProject = () => { setCreatingProject(false); setNewProjectName(""); setProjectError(""); };
-  const submitNewProject = async () => {
-    const name = newProjectName.trim().replace(/\s+/g, "-").toLowerCase();
-    if (!name) return;
-    if (/[/\\<>:"|?*]/.test(name)) { setProjectError("Invalid name"); return; }
-    try { await onCreateProject(name); cancelCreatingProject(); }
-    catch (e: any) { setProjectError(e.message ?? "Error"); }
-  };
-  const handleProjectInputKey = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") submitNewProject();
-    if (e.key === "Escape") cancelCreatingProject();
-  };
+
+
+
 
   const startCreating = () => { setCreatingFile(true); setNewFileName(""); setCreateError(""); setTimeout(() => inputRef.current?.focus(), 50); };
   const cancelCreating = () => { setCreatingFile(false); setNewFileName(""); setCreateError(""); };
@@ -130,32 +109,13 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
         padding: "5px 8px 5px 12px",
         userSelect: "none",
       }}>
-        {renamingProject ? (
-          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-            <input
-              ref={renameProjectInputRef}
-              value={renameProjectValue}
-              autoFocus
-              onChange={(e) => { setRenameProjectValue(e.target.value); setRenameProjectError(""); }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") { e.stopPropagation(); commitRenameProject(); }
-                if (e.key === "Escape") { e.stopPropagation(); setRenamingProject(false); setRenameProjectError(""); }
-              }}
-              onBlur={commitRenameProject}
-              onClick={(e) => e.stopPropagation()}
-              style={{ background: "#fff", border: "none", borderRadius: "4px", color: "#1a1a1a", fontSize: "13px", padding: "2px 5px", outline: "none", width: "100%" }}
-            />
-            {renameProjectError && <span style={{ color: "#fca", fontSize: "10px" }}>{renameProjectError}</span>}
-          </div>
-        ) : (
-          <span
-            style={{ fontSize: "15px", fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, cursor: "text" }}
-            title={titleMode ? currentProjectTitle : currentProject}
-            onDoubleClick={() => { setRenameProjectValue(currentProject); setRenameProjectError(""); setRenamingProject(true); }}
-          >
-            {titleMode ? currentProjectTitle : currentProject}
-          </span>
-        )}
+        <span
+          style={{ fontSize: "15px", fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, cursor: "pointer" }}
+          title={titleMode ? currentProjectTitle : currentProject}
+          onDoubleClick={() => { onOpenProjectMd(); }}
+        >
+          {titleMode ? currentProjectTitle : currentProject}
+        </span>
         <span ref={menuRef} style={{ position: "relative", flexShrink: 0 }}>
           <span
             ref={menuButtonRef}
@@ -188,9 +148,20 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                 <span style={flyoutArrow}>&#9656;</span>
                 {projectSubmenuOpen && (
                   <div style={submenuStyle}>
+                    <div style={{ ...menuItem }}
+                      onClick={() => { onNewProject(false); setMenuOpen(false); setProjectSubmenuOpen(false); }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    >New project</div>
+                    <div style={{ ...menuItem }}
+                      onClick={() => { onNewProject(true); setMenuOpen(false); setProjectSubmenuOpen(false); }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    >New Project from Markdowns</div>
+                    <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />
                     {projects.map(p => (
                       <div key={p.name}
-                        style={{ ...menuItem, background: p.name === currentProject ? "#e8f4fd" : "transparent", color: p.name === currentProject ? "#1a6fa8" : "#1a1a1a", fontWeight: p.name === currentProject ? 600 : 400, justifyContent: "space-between", paddingRight: "8px" }}
+                        style={{ ...menuItem, background: p.name === currentProject ? "#e8f4fd" : "transparent", color: p.name === currentProject ? "#1a6fa8" : "#666", fontWeight: p.name === currentProject ? 600 : 400, justifyContent: "space-between", paddingRight: "8px" }}
                         onClick={() => { onSwitchProject(p.name); setMenuOpen(false); setProjectSubmenuOpen(false); }}
                         onMouseEnter={(e) => { if (p.name !== currentProject) (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                         onMouseLeave={(e) => { if (p.name !== currentProject) (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
@@ -209,17 +180,49 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                 )}
               </div>
 
+              {/* File flyout */}
+              <div
+                style={{ ...menuItem, justifyContent: "space-between", position: "relative" }}
+                onMouseEnter={() => setFileSubmenuOpen(true)}
+                onMouseLeave={() => setFileSubmenuOpen(false)}
+              >
+                <span>File</span>
+                <span style={flyoutArrow}>&#9656;</span>
+                {fileSubmenuOpen && (
+                  <div style={submenuStyle}>
+                    <div style={{ ...menuItem }}
+                      onClick={() => { startCreating(); setMenuOpen(false); setFileSubmenuOpen(false); }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    >New file</div>
+                    <div style={{ ...menuItem }}
+                      onClick={() => { onAddFileFromMd(); setMenuOpen(false); setFileSubmenuOpen(false); }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    >Add File from Markdown</div>
+                  </div>
+                )}
+              </div>
+
               <div style={{ ...menuItem }}
                 onClick={() => { onOpenProjectMd(); setMenuOpen(false); }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-              >Info</div>
+              >Project info</div>
 
               <div style={{ ...menuItem }}
                 onClick={() => { onOpenYaml(); setMenuOpen(false); }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
               >View YAML</div>
+
+              <div style={{ ...menuItem }}
+                onClick={() => { hasHierarchyBackup ? onRestoreHierarchy() : onFlattenHierarchy(); setMenuOpen(false); }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+              >{hasHierarchyBackup ? "Restore hierarchy" : "Flatten hierarchy"}</div>
+
+              <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />
 
               {/* Frontmatter flyout */}
               <div
@@ -244,12 +247,6 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                   </div>
                 )}
               </div>
-
-              <div style={{ ...menuItem }}
-                onClick={() => { onRefresh(); setMenuOpen(false); }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-              >Refresh project</div>
 
               <div style={{ ...menuItem }}
                 onClick={() => { onValidateLinks(); setMenuOpen(false); }}
@@ -295,7 +292,7 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                 </div>
               )}
 
-              <div style={{ height: "1px", background: "#e8f4fd", margin: "2px 0" }} />
+              <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />
 
               {/* Import/Export flyouts */}
               <div
@@ -338,27 +335,7 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                 )}
               </div>
 
-              <div style={{ height: "1px", background: "#e8f4fd", margin: "2px 0" }} />
-
-              <div style={{ ...menuItem, color: "#1a6fa8" }}
-                onClick={() => { setCreatingProject(true); setNewProjectName(""); setProjectError(""); setMenuOpen(false); setTimeout(() => projectInputRef.current?.focus(), 50); }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-              >&#65291; New project</div>
-
-              <div style={{ ...menuItem, color: "#1a6fa8" }}
-                onClick={() => { onOpenFolder(); setMenuOpen(false); }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-              >&#128193; Open folder&hellip;</div>
-
-              <div style={{ ...menuItem, color: "#1a6fa8" }}
-                onClick={() => { startCreating(); setMenuOpen(false); }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-              >&#65291; New file</div>
-
-              <div style={{ height: "1px", background: "#e8f4fd", margin: "2px 0" }} />
+              <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />
 
               {/* Settings flyout */}
               <div
@@ -395,18 +372,6 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
           )}
         </span>
       </div>
-
-      {creatingProject && (
-        <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "3px" }}>
-          <div style={{ display: "flex", gap: "4px" }}>
-            <input ref={projectInputRef} value={newProjectName} onChange={(e) => { setNewProjectName(e.target.value); setProjectError(""); }} onKeyDown={handleProjectInputKey} placeholder="project-name"
-              style={{ padding: "4px 6px", background: "#fff", border: "1px solid #b3d9f7", borderRadius: "4px", color: "#1a1a1a", fontSize: "12px", outline: "none", width: "140px" }} />
-            <button onClick={submitNewProject} style={{ padding: "4px 8px", background: "#3a7d44", border: "none", borderRadius: "4px", color: "#fff", fontSize: "12px", cursor: "pointer" }}>&#10003;</button>
-            <button onClick={cancelCreatingProject} style={{ padding: "4px 8px", background: "#aaa", border: "none", borderRadius: "4px", color: "#fff", fontSize: "12px", cursor: "pointer" }}>&#10005;</button>
-          </div>
-          {projectError && <div style={{ color: "#f66", fontSize: "11px" }}>{projectError}</div>}
-        </div>
-      )}
 
       {creatingFile && (
         <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "3px" }}>

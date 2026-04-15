@@ -9,7 +9,7 @@ import TemplateEditor from "./components/TemplateEditor";
 import ComplianceReport from "./components/ComplianceReport";
 import LinkReport from "./components/LinkReport";
 import {
-  listProjects, createProject, deleteProject, archiveProject, renameProject,
+  listProjects, createProject, archiveProject, renameProject,
   fetchProjectMd, saveProjectMd,
   fetchCollection, saveCollection, fetchMarkdown, saveMarkdown, fetchCollectionYaml,
   fetchOrphans, createFile, deleteFile, archiveFile, renameFile,
@@ -18,7 +18,8 @@ import {
   validateProjectLinks, validateFileLinks,
   fetchCompliance, batchUpdateFrontmatter, inferTemplateFromFile,
   importFromFormat, exportToFormat,
-  browseFolder, openExternalProject,
+  importMarkdowns, importFiles, browseDirs, browseStartDir,
+  flattenHierarchy, restoreHierarchy, checkHierarchyBackup,
 } from "./api";
 import type { CollectionStructure, FileInfo, FileNode, ProjectInfo } from "./types";
 import type { FrontmatterTemplate, FrontmatterField, ComplianceItem, FileLinkReport, BrokenLink } from "./api";
@@ -95,13 +96,26 @@ export default function App() {
   const [showIndicators, setShowIndicators] = useState(() => localStorage.getItem("pith_indicators") !== "false");
   const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
   const [reportPreview, setReportPreview] = useState<string | null>(null);
-  const [folderInputOpen, setFolderInputOpen] = useState(false);
-  const [folderInputPath, setFolderInputPath] = useState("");
+  const [hasHierarchyBackup, setHasHierarchyBackup] = useState(false);
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [newProjectTitle, setNewProjectTitle] = useState("");
+  const [newProjectDir, setNewProjectDir] = useState("");
+  const [newProjectDirEdited, setNewProjectDirEdited] = useState(false);
+  const [newProjectMdExpanded, setNewProjectMdExpanded] = useState(false);
+  const [newProjectError, setNewProjectError] = useState("");
+  const [folderBrowserPath, setFolderBrowserPath] = useState("");
+  const [folderBrowserDirs, setFolderBrowserDirs] = useState<string[]>([]);
+  const [folderBrowserFiles, setFolderBrowserFiles] = useState<string[]>([]);
+  const [folderBrowserParent, setFolderBrowserParent] = useState<string | null>(null);
+  const [addFileDialogOpen, setAddFileDialogOpen] = useState(false);
+  const [addFileSelected, setAddFileSelected] = useState<Set<string>>(new Set());
+  const [addFileError, setAddFileError] = useState("");
 
   const editorContentRef = useRef(editorContent);
   const savedContentRef = useRef(savedContent);
   const htmlIframeRef = useRef<HTMLIFrameElement>(null);
   const reportIframeRef = useRef<HTMLIFrameElement>(null);
+  const folderBrowserScrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => { editorContentRef.current = editorContent; }, [editorContent]);
   useEffect(() => { savedContentRef.current = savedContent; }, [savedContent]);
 
@@ -219,36 +233,9 @@ export default function App() {
     setCollection({ root: [] });
     setOrphans([]);
     await loadCollection(name);
+    checkHierarchyBackup(name).then(setHasHierarchyBackup);
   }, [loadCollection]);
 
-  const handleCreateProject = useCallback(async (name: string) => {
-    await createProject(name);
-    const ps = await listProjects();
-    setProjects(ps);
-    await handleSwitchProject(name);
-  }, [handleSwitchProject]);
-
-  const handleRenameProject = useCallback(async (oldName: string, newName: string) => {
-    const { new_name } = await renameProject(oldName, newName);
-    const ps = await listProjects();
-    setProjects(ps);
-    setCurrentProject(new_name);
-    localStorage.setItem(LAST_PROJECT_KEY, new_name);
-  }, []);
-
-  const handleDeleteProject = useCallback(async (name: string) => {
-    await deleteProject(name);
-    const ps = await listProjects();
-    setProjects(ps);
-    if (ps.length > 0) {
-      await handleSwitchProject(ps[0].name);
-    } else {
-      setCurrentProject(null);
-      setCollection({ root: [] });
-      setOrphans([]);
-      setOverlayType(null);
-    }
-  }, [handleSwitchProject]);
 
   const handleArchiveProject = useCallback(async (name: string) => {
     await archiveProject(name);
@@ -380,39 +367,89 @@ export default function App() {
     fetch(url).then(r => r.text()).then(setReportPreview).catch(() => {});
   }, [currentProject]);
 
-  const handleOpenFolder = useCallback(async () => {
-    const picked = await browseFolder();
-    if (picked) {
-      // pywebview returned a path — open directly
-      try {
-        const { name } = await openExternalProject(picked);
-        const ps = await listProjects();
-        setProjects(ps);
-        handleSwitchProject(name);
-      } catch (e: any) {
-        alert(e.message ?? "Failed to open folder");
-      }
-    } else {
-      // Browser mode — show path input modal
-      setFolderInputPath("");
-      setFolderInputOpen(true);
-    }
-  }, [handleSwitchProject]);
-
-  const handleFolderInputConfirm = useCallback(async () => {
-    const path = folderInputPath.trim();
-    if (!path) return;
+  const navigateFolderBrowser = useCallback(async (path: string): Promise<string[]> => {
     try {
-      const { name } = await openExternalProject(path);
+      const result = await browseDirs(path);
+      setFolderBrowserPath(result.path);
+      setFolderBrowserDirs(result.dirs);
+      setFolderBrowserFiles(result.files);
+      setFolderBrowserParent(result.parent);
+      if (folderBrowserScrollRef.current) folderBrowserScrollRef.current.scrollTop = 0;
+      return result.files;
+    } catch { return []; }
+  }, []);
+
+  const handleOpenNewProject = useCallback((expandMarkdowns: boolean) => {
+    setNewProjectTitle("");
+    setNewProjectDir("");
+    setNewProjectDirEdited(false);
+    setNewProjectError("");
+    setNewProjectMdExpanded(expandMarkdowns);
+    setFolderBrowserPath("");
+    setFolderBrowserDirs([]);
+    setFolderBrowserFiles([]);
+    setFolderBrowserParent(null);
+    setNewProjectOpen(true);
+    if (expandMarkdowns) {
+      browseStartDir(currentProject ?? undefined).then(startPath => navigateFolderBrowser(startPath));
+    }
+  }, [navigateFolderBrowser, currentProject]);
+
+  const handleNewProjectTitleChange = useCallback((title: string) => {
+    setNewProjectTitle(title);
+    setNewProjectError("");
+    if (!newProjectDirEdited) {
+      setNewProjectDir(title.trim().replace(/\s+/g, "-").replace(/[/\\<>:"|?*\0]/g, "").toLowerCase());
+    }
+  }, [newProjectDirEdited]);
+
+  const handleNewProjectDirChange = useCallback((dir: string) => {
+    setNewProjectDir(dir);
+    setNewProjectDirEdited(true);
+    setNewProjectError("");
+  }, []);
+
+  const handleNewProjectSubmit = useCallback(async () => {
+    const dirName = newProjectDir.trim().replace(/\s+/g, "-").replace(/[/\\<>:"|?*\0]/g, "").toLowerCase();
+    if (!dirName || dirName === "." || dirName === "..") {
+      setNewProjectError("Invalid project directory name");
+      return;
+    }
+    try {
+      if (folderBrowserPath && newProjectMdExpanded) {
+        const { name } = await importMarkdowns(folderBrowserPath);
+        if (name !== dirName) {
+          await renameProject(name, dirName);
+        }
+        const pmd_title = newProjectTitle.trim() || dirName;
+        await saveProjectMd(dirName, `# ${pmd_title}\n`);
+      } else {
+        await createProject(dirName);
+        if (newProjectTitle.trim()) {
+          await saveProjectMd(dirName, `# ${newProjectTitle.trim()}\n`);
+        }
+      }
       const ps = await listProjects();
       setProjects(ps);
-      handleSwitchProject(name);
-      setFolderInputOpen(false);
-      setFolderInputPath("");
+      await handleSwitchProject(dirName);
+      setNewProjectOpen(false);
     } catch (e: any) {
-      alert(e.message ?? "Failed to open folder");
+      setNewProjectError(e.message ?? "Failed to create project");
     }
-  }, [folderInputPath]);
+  }, [newProjectDir, newProjectTitle, folderBrowserPath, newProjectMdExpanded, handleSwitchProject]);
+
+  const handleOpenAddFile = useCallback(() => {
+    setAddFileSelected(new Set());
+    setAddFileError("");
+    setFolderBrowserPath("");
+    setFolderBrowserDirs([]);
+    setFolderBrowserFiles([]);
+    setFolderBrowserParent(null);
+    setAddFileDialogOpen(true);
+    browseStartDir(currentProject ?? undefined).then(startPath =>
+      navigateFolderBrowser(startPath).then(files => setAddFileSelected(new Set(files)))
+    );
+  }, [navigateFolderBrowser, currentProject]);
 
   const handleUseAsTemplate = useCallback(async () => {
     if (!currentProject || !selectedPath) return;
@@ -482,6 +519,7 @@ export default function App() {
       await saveCollection(currentProject, c);
       const o = await fetchOrphans(currentProject);
       setOrphans(o);
+      if (c.root.length > 0) setHasHierarchyBackup(false);
     } catch {}
   }, [currentProject]);
 
@@ -578,6 +616,21 @@ export default function App() {
     await loadCollection(currentProject);
   }, [currentProject, loadCollection]);
 
+  const handleAddFileConfirm = useCallback(async () => {
+    if (!currentProject || addFileSelected.size === 0) return;
+    const filePaths = [...addFileSelected].map(name => {
+      const sep = folderBrowserPath.includes("/") ? "/" : "\\";
+      return folderBrowserPath + sep + name;
+    });
+    try {
+      await importFiles(currentProject, filePaths);
+      setAddFileDialogOpen(false);
+      await handleRefresh();
+    } catch (e: any) {
+      setAddFileError(e.message ?? "Failed to import files");
+    }
+  }, [currentProject, addFileSelected, folderBrowserPath, handleRefresh]);
+
   const handleRestoreStructure = useCallback(async () => {
     if (!window.confirm("Restore documentation hierarchy to the original structure? Your file contents will not change.")) return;
     await restoreDocStructure();
@@ -635,6 +688,7 @@ export default function App() {
           onOpen={handleSelect}
           onCollectionChange={handleCollectionChange}
           onCreateFile={handleCreateFile}
+          onAddFileFromMd={handleOpenAddFile}
           onDeleteFile={handleDeleteFile}
           onRenameFile={handleRenameFile}
           onCreateChildFile={handleCreateChildFile}
@@ -646,10 +700,8 @@ export default function App() {
           currentProjectTitle={projects.find(p => p.name === currentProject)?.title ?? currentProject ?? ""}
           projects={projects}
           onSwitchProject={handleSwitchProject}
-          onCreateProject={handleCreateProject}
-          onDeleteProject={handleDeleteProject}
+          onNewProject={handleOpenNewProject}
           onArchiveProject={handleArchiveProject}
-          onRenameProject={handleRenameProject}
           onOpenProjectMd={handleOpenProjectMd}
           onRefresh={handleRefresh}
           onImport={(fmt) => setImportModal({ format: fmt })}
@@ -661,7 +713,19 @@ export default function App() {
           onValidateLinks={handleShowLinkReport}
           onExportHtml={handleExportHtml}
           onReport={handleReport}
-          onOpenFolder={handleOpenFolder}
+          hasHierarchyBackup={hasHierarchyBackup}
+          onFlattenHierarchy={async () => {
+            if (!currentProject) return;
+            await flattenHierarchy(currentProject);
+            setHasHierarchyBackup(true);
+            await handleRefresh();
+          }}
+          onRestoreHierarchy={async () => {
+            if (!currentProject) return;
+            await restoreHierarchy(currentProject);
+            setHasHierarchyBackup(false);
+            await loadCollection(currentProject);
+          }}
           brokenLinkMap={brokenLinkMap}
           frontmatterIssueMap={frontmatterIssueMap}
           showIndicators={showIndicators}
@@ -708,7 +772,7 @@ export default function App() {
         {overlayType === "project-md" && currentProject && (
           <MarkdownEditor
             key={`project-md-${currentProject}`}
-            path="Project Notes"
+            path={currentProject}
             content={projectMdContent}
             savedContent={projectMdContent}
             onContentChange={setProjectMdContent}
@@ -716,6 +780,21 @@ export default function App() {
             onViModeChange={setViMode}
             onSave={async (_path, content) => {
               await saveProjectMd(currentProject, content);
+            }}
+            onRename={async (_oldName, newName) => {
+              const dirName = newName.trim().replace(/\s+/g, "-").replace(/[/\\<>:"|?*\0]/g, "").toLowerCase();
+              if (!dirName || dirName === currentProject) return;
+              try {
+                await renameProject(currentProject, dirName);
+                const ps = await listProjects();
+                setProjects(ps);
+                setCurrentProject(dirName);
+                localStorage.setItem(LAST_PROJECT_KEY, dirName);
+                const text = await fetchProjectMd(dirName);
+                setProjectMdContent(text);
+              } catch (e: any) {
+                alert(e.message ?? "Failed to rename project");
+              }
             }}
           />
         )}
@@ -861,22 +940,193 @@ export default function App() {
         </div>
       )}
 
-      {folderInputOpen && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ background: "#fff", borderRadius: 8, padding: "24px 28px", minWidth: 420, boxShadow: "0 8px 32px rgba(0,0,0,0.25)" }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "#1a3a5c", marginBottom: 12 }}>Open folder as project</div>
-            <div style={{ fontSize: 13, color: "#666", marginBottom: 12 }}>Enter the full path to a directory containing markdown files.</div>
-            <input
-              autoFocus
-              value={folderInputPath}
-              onChange={e => setFolderInputPath(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") handleFolderInputConfirm(); if (e.key === "Escape") setFolderInputOpen(false); }}
-              placeholder={navigator.platform.startsWith("Win") ? "C:\\Users\\you\\my-docs" : "/home/you/my-docs"}
-              style={{ width: "100%", padding: "7px 10px", fontSize: 13, border: "1px solid #b3d9f7", borderRadius: 4, outline: "none", marginBottom: 16, boxSizing: "border-box" }}
-            />
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button onClick={() => setFolderInputOpen(false)} style={{ padding: "6px 16px", border: "1px solid #ccc", borderRadius: 4, background: "#f5f5f5", cursor: "pointer", fontSize: 13 }}>Cancel</button>
-              <button onClick={handleFolderInputConfirm} style={{ padding: "6px 16px", border: "none", borderRadius: 4, background: "#1a6fa8", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Open</button>
+      {newProjectOpen && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}
+          onKeyDown={e => { if (e.key === "Escape") setNewProjectOpen(false); }}>
+          <div style={{ background: "#fff", borderRadius: 8, minWidth: 480, maxWidth: 600, width: "90vw", boxShadow: "0 8px 32px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column", maxHeight: "80vh" }}>
+            <div style={{ padding: "16px 20px 12px", borderBottom: "1px solid #e8e8e8" }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: "#1a3a5c", marginBottom: 12 }}>New Project</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div>
+                  <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>Project title</div>
+                  <input autoFocus value={newProjectTitle}
+                    onChange={e => handleNewProjectTitleChange(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") handleNewProjectSubmit(); }}
+                    placeholder="My Documentation"
+                    style={{ width: "100%", padding: "7px 10px", fontSize: 13, border: "1px solid #b3d9f7", borderRadius: 4, outline: "none", boxSizing: "border-box" }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>Directory name</div>
+                  <input value={newProjectDir}
+                    onChange={e => handleNewProjectDirChange(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") handleNewProjectSubmit(); }}
+                    placeholder="my-documentation"
+                    style={{ width: "100%", padding: "7px 10px", fontSize: 13, border: "1px solid #b3d9f7", borderRadius: 4, outline: "none", boxSizing: "border-box", fontFamily: "monospace" }} />
+                </div>
+              </div>
+            </div>
+
+            <div style={{ borderBottom: "1px solid #e8e8e8" }}>
+              <div
+                onClick={() => {
+                  const expanding = !newProjectMdExpanded;
+                  setNewProjectMdExpanded(expanding);
+                  if (expanding && !folderBrowserPath) {
+                    browseStartDir(currentProject ?? undefined).then(startPath => navigateFolderBrowser(startPath));
+                  }
+                }}
+                style={{ padding: "10px 20px", fontSize: 13, color: "#1a3a5c", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, userSelect: "none" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "#f0f7ff")}
+                onMouseLeave={e => (e.currentTarget.style.background = "")}
+              >
+                <span style={{ fontSize: 11, color: "#999" }}>{newProjectMdExpanded ? "\u25BC" : "\u25B6"}</span>
+                <span>Copy from Markdowns directory</span>
+                {folderBrowserPath && <span style={{ fontSize: 11, color: "#888", fontFamily: "monospace", marginLeft: 8, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{folderBrowserPath}</span>}
+              </div>
+              {newProjectMdExpanded && (
+                <div style={{ display: "flex", flexDirection: "column", height: 280 }}>
+                  <div style={{ padding: "4px 20px 8px", display: "flex", alignItems: "center", gap: 6 }}>
+                    <button
+                      onClick={() => folderBrowserParent !== null && navigateFolderBrowser(folderBrowserParent)}
+                      disabled={folderBrowserParent === null}
+                      title="Go up"
+                      style={{ padding: "3px 8px", border: "1px solid #ccc", borderRadius: 4, background: folderBrowserParent !== null ? "#f5f5f5" : "#fafafa", cursor: folderBrowserParent !== null ? "pointer" : "default", fontSize: 13, color: folderBrowserParent !== null ? "#333" : "#bbb", flexShrink: 0 }}
+                    >↑</button>
+                    <div style={{ fontSize: 12, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace" }}>
+                      {folderBrowserPath || "Select a drive"}
+                    </div>
+                    {folderBrowserPath && (
+                      <button onClick={() => { setFolderBrowserPath(""); setFolderBrowserDirs([]); setFolderBrowserFiles([]); setFolderBrowserParent(null); }}
+                        title="Clear selection" style={{ padding: "2px 6px", border: "1px solid #ccc", borderRadius: 4, background: "#f5f5f5", cursor: "pointer", fontSize: 11, color: "#999", flexShrink: 0 }}>✕</button>
+                    )}
+                  </div>
+                  <div style={{ overflowY: "auto", flex: 1, padding: "2px 0" }}>
+                    {folderBrowserDirs.map(dir => {
+                      const label = dir.replace(/[\\/]$/, "").split(/[\\/]/).pop() || dir;
+                      return (
+                        <div key={dir}
+                          onClick={() => {
+                            navigateFolderBrowser(dir);
+                            if (!newProjectTitle && !newProjectDirEdited) {
+                              const dirLabel = dir.replace(/[\\/]$/, "").split(/[\\/]/).pop() || "";
+                              setNewProjectTitle(dirLabel);
+                              setNewProjectDir(dirLabel.replace(/\s+/g, "-").replace(/[/\\<>:"|?*\0]/g, "").toLowerCase());
+                            }
+                          }}
+                          style={{ padding: "6px 20px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, color: "#1a3a5c" }}
+                          onMouseEnter={e => (e.currentTarget.style.background = "#f0f7ff")}
+                          onMouseLeave={e => (e.currentTarget.style.background = "")}
+                        >
+                          <span style={{ fontSize: 15 }}>📁</span>
+                          <span>{label}</span>
+                        </div>
+                      );
+                    })}
+                    {folderBrowserFiles.length > 0 && folderBrowserDirs.length > 0 && (
+                      <div style={{ height: 1, background: "#e8e8e8", margin: "4px 20px" }} />
+                    )}
+                    {folderBrowserFiles.map(file => (
+                      <div key={file}
+                        style={{ padding: "5px 20px", fontSize: 13, display: "flex", alignItems: "center", gap: 8, color: "#666" }}
+                      >
+                        <span style={{ fontSize: 13, color: "#999" }}>📄</span>
+                        <span>{file}</span>
+                      </div>
+                    ))}
+                    {folderBrowserDirs.length === 0 && folderBrowserFiles.length === 0 && (
+                      <div style={{ padding: "12px 20px", fontSize: 13, color: "#999" }}>Empty directory.</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {newProjectError && (
+              <div style={{ padding: "8px 20px 0", color: "#c0392b", fontSize: 12 }}>{newProjectError}</div>
+            )}
+            <div style={{ padding: "12px 20px", display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button onClick={() => setNewProjectOpen(false)} style={{ padding: "6px 16px", border: "1px solid #ccc", borderRadius: 4, background: "#f5f5f5", cursor: "pointer", fontSize: 13 }}>Cancel</button>
+              <button onClick={handleNewProjectSubmit} disabled={!newProjectDir.trim()} style={{ padding: "6px 16px", border: "none", borderRadius: 4, background: newProjectDir.trim() ? "#1a6fa8" : "#a0c4e8", color: "#fff", cursor: newProjectDir.trim() ? "pointer" : "default", fontSize: 13, fontWeight: 600 }}>Create</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {addFileDialogOpen && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}
+          onKeyDown={e => { if (e.key === "Escape") setAddFileDialogOpen(false); }}>
+          <div style={{ background: "#fff", borderRadius: 8, minWidth: 480, maxWidth: 600, width: "90vw", boxShadow: "0 8px 32px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column", height: 480 }}>
+            <div style={{ padding: "16px 20px 12px", borderBottom: "1px solid #e8e8e8" }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: "#1a3a5c", marginBottom: 8 }}>Add File from Markdown</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <button
+                  onClick={() => folderBrowserParent !== null && navigateFolderBrowser(folderBrowserParent).then(files => setAddFileSelected(new Set(files)))}
+                  disabled={folderBrowserParent === null}
+                  title="Go up"
+                  style={{ padding: "3px 8px", border: "1px solid #ccc", borderRadius: 4, background: folderBrowserParent !== null ? "#f5f5f5" : "#fafafa", cursor: folderBrowserParent !== null ? "pointer" : "default", fontSize: 13, color: folderBrowserParent !== null ? "#333" : "#bbb", flexShrink: 0 }}
+                >↑</button>
+                <div style={{ fontSize: 12, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace" }}>
+                  {folderBrowserPath || "Select a drive"}
+                </div>
+              </div>
+            </div>
+            <div ref={folderBrowserScrollRef} style={{ overflowY: "auto", flex: 1, padding: "2px 0" }}>
+              {folderBrowserDirs.map(dir => {
+                const label = dir.replace(/[\\/]$/, "").split(/[\\/]/).pop() || dir;
+                return (
+                  <div key={dir}
+                    onClick={() => { navigateFolderBrowser(dir).then(files => setAddFileSelected(new Set(files))); }}
+                    style={{ padding: "6px 20px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, color: "#1a3a5c" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "#f0f7ff")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "")}
+                  >
+                    <span style={{ fontSize: 15 }}>📁</span>
+                    <span>{label}</span>
+                  </div>
+                );
+              })}
+              {folderBrowserFiles.length > 0 && folderBrowserDirs.length > 0 && (
+                <div style={{ height: 1, background: "#e8e8e8", margin: "4px 20px" }} />
+              )}
+              {folderBrowserFiles.length > 0 && (
+                <div style={{ padding: "4px 20px 2px", display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 11, color: "#888", cursor: "pointer", textDecoration: "underline" }}
+                    onClick={() => {
+                      if (addFileSelected.size === folderBrowserFiles.length) setAddFileSelected(new Set());
+                      else setAddFileSelected(new Set(folderBrowserFiles));
+                    }}
+                  >{addFileSelected.size === folderBrowserFiles.length ? "Deselect all" : "Select all"}</span>
+                </div>
+              )}
+              {folderBrowserFiles.map(file => {
+                const selected = addFileSelected.has(file);
+                return (
+                  <div key={file}
+                    onClick={() => setAddFileSelected(prev => {
+                      const next = new Set(prev);
+                      if (next.has(file)) next.delete(file); else next.add(file);
+                      return next;
+                    })}
+                    style={{ padding: "5px 20px", fontSize: 13, display: "flex", alignItems: "center", gap: 8, color: selected ? "#1a3a5c" : "#666", background: selected ? "#e8f4fd" : "transparent", cursor: "pointer" }}
+                    onMouseEnter={e => { if (!selected) e.currentTarget.style.background = "#f0f7ff"; }}
+                    onMouseLeave={e => { if (!selected) e.currentTarget.style.background = ""; }}
+                  >
+                    <span style={{ fontSize: 13, color: selected ? "#1a6fa8" : "#999" }}>{selected ? "\u2611" : "\u2610"}</span>
+                    <span>{file}</span>
+                  </div>
+                );
+              })}
+              {folderBrowserDirs.length === 0 && folderBrowserFiles.length === 0 && (
+                <div style={{ padding: "12px 20px", fontSize: 13, color: "#999" }}>Empty directory.</div>
+              )}
+            </div>
+            {addFileError && (
+              <div style={{ padding: "8px 20px 0", color: "#c0392b", fontSize: 12 }}>{addFileError}</div>
+            )}
+            <div style={{ padding: "12px 20px", borderTop: "1px solid #e8e8e8", display: "flex", gap: 8, justifyContent: "flex-end", alignItems: "center" }}>
+              {addFileSelected.size > 0 && <span style={{ fontSize: 12, color: "#888", flex: 1 }}>{addFileSelected.size} file{addFileSelected.size !== 1 ? "s" : ""} selected</span>}
+              <button onClick={() => setAddFileDialogOpen(false)} style={{ padding: "6px 16px", border: "1px solid #ccc", borderRadius: 4, background: "#f5f5f5", cursor: "pointer", fontSize: 13 }}>Cancel</button>
+              <button onClick={handleAddFileConfirm} disabled={addFileSelected.size === 0} style={{ padding: "6px 16px", border: "none", borderRadius: 4, background: addFileSelected.size > 0 ? "#1a6fa8" : "#a0c4e8", color: "#fff", cursor: addFileSelected.size > 0 ? "pointer" : "default", fontSize: 13, fontWeight: 600 }}>Add</button>
             </div>
           </div>
         </div>

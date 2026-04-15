@@ -62,6 +62,7 @@ interface SidebarProps {
   onOpen: (path: string) => void;
   onCollectionChange: (c: CollectionStructure) => void;
   onCreateFile: (filename: string) => Promise<void>;
+  onAddFileFromMd: () => void;
   onDeleteFile: (path: string) => Promise<void>;
   onRenameFile: (oldPath: string, newName: string) => Promise<void>;
   onCreateChildFile: (parentPath: string, filename: string) => Promise<void>;
@@ -73,10 +74,8 @@ interface SidebarProps {
   currentProjectTitle: string;
   projects: ProjectInfo[];
   onSwitchProject: (name: string) => void;
-  onCreateProject: (name: string) => Promise<void>;
-  onDeleteProject: (name: string) => Promise<void>;
+  onNewProject: (expandMarkdowns: boolean) => void;
   onArchiveProject: (name: string) => Promise<void>;
-  onRenameProject: (oldName: string, newName: string) => Promise<void>;
   onOpenProjectMd: () => void;
   onRefresh: () => Promise<void>;
   onImport: (format: "mkdocs" | "docusaurus") => void;
@@ -88,14 +87,18 @@ interface SidebarProps {
   onValidateLinks: () => void;
   onExportHtml: () => void;
   onReport: () => void;
-  onOpenFolder: () => void;
+
+
+  hasHierarchyBackup: boolean;
+  onFlattenHierarchy: () => void;
+  onRestoreHierarchy: () => void;
   brokenLinkMap: Record<string, number>;
   frontmatterIssueMap: Record<string, boolean>;
   showIndicators: boolean;
   onToggleIndicators: () => void;
 }
 
-export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onDeleteFile, onRenameFile, onCreateChildFile, onCopyToChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onCreateProject, onDeleteProject, onArchiveProject, onRenameProject, onOpenProjectMd, onRefresh, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, onOpenFolder, brokenLinkMap, frontmatterIssueMap, showIndicators, onToggleIndicators }: SidebarProps) {
+export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onAddFileFromMd, onDeleteFile, onRenameFile, onCreateChildFile, onCopyToChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onRefresh, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, brokenLinkMap, frontmatterIssueMap, showIndicators, onToggleIndicators }: SidebarProps) {
   const [titleMode, setTitleMode] = useState(() => localStorage.getItem("pith_title_mode") !== "false");
   const [orphanSort, setOrphanSort] = useState<"recent" | "alpha" | "custom">("recent");
   const [orphanOrder, setOrphanOrder] = useState<string[]>([]);
@@ -109,6 +112,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
   const orphanArrowRef = useRef<HTMLButtonElement>(null);
   const [dpadTop, setDpadTop] = useState<number | null>(null);
   const [selectedOrphans, setSelectedOrphans] = useState<Set<string>>(new Set());
+  const lastSelectedOrphanRef = useRef<string | null>(null);
   const [rubberBand, setRubberBand] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   const orphanSectionRef = useRef<HTMLDivElement>(null);
   const orphanChipRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -171,13 +175,36 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
     });
   }, [orphans]);
 
-  const handleOrphanSelect = (path: string, ctrl: boolean) => {
+  const getSortedOrphanPaths = useCallback((): string[] => {
+    if (orphanSort === "alpha") return [...orphans].sort((a, b) => (titleMode ? a.title : a.path).localeCompare(titleMode ? b.title : b.path)).map(o => o.path);
+    if (orphanSort === "custom") return orphanOrder.filter(p => orphans.some(o => o.path === p));
+    return orphans.map(o => o.path);
+  }, [orphans, orphanSort, orphanOrder, titleMode]);
+
+  const handleOrphanSelect = (path: string, ctrl: boolean, shift: boolean) => {
     onSelect(null);
+    if (shift && lastSelectedOrphanRef.current) {
+      const sorted = getSortedOrphanPaths();
+      const lastIdx = sorted.indexOf(lastSelectedOrphanRef.current);
+      const curIdx = sorted.indexOf(path);
+      if (lastIdx !== -1 && curIdx !== -1) {
+        const from = Math.min(lastIdx, curIdx);
+        const to = Math.max(lastIdx, curIdx);
+        const range = sorted.slice(from, to + 1);
+        setSelectedOrphans(prev => {
+          const next = new Set(prev);
+          for (const p of range) next.add(p);
+          return next;
+        });
+        return;
+      }
+    }
     setSelectedOrphans(prev => {
       if (ctrl) { const next = new Set(prev); next.has(path) ? next.delete(path) : next.add(path); return next; }
       if (prev.size === 1 && prev.has(path)) return new Set<string>();
       return new Set([path]);
     });
+    lastSelectedOrphanRef.current = path;
   };
 
   const handleHierarchySelect = useCallback((path: string | null) => {
@@ -411,7 +438,9 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
         return { path: p, title: info.title, order: 0, children: [] };
       });
       let root = collection.root;
-      if (effectiveDx > 30) {
+      if (target === TOP_SENTINEL) {
+        root = [...newNodes, ...root];
+      } else if (effectiveDx > 30) {
         for (const n of newNodes) root = insertAsChild(root, target, n);
         setExpanded(prev => { const s = new Set(prev); s.add(target); return s; });
       } else {
@@ -485,7 +514,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
               {!currentProject && (
                 <div style={{ color: "#aaa", padding: "16px", fontSize: "13px", textAlign: "center" }}>
                   No projects yet.{" "}
-                  <span onClick={() => onCreateProject("")} style={{ color: "#1a6fa8", cursor: "pointer", textDecoration: "underline" }}>
+                  <span onClick={() => onNewProject(false)} style={{ color: "#1a6fa8", cursor: "pointer", textDecoration: "underline" }}>
                     Create one
                   </span>
                 </div>
@@ -499,12 +528,11 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
                   titleMode={titleMode}
                   setTitleMode={(mode: boolean) => { setTitleMode(mode); localStorage.setItem("pith_title_mode", String(mode)); }}
                   onSwitchProject={onSwitchProject}
-                  onCreateProject={onCreateProject}
+                  onNewProject={onNewProject}
                   onArchiveProject={onArchiveProject}
-                  onRenameProject={onRenameProject}
                   onOpenProjectMd={onOpenProjectMd}
-                  onRefresh={onRefresh}
                   onCreateFile={onCreateFile}
+                  onAddFileFromMd={onAddFileFromMd}
                   onOpenYaml={onOpenYaml}
                   onImport={onImport}
                   onExport={onExport}
@@ -515,7 +543,9 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
                   onValidateLinks={onValidateLinks}
                   onExportHtml={onExportHtml}
                   onReport={onReport}
-                  onOpenFolder={onOpenFolder}
+                  hasHierarchyBackup={hasHierarchyBackup}
+                  onFlattenHierarchy={onFlattenHierarchy}
+                  onRestoreHierarchy={onRestoreHierarchy}
                   isDocumentation={currentProject === "documentation"}
                   showIndicators={showIndicators}
                   onToggleIndicators={onToggleIndicators}

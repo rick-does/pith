@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import shutil
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -19,12 +20,12 @@ from .utils import (
     infer_template_from_file,
     create_project,
     delete_project,
-    open_external_project,
-    get_external_path,
+    import_markdowns,
     extract_title,
     flatten_paths,
     get_all_md_files,
     get_collection_file,
+    get_hierarchy_backup_file,
     get_markdowns_dir,
     get_orphans,
     get_project_md,
@@ -37,6 +38,7 @@ from .utils import (
     save_collection,
     save_template,
     scan_compliance,
+    iter_md_files,
     validate_file_links,
     validate_project_links,
     find_incoming_links,
@@ -87,10 +89,7 @@ async def api_file_count(project: str):
     md_dir = get_markdowns_dir(project)
     if not md_dir.exists():
         return {"count": 0}
-    count = sum(
-        1 for fp in md_dir.rglob("*.md")
-        if "_archive" not in fp.relative_to(md_dir).as_posix().split("/")
-    )
+    count = sum(1 for _fp, _rel in iter_md_files(md_dir))
     return {"count": count}
 
 # ---------------------------------------------------------------------------
@@ -100,6 +99,68 @@ async def api_file_count(project: str):
 @app.get("/api/projects")
 async def api_list_projects():
     return list_projects()
+
+
+@app.post("/api/projects/import-markdowns")
+async def api_import_markdowns(request: Request):
+    data = await request.json()
+    path = data.get("path", "").strip()
+    if not path:
+        raise HTTPException(400, "Path is required")
+    try:
+        name = import_markdowns(path)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    title = name
+    pmd = get_project_md(name)
+    if pmd.exists():
+        t = extract_title(pmd.read_text(encoding="utf-8"))
+        if t:
+            title = t
+    return {"name": name, "title": title}
+
+
+@app.post("/api/projects/import-files")
+async def api_import_files(request: Request):
+    """Copy specific .md files into an existing project's markdowns dir."""
+    data = await request.json()
+    project = data.get("project", "").strip()
+    files = data.get("files", [])
+    if not project:
+        raise HTTPException(400, "project is required")
+    if not files:
+        raise HTTPException(400, "files list is required")
+    proj_dir = PROJECTS_DIR / project
+    if not proj_dir.exists():
+        raise HTTPException(404, "Project not found")
+    md_dir = get_markdowns_dir(project)
+    md_dir.mkdir(parents=True, exist_ok=True)
+    copied = []
+    for src_str in files:
+        src_file = Path(src_str)
+        if not src_file.exists() or not src_file.name.lower().endswith(".md"):
+            continue
+        dest = md_dir / src_file.name
+        used_idx = 0
+        if dest.exists():
+            stem = dest.stem
+            suffix = dest.suffix
+            idx = 1
+            while dest.exists():
+                dest = md_dir / f"{stem}-{idx}{suffix}"
+                idx += 1
+            used_idx = idx - 1
+        shutil.copy2(str(src_file), str(dest))
+        if used_idx > 0:
+            content = dest.read_text(encoding="utf-8")
+            title_match = re.search(r"^(#\s+.+)$", content, re.MULTILINE)
+            if title_match:
+                content = content.replace(title_match.group(1), f"{title_match.group(1)}-{used_idx}", 1)
+                dest.write_text(content, encoding="utf-8")
+        copied.append(dest.relative_to(md_dir).as_posix())
+    if not copied:
+        raise HTTPException(400, "No valid .md files found")
+    return {"copied": copied, "count": len(copied)}
 
 
 @app.post("/api/projects/{name}")
@@ -121,6 +182,9 @@ async def api_rename_project(name: str, request: Request):
     if dest.exists():
         raise HTTPException(409, "Target project already exists")
     src.rename(dest)
+    pmd = dest / ".pith-project"
+    if pmd.exists():
+        pmd.write_text(f"# {new_name}\n", encoding="utf-8")
     return {"status": "renamed", "name": new_name}
 
 
@@ -178,41 +242,86 @@ async def api_save_collection_yaml(project: str, request: Request):
     return {"status": "saved"}
 
 # ---------------------------------------------------------------------------
-# External directory projects
+# Directory browsing (New Project from Markdowns, Add File from Markdown)
 # ---------------------------------------------------------------------------
 
-@app.get("/api/browse/folder")
-async def api_browse_folder():
-    """Open a native folder picker (pywebview only). Returns selected path or null."""
-    try:
-        import webview
-        windows = webview.windows
-        if windows:
-            result = windows[0].create_file_dialog(webview.FOLDER_DIALOG)
-            if result and len(result) > 0:
-                return {"path": result[0]}
-    except Exception:
-        pass
-    return {"path": None}
+@app.get("/api/browse/start-dir")
+async def api_browse_start_dir(project: str = ""):
+    """Return a sensible starting directory for the folder browser."""
+    from pathlib import Path as _Path
+    if project:
+        try:
+            p = get_markdowns_dir(project).parent
+            if p.exists():
+                return {"path": str(p)}
+        except Exception:
+            pass
+    return {"path": str(_Path.home())}
 
 
-@app.post("/api/projects/open-external")
-async def api_open_external(request: Request):
-    data = await request.json()
-    path = data.get("path", "").strip()
+@app.get("/api/browse/dirs")
+async def api_browse_dirs(path: str = ""):
+    """List subdirectories at a path for the folder browser UI. Returns full paths."""
+    import os
+    import string as _string
     if not path:
-        raise HTTPException(400, "Path is required")
+        if os.name == "nt":
+            drives = [f"{d}:\\" for d in _string.ascii_uppercase if os.path.exists(f"{d}:\\")]
+            return {"path": "", "parent": None, "dirs": drives}
+        path = "/"
+    path = os.path.abspath(path)
+    p_parent = os.path.dirname(path)
+    if p_parent == path:
+        parent = "" if os.name == "nt" else None
+    else:
+        parent = p_parent
     try:
-        name = open_external_project(path)
-    except ValueError as e:
-        raise HTTPException(400, str(e))
-    title = name
-    pmd = get_project_md(name)
-    if pmd.exists():
-        t = extract_title(pmd.read_text(encoding="utf-8"))
-        if t:
-            title = t
-    return {"name": name, "title": title}
+        dirs = []
+        files = []
+        for e in os.scandir(path):
+            if e.is_dir(follow_symlinks=False):
+                dirs.append(os.path.join(path, e.name))
+            elif e.name.lower().endswith(".md"):
+                files.append(e.name)
+        dirs.sort(key=lambda p: os.path.basename(p).lower())
+        files.sort(key=str.lower)
+    except PermissionError:
+        dirs = []
+        files = []
+    return {"path": path, "parent": parent, "dirs": dirs, "files": files}
+
+
+
+@app.post("/api/projects/{project}/flatten")
+async def api_flatten_hierarchy(project: str):
+    if not (PROJECTS_DIR / project).exists():
+        raise HTTPException(404, "Project not found")
+    tree_file = get_collection_file(project)
+    backup = get_hierarchy_backup_file(project)
+    if tree_file.exists() and not backup.exists():
+        backup.write_text(tree_file.read_text(encoding="utf-8"), encoding="utf-8")
+    tree_file.write_text("root: []\n", encoding="utf-8")
+    return {"ok": True}
+
+
+@app.post("/api/projects/{project}/restore-hierarchy")
+async def api_restore_hierarchy(project: str):
+    if not (PROJECTS_DIR / project).exists():
+        raise HTTPException(404, "Project not found")
+    backup = get_hierarchy_backup_file(project)
+    if not backup.exists():
+        raise HTTPException(404, "No saved hierarchy to restore")
+    tree_file = get_collection_file(project)
+    tree_file.write_text(backup.read_text(encoding="utf-8"), encoding="utf-8")
+    backup.unlink()
+    return {"ok": True}
+
+
+@app.get("/api/projects/{project}/hierarchy-backup")
+async def api_hierarchy_backup_exists(project: str):
+    if not (PROJECTS_DIR / project).exists():
+        raise HTTPException(404, "Project not found")
+    return {"exists": get_hierarchy_backup_file(project).exists()}
 
 # ---------------------------------------------------------------------------
 # Orphans
@@ -240,10 +349,7 @@ async def api_search(project: str, q: str = ""):
     if not md_dir.exists():
         return []
     results = []
-    for fp in md_dir.rglob("*.md"):
-        rel = fp.relative_to(md_dir).as_posix()
-        if "_archive" in rel.split("/"):
-            continue
+    for fp, rel in iter_md_files(md_dir):
         try:
             content = fp.read_text(encoding="utf-8")
         except Exception:

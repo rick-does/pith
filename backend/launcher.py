@@ -12,12 +12,67 @@ def _get_base_dir() -> Path:
     return Path(__file__).parent.parent
 
 
+def _kill_existing(port: int) -> None:
+    """Kill any process currently listening on the given port."""
+    import subprocess
+    import time
+    try:
+        if sys.platform == "win32":
+            # Collect all PIDs holding this port
+            pids = set()
+            result = subprocess.run(
+                ["netstat", "-ano"],
+                capture_output=True, text=True, timeout=5,
+            )
+            for line in result.stdout.splitlines():
+                if f":{port}" in line and "LISTENING" in line:
+                    parts = line.split()
+                    try:
+                        pids.add(int(parts[-1]))
+                    except ValueError:
+                        pass
+            # Kill each, then verify the port is free
+            for pid in pids:
+                if pid > 0:
+                    subprocess.run(["taskkill", "/F", "/PID", str(pid)],
+                                   capture_output=True, timeout=5)
+                    subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)],
+                                   capture_output=True, timeout=5)
+            if pids:
+                # Wait for port to actually free up
+                for _ in range(10):
+                    time.sleep(0.5)
+                    check = subprocess.run(
+                        ["netstat", "-ano"],
+                        capture_output=True, text=True, timeout=5,
+                    )
+                    if not any(f":{port}" in l and "LISTENING" in l
+                               for l in check.stdout.splitlines()):
+                        break
+        else:
+            result = subprocess.run(
+                ["lsof", "-ti", f":{port}"],
+                capture_output=True, text=True, timeout=5,
+            )
+            for pid_str in result.stdout.strip().splitlines():
+                try:
+                    pid = int(pid_str)
+                    if pid > 0:
+                        subprocess.run(["kill", "-9", str(pid)],
+                                       capture_output=True, timeout=5)
+                except ValueError:
+                    pass
+    except Exception:
+        pass
+
+
 def main():
     base = _get_base_dir()
     os.chdir(str(base))
 
     frozen = getattr(sys, "frozen", False)
     port = 8003 if frozen else 8002
+    _kill_existing(port)
     headless = "--server" in sys.argv or "--no-window" in sys.argv
 
     if frozen:
