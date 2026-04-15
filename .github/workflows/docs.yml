@@ -34,7 +34,7 @@ jobs:
 
       - run: pip install mkdocs-material
 
-      - run: cp _golden/documentation/markdowns/*.md docs/
+      - run: cp _golden/documentation/markdowns/*.md _pages/
 
       - run: mkdocs build
 

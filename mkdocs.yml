@@ -4,7 +4,8 @@ site_description: A visual markdown workspace with hierarchy editing and prose a
 repo_url: https://github.com/rick-does/pith
 repo_name: rick-does/pith
 
-docs_dir: docs
+docs_dir: _pages
+exclude_docs: README.md
 
 theme:
   name: material
