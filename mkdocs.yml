@@ -25,6 +25,7 @@ nav:
   - Getting Started: getting-started.md
   - Managing Projects: projects.md
   - Editing Files: editing.md
+  - Issues Example: scan-test.md
   - Building Your Hierarchy: hierarchy.md
   - Unlinked Files: unlinked-files.md
   - Search: search.md
@@ -32,4 +33,3 @@ nav:
   - Link Validation: link-validation.md
   - Import & Export: import-export.md
   - Keyboard Shortcuts: keyboard-shortcuts.md
-  - Issues Example: scan-test.md
