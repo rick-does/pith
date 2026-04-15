@@ -43,9 +43,13 @@ Vi-specific save commands:
 | `:w` | Save |
 | `:x` | Save and close the editor |
 
+## Frontmatter, Stats, and Scan
+
+Below the editor toolbar is a bar with three tabs: **Frontmatter**, **Stats**, and **Scan**. Click any tab header to expand it; clicking an open tab collapses it. Only one tab can be open at a time.
+
 ## Frontmatter
 
-Below the editor toolbar is a collapsible **Frontmatter** section. Click the header to expand it. When expanded, it shows action buttons for working with the project's frontmatter template:
+The **Frontmatter** tab shows action buttons for working with the project's frontmatter template:
 
 - **Apply template** — adds missing template keys (with defaults) and removes extra keys from this file
 - **Use as template** — sets this file's frontmatter as the project template
@@ -56,12 +60,32 @@ Frontmatter is edited directly in the text editor. The preview pane strips it fr
 
 ## Stats
 
-Below the Frontmatter section is a collapsible **Stats** section. Click the header to load stats for the current file on demand.
+The **Stats** tab loads analysis for the current file on demand.
 
 Stats shown:
 
 - Word count, sentence count, paragraph count, average sentence length
 - **Readability:** Flesch Reading Ease (with label), Flesch-Kincaid Grade, Gunning Fog, Automated Readability Index, Coleman-Liau Index
+
+## Scan
+
+The **Scan** tab runs a structural triage of the current file and flags potential issues in two categories.
+
+**Warnings** (⚠) — likely problems:
+
+- No H1 heading, or more than one H1
+- Heading level jumps (e.g. H1 to H3, skipping H2)
+- TODO, FIXME, TBD, or XXX markers in the text
+
+**Info** (•) — things worth reviewing:
+
+- Empty sections (a heading with no body text)
+- Sentences over 40 words
+- Paragraphs over 150 words
+
+If no issues are found, the panel shows **No issues found**. The heading count for the file is always shown at the bottom.
+
+See [Scan Example](scan-test.md) for a sample file that triggers every scan flag.
 
 ## Renaming from the editor
 

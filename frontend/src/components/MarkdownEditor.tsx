@@ -4,7 +4,6 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import CodeEditor from "./CodeEditor";
 import MermaidBlock from "./MermaidBlock";
-import StatsPanel from "./StatsPanel";
 import type { BrokenLink } from "../api";
 
 interface Props {
@@ -123,12 +122,8 @@ export default function MarkdownEditor({ project, path, content, savedContent, o
         <div style={{ flex: 1 }} />
       </div>
 
-      {(onApplyTemplate || onUseAsTemplate || onEditTemplate || onViewCompliance) && (
-        <FmBar onApplyTemplate={onApplyTemplate} onUseAsTemplate={onUseAsTemplate} onEditTemplate={onEditTemplate} onViewCompliance={onViewCompliance} />
-      )}
-
-      {project && (
-        <StatsPanel project={project} filePath={path} />
+      {(project || onApplyTemplate || onUseAsTemplate || onEditTemplate || onViewCompliance) && (
+        <FmBar onApplyTemplate={onApplyTemplate} onUseAsTemplate={onUseAsTemplate} onEditTemplate={onEditTemplate} onViewCompliance={onViewCompliance} project={project} filePath={path} />
       )}
 
       {brokenLinks && brokenLinks.length > 0 && (
@@ -189,48 +184,173 @@ export default function MarkdownEditor({ project, path, content, savedContent, o
   );
 }
 
-function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewCompliance }: { onApplyTemplate?: () => Promise<void> | void; onUseAsTemplate?: () => Promise<void> | void; onEditTemplate?: () => void; onViewCompliance?: () => void }) {
-  const [open, setOpen] = useState(false);
-  const [msg, setMsg] = useState("");
+interface StatsData {
+  word_count: number; sentence_count: number; paragraph_count: number;
+  avg_sentence_length: number; flesch_reading_ease: number;
+  flesch_reading_ease_label: string; flesch_kincaid_grade: number;
+  gunning_fog: number; automated_readability_index: number; coleman_liau_index: number;
+}
+interface ScanFlag { severity: "warn" | "info"; message: string; }
+interface ScanData {
+  flags: ScanFlag[];
+  shape: { headings: number; empty_sections: number; long_sentences: number; long_paragraphs: number; };
+}
 
-  const run = async (fn: () => Promise<void> | void, label: string) => {
+type ActivePanel = "frontmatter" | "stats" | "scan" | null;
+
+function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewCompliance, project, filePath }: {
+  onApplyTemplate?: () => Promise<void> | void;
+  onUseAsTemplate?: () => Promise<void> | void;
+  onEditTemplate?: () => void;
+  onViewCompliance?: () => void;
+  project?: string;
+  filePath?: string;
+}) {
+  const [active, setActive] = useState<ActivePanel>(null);
+  const [fmMsg, setFmMsg] = useState("");
+  const [stats, setStats] = useState<StatsData | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const [scan, setScan] = useState<ScanData | null>(null);
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+
+  useEffect(() => { setStats(null); setScan(null); }, [filePath]);
+
+  useEffect(() => {
+    if (active === "stats" && project && filePath) {
+      setStats(null); setStatsError(null); setStatsLoading(true);
+      fetch(`/api/projects/${project}/stats/${filePath}`)
+        .then(r => { if (!r.ok) throw new Error("Failed to load stats"); return r.json(); })
+        .then(d => { setStats(d); setStatsLoading(false); })
+        .catch(e => { setStatsError(e.message); setStatsLoading(false); });
+    }
+  }, [active, project, filePath]);
+
+  useEffect(() => {
+    if (active === "scan" && project && filePath) {
+      setScan(null); setScanError(null); setScanLoading(true);
+      fetch(`/api/projects/${project}/scan/${filePath}`)
+        .then(r => { if (!r.ok) throw new Error("Failed to load scan"); return r.json(); })
+        .then(d => { setScan(d); setScanLoading(false); })
+        .catch(e => { setScanError(e.message); setScanLoading(false); });
+    }
+  }, [active, project, filePath]);
+
+  const toggle = (panel: NonNullable<ActivePanel>) => setActive(p => p === panel ? null : panel);
+
+  const runFm = async (fn: () => Promise<void> | void, label: string) => {
     await fn();
-    setMsg(label + " \u2713");
-    setTimeout(() => setMsg(""), 2000);
+    setFmMsg(label + " \u2713");
+    setTimeout(() => setFmMsg(""), 2000);
   };
+
+  const hasFm = onApplyTemplate || onUseAsTemplate || onEditTemplate || onViewCompliance;
+
+  const Tab = ({ id, label }: { id: NonNullable<ActivePanel>; label: string }) => (
+    <div
+      onClick={() => toggle(id)}
+      style={{
+        display: "flex", alignItems: "center", gap: 6, padding: "4px 14px",
+        cursor: "pointer", userSelect: "none", borderRight: "1px solid #1e1e1e",
+      }}
+    >
+      <span style={{ fontSize: 10, color: "#888" }}>{active === id ? "\u25BC" : "\u25B6"}</span>
+      <span style={{ fontSize: 12, color: active === id ? "#bbb" : "#888", fontWeight: 600 }}>{label}</span>
+    </div>
+  );
 
   return (
     <div style={{ borderBottom: "1px solid #333", background: "#111", flexShrink: 0 }}>
-      <div style={{ padding: "4px 12px", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", userSelect: "none" }} onClick={() => setOpen(o => !o)}>
-        <span style={{ fontSize: 10, color: "#888" }}>{open ? "\u25BC" : "\u25B6"}</span>
-        <span style={{ fontSize: 12, color: "#888", fontWeight: 600 }}>Frontmatter</span>
-        {!open && msg && <span style={{ fontSize: 12, color: "#7ec8f7" }}>{msg}</span>}
+      <div style={{ display: "flex", alignItems: "stretch" }}>
+        {hasFm && <Tab id="frontmatter" label="Frontmatter" />}
+        {project && <Tab id="stats" label="Stats" />}
+        {project && <Tab id="scan" label="Scan" />}
+        <div style={{ flex: 1 }} />
+        {active === "frontmatter" && fmMsg && (
+          <span style={{ fontSize: 12, color: "#7ec8f7", padding: "4px 12px", alignSelf: "center" }}>{fmMsg}</span>
+        )}
       </div>
-      {open && (
+
+      {active === "frontmatter" && hasFm && (
         <div style={{ padding: "4px 12px 6px 32px", display: "flex", gap: 8, alignItems: "center" }}>
           {onApplyTemplate && (
-            <button onClick={() => run(onApplyTemplate, "Applied")} title="Apply global frontmatter template" style={fmBtnStyle} onMouseEnter={fmBtnHover} onMouseLeave={fmBtnLeave}>
-              Apply template
-            </button>
+            <button onClick={() => runFm(onApplyTemplate, "Applied")} title="Apply global frontmatter template" style={fmBtnStyle} onMouseEnter={fmBtnHover} onMouseLeave={fmBtnLeave}>Apply template</button>
           )}
           {onUseAsTemplate && (
-            <button onClick={() => run(onUseAsTemplate, "Saved as template")} title="Use as global frontmatter template" style={fmBtnStyle} onMouseEnter={fmBtnHover} onMouseLeave={fmBtnLeave}>
-              Use as template
-            </button>
+            <button onClick={() => runFm(onUseAsTemplate, "Saved as template")} title="Use as global frontmatter template" style={fmBtnStyle} onMouseEnter={fmBtnHover} onMouseLeave={fmBtnLeave}>Use as template</button>
           )}
           {onEditTemplate && (
-            <button onClick={onEditTemplate} title="View and edit the global frontmatter template" style={fmBtnStyle} onMouseEnter={fmBtnHover} onMouseLeave={fmBtnLeave}>
-              View template
-            </button>
+            <button onClick={onEditTemplate} title="View and edit the global frontmatter template" style={fmBtnStyle} onMouseEnter={fmBtnHover} onMouseLeave={fmBtnLeave}>View template</button>
           )}
           {onViewCompliance && (
-            <button onClick={onViewCompliance} title="View frontmatter compliance report" style={fmBtnStyle} onMouseEnter={fmBtnHover} onMouseLeave={fmBtnLeave}>
-              View compliance
-            </button>
+            <button onClick={onViewCompliance} title="View frontmatter compliance report" style={fmBtnStyle} onMouseEnter={fmBtnHover} onMouseLeave={fmBtnLeave}>View compliance</button>
           )}
-          {msg && <span style={{ fontSize: 12, color: "#7ec8f7" }}>{msg}</span>}
         </div>
       )}
+
+      {active === "stats" && project && (
+        <div style={{ padding: "4px 12px 10px" }}>
+          {statsLoading && <span style={{ fontSize: 12, color: "#888" }}>Loading…</span>}
+          {statsError && <span style={{ fontSize: 12, color: "#f66" }}>{statsError}</span>}
+          {stats && (
+            <>
+              <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: 10 }}>
+                <StatRow label="Words" value={String(stats.word_count)} />
+                <StatRow label="Sentences" value={String(stats.sentence_count)} />
+                <StatRow label="Paragraphs" value={String(stats.paragraph_count)} />
+                <StatRow label="Avg sentence length" value={`${stats.avg_sentence_length} words`} />
+              </div>
+              <div style={{ fontSize: 11, color: "#888", fontWeight: 600, marginBottom: 4, paddingTop: 4, borderTop: "1px solid #222" }}>Readability</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                <StatRow label="Flesch Reading Ease" value={`${stats.flesch_reading_ease}`} note={stats.flesch_reading_ease_label} />
+                <StatRow label="Flesch-Kincaid Grade" value={`${stats.flesch_kincaid_grade}`} />
+                <StatRow label="Gunning Fog" value={`${stats.gunning_fog}`} />
+                <StatRow label="Automated Readability" value={`${stats.automated_readability_index}`} />
+                <StatRow label="Coleman-Liau" value={`${stats.coleman_liau_index}`} />
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {active === "scan" && project && (
+        <div style={{ padding: "4px 12px 10px" }}>
+          {scanLoading && <span style={{ fontSize: 12, color: "#888" }}>Scanning…</span>}
+          {scanError && <span style={{ fontSize: 12, color: "#f66" }}>{scanError}</span>}
+          {scan && (
+            <>
+              {scan.flags.length === 0 ? (
+                <span style={{ fontSize: 12, color: "#5c5" }}>No issues found</span>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {scan.flags.map((flag, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                      <span style={{ fontSize: 11, color: flag.severity === "warn" ? "#fa0" : "#666", flexShrink: 0, marginTop: 1 }}>
+                        {flag.severity === "warn" ? "\u26A0" : "\u2022"}
+                      </span>
+                      <span style={{ fontSize: 12, color: "#ccc" }}>{flag.message}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{ marginTop: 8, paddingTop: 6, borderTop: "1px solid #222" }}>
+                <span style={{ fontSize: 11, color: "#555" }}>{scan.shape.headings} heading{scan.shape.headings !== 1 ? "s" : ""}</span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatRow({ label, value, note }: { label: string; value: string; note?: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <span style={{ fontSize: 12, color: "#888", width: 150, flexShrink: 0, textAlign: "right" }}>{label}</span>
+      <span style={{ fontSize: 12, color: "#ccc" }}>{value}</span>
+      {note && <span style={{ fontSize: 11, color: "#888" }}>{note}</span>}
     </div>
   );
 }

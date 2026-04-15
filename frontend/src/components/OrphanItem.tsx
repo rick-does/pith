@@ -74,7 +74,7 @@ export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSel
             if (clickTimerRef.current) {
               clearTimeout(clickTimerRef.current);
               clickTimerRef.current = null;
-              onAddToHierarchy(path);
+              onOpen(path);
             } else {
               clickTimerRef.current = setTimeout(() => {
                 clickTimerRef.current = null;
