@@ -24,8 +24,9 @@ nav:
   - Home: index.md
   - Getting Started: getting-started.md
   - Managing Projects: projects.md
-  - Editing Files: editing.md
-  - Issues Example: scan-test.md
+  - Editing Files:
+    - editing.md
+    - Issues Example: scan-test.md
   - Building Your Hierarchy: hierarchy.md
   - Unlinked Files: unlinked-files.md
   - Search: search.md
