@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import shutil
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import markdown
@@ -35,6 +37,7 @@ from .utils import (
     validate_project_links,
     find_incoming_links,
     PROJECTS_DIR,
+    GOLDEN_DIR,
 )
 from .converters import (
     export_docusaurus,
@@ -44,7 +47,24 @@ from .converters import (
 )
 from .stats import compute_stats
 
-app = FastAPI(title="PiTH")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    doc_md = PROJECTS_DIR / "documentation" / "markdowns"
+    if not doc_md.exists() or not any(doc_md.glob("*.md")):
+        golden_doc = GOLDEN_DIR / "documentation"
+        if golden_doc.exists():
+            doc_dir = PROJECTS_DIR / "documentation"
+            doc_dir.mkdir(parents=True, exist_ok=True)
+            doc_md.mkdir(exist_ok=True)
+            golden_tree = golden_doc / "tree.yaml"
+            if golden_tree.exists():
+                shutil.copy2(str(golden_tree), str(doc_dir / "tree.yaml"))
+            for fp in (golden_doc / "markdowns").glob("*.md"):
+                shutil.copy2(str(fp), str(doc_md / fp.name))
+    yield
+
+
+app = FastAPI(title="PiTH", lifespan=lifespan)
 
 # ---------------------------------------------------------------------------
 # Health
@@ -270,11 +290,10 @@ async def api_batch_update(project: str, request: Request):
 @app.post("/api/projects/documentation/restore-structure")
 async def api_restore_structure():
     """Restore the documentation project's tree.yaml from the bundled golden copy."""
-    golden = PROJECTS_DIR / "documentation" / "_golden" / "tree.yaml"
+    golden = GOLDEN_DIR / "documentation" / "tree.yaml"
     target = PROJECTS_DIR / "documentation" / "tree.yaml"
     if not golden.exists():
         raise HTTPException(404, "Golden copy not found")
-    import shutil
     shutil.copy2(str(golden), str(target))
     return {"status": "restored", "scope": "structure"}
 
@@ -282,10 +301,9 @@ async def api_restore_structure():
 @app.post("/api/projects/documentation/restore-all")
 async def api_restore_all():
     """Restore the documentation project's tree.yaml and all markdown files from the bundled golden copy."""
-    golden_dir = PROJECTS_DIR / "documentation" / "_golden"
+    golden_dir = GOLDEN_DIR / "documentation"
     if not golden_dir.exists():
         raise HTTPException(404, "Golden copy not found")
-    import shutil
     shutil.copy2(
         str(golden_dir / "tree.yaml"),
         str(PROJECTS_DIR / "documentation" / "tree.yaml"),

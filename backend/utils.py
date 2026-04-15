@@ -11,6 +11,7 @@ import yaml
 from .models import FileNode, CollectionStructure
 
 PROJECTS_DIR = Path("projects")
+GOLDEN_DIR = Path("_golden")
 
 
 def get_projects_dir() -> Path:

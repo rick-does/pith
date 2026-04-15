@@ -14,6 +14,6 @@ standalone/
 *.bak
 .env
 
-# Only track the bundled documentation project; ignore user-created projects
+# Track the projects directory itself but ignore all content (populated at runtime from _golden)
 projects/*
-!projects/documentation/
+!projects/.gitkeep
