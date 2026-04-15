@@ -93,9 +93,12 @@ export default function App() {
   const [frontmatterIssueMap, setFrontmatterIssueMap] = useState<Record<string, boolean>>({});
   const [showIndicators, setShowIndicators] = useState(() => localStorage.getItem("pith_indicators") !== "false");
   const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
+  const [reportPreview, setReportPreview] = useState<string | null>(null);
 
   const editorContentRef = useRef(editorContent);
   const savedContentRef = useRef(savedContent);
+  const htmlIframeRef = useRef<HTMLIFrameElement>(null);
+  const reportIframeRef = useRef<HTMLIFrameElement>(null);
   useEffect(() => { editorContentRef.current = editorContent; }, [editorContent]);
   useEffect(() => { savedContentRef.current = savedContent; }, [savedContent]);
 
@@ -362,13 +365,13 @@ export default function App() {
   const handleExportHtml = useCallback(() => {
     if (!currentProject) return;
     const url = `/api/projects/${encodeURIComponent(currentProject)}/export/html`;
-    if ((window as any).pywebview) {
-      // pywebview mode — show in overlay
-      fetch(url).then(r => r.text()).then(setHtmlPreview).catch(() => {});
-    } else {
-      // Browser mode — open in new tab
-      window.open(url, "_blank");
-    }
+    fetch(url).then(r => r.text()).then(setHtmlPreview).catch(() => {});
+  }, [currentProject]);
+
+  const handleReport = useCallback(() => {
+    if (!currentProject) return;
+    const url = `/api/projects/${encodeURIComponent(currentProject)}/report/html`;
+    fetch(url).then(r => r.text()).then(setReportPreview).catch(() => {});
   }, [currentProject]);
 
   const handleUseAsTemplate = useCallback(async () => {
@@ -617,6 +620,7 @@ export default function App() {
           onRestoreAll={handleRestoreAll}
           onValidateLinks={handleShowLinkReport}
           onExportHtml={handleExportHtml}
+          onReport={handleReport}
           brokenLinkMap={brokenLinkMap}
           frontmatterIssueMap={frontmatterIssueMap}
           showIndicators={showIndicators}
@@ -647,6 +651,7 @@ export default function App() {
             onEditTemplate={() => setShowTemplateEditor(true)}
             onViewCompliance={handleShowCompliance}
             onClose={handleCloseOverlay}
+            onReport={handleReport}
             brokenLinks={fileBrokenLinks}
           />
         )}
@@ -762,14 +767,55 @@ export default function App() {
               style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}
             >Save as HTML</button>
             <button
+              onClick={() => htmlIframeRef.current?.contentWindow?.print()}
+              style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}
+            >Print / Save as PDF</button>
+            <button
               onClick={() => setHtmlPreview(null)}
               style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}
             >Close</button>
           </div>
           <iframe
+            ref={htmlIframeRef}
             srcDoc={htmlPreview}
             style={{ flex: 1, border: "none", width: "100%" }}
             title="Export preview"
+          />
+        </div>
+      )}
+
+      {reportPreview !== null && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "#fff", display: "flex", flexDirection: "column" }}>
+          <div style={{
+            height: 50, background: "#1a6fa8", display: "flex", alignItems: "center",
+            padding: "0 24px", gap: 12, flexShrink: 0,
+          }}>
+            <span style={{ color: "#fff", fontWeight: 600, fontSize: 15, flex: 1 }}>Scan Project</span>
+            <button
+              onClick={() => {
+                const blob = new Blob([reportPreview], { type: "text/html" });
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = `${currentProject}-report.html`;
+                a.click();
+                URL.revokeObjectURL(a.href);
+              }}
+              style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}
+            >Save as HTML</button>
+            <button
+              onClick={() => reportIframeRef.current?.contentWindow?.print()}
+              style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}
+            >Print / Save as PDF</button>
+            <button
+              onClick={() => setReportPreview(null)}
+              style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}
+            >Close</button>
+          </div>
+          <iframe
+            ref={reportIframeRef}
+            srcDoc={reportPreview}
+            style={{ flex: 1, border: "none", width: "100%" }}
+            title="Analysis report"
           />
         </div>
       )}

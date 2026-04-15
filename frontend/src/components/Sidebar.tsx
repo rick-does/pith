@@ -87,13 +87,14 @@ interface SidebarProps {
   onRestoreAll: () => void;
   onValidateLinks: () => void;
   onExportHtml: () => void;
+  onReport: () => void;
   brokenLinkMap: Record<string, number>;
   frontmatterIssueMap: Record<string, boolean>;
   showIndicators: boolean;
   onToggleIndicators: () => void;
 }
 
-export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onDeleteFile, onRenameFile, onCreateChildFile, onCopyToChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onCreateProject, onDeleteProject, onArchiveProject, onRenameProject, onOpenProjectMd, onRefresh, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, brokenLinkMap, frontmatterIssueMap, showIndicators, onToggleIndicators }: SidebarProps) {
+export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onDeleteFile, onRenameFile, onCreateChildFile, onCopyToChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onCreateProject, onDeleteProject, onArchiveProject, onRenameProject, onOpenProjectMd, onRefresh, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, brokenLinkMap, frontmatterIssueMap, showIndicators, onToggleIndicators }: SidebarProps) {
   const [titleMode, setTitleMode] = useState(() => localStorage.getItem("pith_title_mode") !== "false");
   const [orphanSort, setOrphanSort] = useState<"recent" | "alpha" | "custom">("recent");
   const [orphanOrder, setOrphanOrder] = useState<string[]>([]);
@@ -512,6 +513,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
                   onRestoreAll={onRestoreAll}
                   onValidateLinks={onValidateLinks}
                   onExportHtml={onExportHtml}
+                  onReport={onReport}
                   isDocumentation={currentProject === "documentation"}
                   showIndicators={showIndicators}
                   onToggleIndicators={onToggleIndicators}

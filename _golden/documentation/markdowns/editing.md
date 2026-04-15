@@ -45,7 +45,7 @@ Vi-specific save commands:
 
 ## Frontmatter, Stats, Issues, and Structure
 
-Below the editor toolbar is a bar with four tabs: **Frontmatter**, **Stats**, **Issues**, and **Structure**. Click any tab header to expand it; clicking an open tab collapses it. Only one tab can be open at a time. The Stats, Issues, and Structure panels open as floating overlays so they don't push the editor down.
+Below the editor toolbar is a bar with four tabs: **Frontmatter**, **Stats**, **Issues**, and **Structure**, and a **Scan Project** button on the right. Click any tab header to expand it; clicking an open tab collapses it. Only one tab can be open at a time. The Stats, Issues, and Structure panels open as floating overlays so they don't push the editor down.
 
 ## Frontmatter
 
@@ -92,6 +92,17 @@ See [Issues Example](scan-test.md) for a sample file that triggers every Issues 
 The **Structure** tab shows the heading skeleton of the current file — the outline with per-section word counts.
 
 Each line shows the heading level (`#`, `##`, etc.), the heading title, and the word count for that section's direct body text (not including sub-sections). Sections with no body text show a dash. The footer shows total heading count, maximum nesting depth, and total word count.
+
+## Scan Project
+
+The **Scan Project** button on the right of the tab bar runs Stats, Issues, and Structure analysis on every file in the current project and produces a single HTML report. The same action is available from **⋮ → Scan Project** in the project menu.
+
+The report opens in a full-screen overlay and includes:
+
+- A summary table with word count, readability score, and issue badges for each file
+- A per-file section with the full stats grid, issues list, and structure outline
+
+Use the **Save as HTML** button to download the report, or **Print / Save as PDF** to send it to a printer or PDF writer.
 
 ## Renaming from the editor
 

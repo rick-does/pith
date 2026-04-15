@@ -23,9 +23,10 @@ interface Props {
   onEditTemplate?: () => void;
   onViewCompliance?: () => void;
   onClose?: () => void;
+  onReport?: () => void;
 }
 
-export default function MarkdownEditor({ project, path, content, savedContent, onContentChange, viMode, onViModeChange, onSaved, onSave, onRename, onUseAsTemplate, onApplyTemplate, onEditTemplate, onViewCompliance, onClose, brokenLinks }: Props) {
+export default function MarkdownEditor({ project, path, content, savedContent, onContentChange, viMode, onViModeChange, onSaved, onSave, onRename, onUseAsTemplate, onApplyTemplate, onEditTemplate, onViewCompliance, onClose, onReport, brokenLinks }: Props) {
   const [view, setView] = useState<"edit" | "preview" | "split">("split");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
@@ -123,7 +124,7 @@ export default function MarkdownEditor({ project, path, content, savedContent, o
       </div>
 
       {(project || onApplyTemplate || onUseAsTemplate || onEditTemplate || onViewCompliance) && (
-        <FmBar onApplyTemplate={onApplyTemplate} onUseAsTemplate={onUseAsTemplate} onEditTemplate={onEditTemplate} onViewCompliance={onViewCompliance} project={project} filePath={path} />
+        <FmBar onApplyTemplate={onApplyTemplate} onUseAsTemplate={onUseAsTemplate} onEditTemplate={onEditTemplate} onViewCompliance={onViewCompliance} project={project} filePath={path} onReport={onReport} />
       )}
 
       {brokenLinks && brokenLinks.length > 0 && (
@@ -200,13 +201,14 @@ interface StructureData { sections: StructureSection[]; max_depth: number; total
 
 type ActivePanel = "frontmatter" | "stats" | "issues" | "structure" | null;
 
-function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewCompliance, project, filePath }: {
+function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewCompliance, project, filePath, onReport }: {
   onApplyTemplate?: () => Promise<void> | void;
   onUseAsTemplate?: () => Promise<void> | void;
   onEditTemplate?: () => void;
   onViewCompliance?: () => void;
   project?: string;
   filePath?: string;
+  onReport?: () => void;
 }) {
   const [active, setActive] = useState<ActivePanel>(null);
   const [fmMsg, setFmMsg] = useState("");
@@ -268,12 +270,13 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
       <div
         onClick={() => toggle(id)}
         style={{
-          display: "flex", alignItems: "center", gap: 6, padding: "4px 14px",
+          display: "flex", alignItems: "center", padding: "4px 14px",
           cursor: "pointer", userSelect: "none", borderRight: "1px solid #1e1e1e",
           background: isActive ? "#1a3a5c" : "transparent",
         }}
+        onMouseEnter={(e) => { if (!isActive) { (e.currentTarget as HTMLDivElement).style.background = "#1a3a5c"; (e.currentTarget.querySelector("span") as HTMLSpanElement).style.color = "#7ec8f7"; } }}
+        onMouseLeave={(e) => { if (!isActive) { (e.currentTarget as HTMLDivElement).style.background = "transparent"; (e.currentTarget.querySelector("span") as HTMLSpanElement).style.color = "#888"; } }}
       >
-        <span style={{ fontSize: 10, color: isActive ? "#7ec8f7" : "#888" }}>{isActive ? "\u25BC" : "\u25B6"}</span>
         <span style={{ fontSize: 12, color: isActive ? "#7ec8f7" : "#888", fontWeight: 600 }}>{label}</span>
       </div>
     );
@@ -288,14 +291,14 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
 
   return (
     <div style={{ borderBottom: "1px solid #333", background: "#111", flexShrink: 0 }}>
-      <div style={{ display: "flex", alignItems: "stretch" }}>
+      <div style={{ display: "flex", alignItems: "stretch", padding: "3px 0" }}>
         {hasFm && (
-          <div style={{ position: "relative" }}>
+          <div style={{ position: "relative", display: "flex", marginLeft: 12 }}>
             <Tab id="frontmatter" label="Frontmatter" />
           </div>
         )}
         {project && (
-          <div style={{ position: "relative" }}>
+          <div style={{ position: "relative", display: "flex" }}>
             <Tab id="stats" label="Stats" />
             {active === "stats" && (
               <div style={overlayStyle}>
@@ -324,7 +327,7 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
           </div>
         )}
         {project && (
-          <div style={{ position: "relative" }}>
+          <div style={{ position: "relative", display: "flex" }}>
             <Tab id="issues" label="Issues" />
             {active === "issues" && (
               <div style={overlayStyle}>
@@ -356,7 +359,7 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
           </div>
         )}
         {project && (
-          <div style={{ position: "relative" }}>
+          <div style={{ position: "relative", display: "flex" }}>
             <Tab id="structure" label="Structure" />
             {active === "structure" && (
               <div style={overlayStyle}>
@@ -393,6 +396,15 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
         <div style={{ flex: 1 }} />
         {active === "frontmatter" && fmMsg && (
           <span style={{ fontSize: 12, color: "#7ec8f7", padding: "4px 12px", alignSelf: "center" }}>{fmMsg}</span>
+        )}
+        {onReport && project && (
+          <button
+            onClick={onReport}
+            style={{ ...fmBtnStyle, marginRight: 10, marginTop: 1, marginBottom: 1 }}
+            onMouseEnter={fmBtnHover}
+            onMouseLeave={fmBtnLeave}
+            title="Scan all project files"
+          >Scan Project</button>
         )}
       </div>
 

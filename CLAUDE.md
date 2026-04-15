@@ -80,6 +80,7 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 - Project menu: flyout submenus for Projects, Frontmatter, Restore Docs, Import, Export, Settings
 - Stats panel in editor (collapsible, on-demand): word count, sentence count, paragraph count, avg sentence length, 5 readability scores (Flesch, FK Grade, Gunning Fog, ARI, Coleman-Liau)
 - Vi keybindings in editor: :w saves, :x saves and closes
+- Scan Project: project-wide analysis report (stats + issues + structure on every file); accessible from Project menu and editor tab bar; renders in overlay with Save as HTML and Print/Save as PDF
 
 ### To build
 
@@ -91,13 +92,12 @@ pith and pith-cli are separate, independent projects. pith does NOT depend on pi
 | Feature | GUI home | Status |
 |---|---|---|
 | Stats | Editor panel | Done |
-| Issues | Editor panel | Next |
-| Structure | Editor panel | After scan |
-| Report | Export menu | After scan |
-| Batch | Project menu | After scan |
-| Compare | TBD (right-click?) | After scan |
+| Issues | Editor panel | Done |
+| Structure | Editor panel | Done |
+| Scan Project | Project menu + editor tab bar | Done |
+| Compare | Terminal only | Dropped from GUI |
 
-Stats panel is live. Same collapsible panel pattern applies to scan/structure/batch/compare/report.
+All per-file analysis panels (Stats, Issues, Structure) are live in the editor tab bar. Scan Project runs stats+issues+structure across all project files and renders a self-contained HTML report in an overlay (`backend/report.py`, endpoint `GET /api/projects/{project}/report/html`). Overlay has Save as HTML, Print/Save as PDF, and Close.
 
 **What's not in the GUI (ever):**
 - `pth check` — dropped; spaCy requires post-install model download, not bundleable, passive voice detection unreliable

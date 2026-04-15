@@ -24,12 +24,13 @@ export interface ProjectChipProps {
   onRestoreAll: () => void;
   onValidateLinks: () => void;
   onExportHtml: () => void;
+  onReport: () => void;
   isDocumentation: boolean;
   showIndicators: boolean;
   onToggleIndicators: () => void;
 }
 
-export default function ProjectChip({ currentProject, currentProjectTitle, projects, titleMode, setTitleMode, onSwitchProject, onCreateProject, onArchiveProject, onRenameProject, onOpenProjectMd, onRefresh, onCreateFile, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, isDocumentation, showIndicators, onToggleIndicators }: ProjectChipProps) {
+export default function ProjectChip({ currentProject, currentProjectTitle, projects, titleMode, setTitleMode, onSwitchProject, onCreateProject, onArchiveProject, onRenameProject, onOpenProjectMd, onRefresh, onCreateFile, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, isDocumentation, showIndicators, onToggleIndicators }: ProjectChipProps) {
   const [renamingProject, setRenamingProject] = useState(false);
   const [renameProjectValue, setRenameProjectValue] = useState("");
   const [renameProjectError, setRenameProjectError] = useState("");
@@ -260,6 +261,12 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                 onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
               >View HTML/PDF</div>
+
+              <div style={{ ...menuItem }}
+                onClick={() => { onReport(); setMenuOpen(false); }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+              >Scan Project</div>
 
               {/* Restore Docs flyout (documentation project only) */}
               {isDocumentation && (
