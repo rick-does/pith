@@ -15,31 +15,35 @@ root:
   title: Editing Files
   order: 3
   children: []
+- path: scan-test.md
+  title: Issues Example
+  order: 4
+  children: []
 - path: hierarchy.md
   title: Building Your Hierarchy
-  order: 4
+  order: 5
   children: []
 - path: unlinked-files.md
   title: Unlinked Files
-  order: 5
+  order: 6
   children: []
 - path: search.md
   title: Search
-  order: 6
+  order: 7
   children: []
 - path: frontmatter.md
   title: Frontmatter
-  order: 7
+  order: 8
   children: []
 - path: link-validation.md
   title: Link Validation
-  order: 8
+  order: 9
   children: []
 - path: import-export.md
   title: Import & Export
-  order: 9
+  order: 10
   children: []
 - path: keyboard-shortcuts.md
   title: Keyboard Shortcuts
-  order: 10
+  order: 11
   children: []
