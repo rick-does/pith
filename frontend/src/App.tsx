@@ -105,6 +105,14 @@ export default function App() {
   useEffect(() => { editorContentRef.current = editorContent; }, [editorContent]);
   useEffect(() => { savedContentRef.current = savedContent; }, [savedContent]);
 
+  const handleCloseOverlay = useCallback(() => {
+    if (overlayType === "editor" && editorContentRef.current !== savedContentRef.current) {
+      if (!window.confirm(`"${selectedPath}" has unsaved changes.\n\nClose without saving?`)) return;
+    }
+    setOverlayType(null);
+    localStorage.removeItem(LAST_FILE_KEY);
+  }, [overlayType, selectedPath]);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "f" && !overlayType) {
@@ -281,14 +289,6 @@ export default function App() {
     setOverlayType("editor");
     localStorage.setItem(LAST_FILE_KEY, path);
   }, [currentProject]);
-
-  const handleCloseOverlay = useCallback(() => {
-    if (overlayType === "editor" && editorContentRef.current !== savedContentRef.current) {
-      if (!window.confirm(`"${selectedPath}" has unsaved changes.\n\nClose without saving?`)) return;
-    }
-    setOverlayType(null);
-    localStorage.removeItem(LAST_FILE_KEY);
-  }, [overlayType, selectedPath]);
 
   const handleOpenYaml = useCallback(async () => {
     if (!currentProject) return;
