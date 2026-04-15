@@ -91,7 +91,7 @@ pith and pith-cli are separate, independent projects. pith does NOT depend on pi
 | Feature | GUI home | Status |
 |---|---|---|
 | Stats | Editor panel | Done |
-| Scan | Editor panel | Next |
+| Issues | Editor panel | Next |
 | Structure | Editor panel | After scan |
 | Report | Export menu | After scan |
 | Batch | Project menu | After scan |

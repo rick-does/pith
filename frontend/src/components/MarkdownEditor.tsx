@@ -190,13 +190,13 @@ interface StatsData {
   flesch_reading_ease_label: string; flesch_kincaid_grade: number;
   gunning_fog: number; automated_readability_index: number; coleman_liau_index: number;
 }
-interface ScanFlag { severity: "warn" | "info"; message: string; }
-interface ScanData {
-  flags: ScanFlag[];
+interface IssueFlag { severity: "warn" | "info"; message: string; }
+interface IssuesData {
+  flags: IssueFlag[];
   shape: { headings: number; empty_sections: number; long_sentences: number; long_paragraphs: number; };
 }
 
-type ActivePanel = "frontmatter" | "stats" | "scan" | null;
+type ActivePanel = "frontmatter" | "stats" | "issues" | null;
 
 function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewCompliance, project, filePath }: {
   onApplyTemplate?: () => Promise<void> | void;
@@ -211,11 +211,11 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
   const [stats, setStats] = useState<StatsData | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
-  const [scan, setScan] = useState<ScanData | null>(null);
-  const [scanLoading, setScanLoading] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
+  const [issues, setIssues] = useState<IssuesData | null>(null);
+  const [issuesLoading, setScanLoading] = useState(false);
+  const [issuesError, setScanError] = useState<string | null>(null);
 
-  useEffect(() => { setStats(null); setScan(null); }, [filePath]);
+  useEffect(() => { setStats(null); setIssues(null); }, [filePath]);
 
   useEffect(() => {
     if (active === "stats" && project && filePath) {
@@ -228,10 +228,10 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
   }, [active, project, filePath]);
 
   useEffect(() => {
-    if (active === "scan" && project && filePath) {
-      setScan(null); setScanError(null); setScanLoading(true);
-      fetch(`/api/projects/${project}/scan/${filePath}`)
-        .then(r => { if (!r.ok) throw new Error("Failed to load scan"); return r.json(); })
+    if (active === "issues" && project && filePath) {
+      setIssues(null); setScanError(null); setScanLoading(true);
+      fetch(`/api/projects/${project}/issues/${filePath}`)
+        .then(r => { if (!r.ok) throw new Error("Failed to load issues"); return r.json(); })
         .then(d => { setScan(d); setScanLoading(false); })
         .catch(e => { setScanError(e.message); setScanLoading(false); });
     }
@@ -265,7 +265,7 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
       <div style={{ display: "flex", alignItems: "stretch" }}>
         {hasFm && <Tab id="frontmatter" label="Frontmatter" />}
         {project && <Tab id="stats" label="Stats" />}
-        {project && <Tab id="scan" label="Scan" />}
+        {project && <Tab id="issues" label="Issues" />}
         <div style={{ flex: 1 }} />
         {active === "frontmatter" && fmMsg && (
           <span style={{ fontSize: 12, color: "#7ec8f7", padding: "4px 12px", alignSelf: "center" }}>{fmMsg}</span>
@@ -314,10 +314,10 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
         </div>
       )}
 
-      {active === "scan" && project && (
+      {active === "issues" && project && (
         <div style={{ padding: "4px 12px 10px" }}>
-          {scanLoading && <span style={{ fontSize: 12, color: "#888" }}>Scanning…</span>}
-          {scanError && <span style={{ fontSize: 12, color: "#f66" }}>{scanError}</span>}
+          {issuesLoading && <span style={{ fontSize: 12, color: "#888" }}>Loading…</span>}
+          {issuesError && <span style={{ fontSize: 12, color: "#f66" }}>{issuesError}</span>}
           {scan && (
             <>
               {scan.flags.length === 0 ? (

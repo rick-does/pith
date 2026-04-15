@@ -43,9 +43,9 @@ Vi-specific save commands:
 | `:w` | Save |
 | `:x` | Save and close the editor |
 
-## Frontmatter, Stats, and Scan
+## Frontmatter, Stats, and Issues
 
-Below the editor toolbar is a bar with three tabs: **Frontmatter**, **Stats**, and **Scan**. Click any tab header to expand it; clicking an open tab collapses it. Only one tab can be open at a time.
+Below the editor toolbar is a bar with three tabs: **Frontmatter**, **Stats**, and **Issues**. Click any tab header to expand it; clicking an open tab collapses it. Only one tab can be open at a time.
 
 ## Frontmatter
 
@@ -67,9 +67,9 @@ Stats shown:
 - Word count, sentence count, paragraph count, average sentence length
 - **Readability:** Flesch Reading Ease (with label), Flesch-Kincaid Grade, Gunning Fog, Automated Readability Index, Coleman-Liau Index
 
-## Scan
+## Issues
 
-The **Scan** tab runs a structural triage of the current file and flags potential issues in two categories.
+The **Issues** tab runs a structural triage of the current file and flags potential issues in two categories.
 
 **Warnings** (⚠) — likely problems:
 
@@ -85,7 +85,7 @@ The **Scan** tab runs a structural triage of the current file and flags potentia
 
 If no issues are found, the panel shows **No issues found**. The heading count for the file is always shown at the bottom.
 
-See [Scan Example](scan-test.md) for a sample file that triggers every scan flag.
+See [Issues Example](scan-test.md) for a sample file that triggers every scan flag.
 
 ## Renaming from the editor
 

@@ -7,7 +7,7 @@ LONG_SENTENCE_WORDS = 40
 LONG_PARAGRAPH_WORDS = 150
 
 
-def compute_scan(file_path: Path) -> dict:
+def compute_issues(file_path: Path) -> dict:
     raw = file_path.read_text(encoding="utf-8")
     _, body = parse_frontmatter(raw)
 

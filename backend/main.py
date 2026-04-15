@@ -46,7 +46,7 @@ from .converters import (
     import_mkdocs,
 )
 from .stats import compute_stats
-from .scan import compute_scan
+from .issues import compute_issues
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -327,12 +327,12 @@ async def api_stats(project: str, file_path: str):
     return compute_stats(fp)
 
 
-@app.get("/api/projects/{project}/scan/{file_path:path}")
-async def api_scan(project: str, file_path: str):
+@app.get("/api/projects/{project}/issues/{file_path:path}")
+async def api_issues(project: str, file_path: str):
     fp = safe_path(project, file_path)
     if not fp.exists():
         raise HTTPException(404, "File not found")
-    return compute_scan(fp)
+    return compute_issues(fp)
 
 # ---------------------------------------------------------------------------
 # Link validation
