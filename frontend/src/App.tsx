@@ -108,10 +108,13 @@ export default function App() {
         e.preventDefault();
         setSearchOpen(true);
       }
+      if (e.key === "Escape" && overlayType) {
+        handleCloseOverlay();
+      }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [overlayType]);
+  }, [overlayType, handleCloseOverlay]);
 
   const lastFileCountRef = useRef<number>(-1);
 

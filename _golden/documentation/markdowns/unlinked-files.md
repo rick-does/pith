@@ -16,8 +16,12 @@ The pane is open by default. Click the chip to collapse it, and again to reopen 
 There are three ways to move an unlinked file into the hierarchy:
 
 1. **Drag** it from the Unlinked pane and drop it onto the hierarchy
-2. **Double-click** it to add it at the top of the hierarchy
-3. **Select** it (click once) and press the **←** arrow key
+2. **Select** it (click once) and press the **←** arrow key
+3. Click **⋮** on the file chip and choose **Add to hierarchy**
+
+Double-clicking an unlinked file opens it in the editor.
+
+**Alt+click** on a file chip shows a preview of the file's contents without opening the editor.
 
 To select multiple files, hold Ctrl/Cmd while clicking, or drag a selection rectangle around a group of files. The ← key moves all selected files at once.
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import shutil
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -168,7 +169,8 @@ async def api_get_collection_yaml(project: str):
 async def api_save_collection_yaml(project: str, request: Request):
     data = await request.json()
     content = data.get("content", "")
-    parsed = CollectionStructure(**__import__("yaml").safe_load(content))
+    import yaml
+    parsed = CollectionStructure(**yaml.safe_load(content))
     save_collection(project, parsed)
     return {"status": "saved"}
 
@@ -215,7 +217,7 @@ async def api_search(project: str, q: str = ""):
                     "text": line.strip()[:200],
                 })
         if matches:
-            title_match = __import__("re").search(r"^#\s+(.+)$", content, __import__("re").MULTILINE)
+            title_match = re.search(r"^#\s+(.+)$", content, re.MULTILINE)
             title = title_match.group(1).strip() if title_match else fp.stem
             results.append({
                 "path": rel,

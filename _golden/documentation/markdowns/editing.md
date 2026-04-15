@@ -73,7 +73,9 @@ The **Issues** tab runs a structural triage of the current file and flags potent
 
 **Warnings** (⚠) — likely problems:
 
-- No H1 heading, or more than one H1
+- No headings at all
+- No H1 heading (other headings exist but no top-level title)
+- More than one H1 heading
 - Heading level jumps (e.g. H1 to H3, skipping H2)
 - TODO, FIXME, TBD, or XXX markers in the text
 
