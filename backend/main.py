@@ -19,6 +19,9 @@ from .utils import (
     infer_template_from_file,
     create_project,
     delete_project,
+    open_external_project,
+    get_external_path,
+    extract_title,
     flatten_paths,
     get_all_md_files,
     get_collection_file,
@@ -173,6 +176,43 @@ async def api_save_collection_yaml(project: str, request: Request):
     parsed = CollectionStructure(**yaml.safe_load(content))
     save_collection(project, parsed)
     return {"status": "saved"}
+
+# ---------------------------------------------------------------------------
+# External directory projects
+# ---------------------------------------------------------------------------
+
+@app.get("/api/browse/folder")
+async def api_browse_folder():
+    """Open a native folder picker (pywebview only). Returns selected path or null."""
+    try:
+        import webview
+        windows = webview.windows
+        if windows:
+            result = windows[0].create_file_dialog(webview.FOLDER_DIALOG)
+            if result and len(result) > 0:
+                return {"path": result[0]}
+    except Exception:
+        pass
+    return {"path": None}
+
+
+@app.post("/api/projects/open-external")
+async def api_open_external(request: Request):
+    data = await request.json()
+    path = data.get("path", "").strip()
+    if not path:
+        raise HTTPException(400, "Path is required")
+    try:
+        name = open_external_project(path)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    title = name
+    pmd = get_project_md(name)
+    if pmd.exists():
+        t = extract_title(pmd.read_text(encoding="utf-8"))
+        if t:
+            title = t
+    return {"name": name, "title": title}
 
 # ---------------------------------------------------------------------------
 # Orphans

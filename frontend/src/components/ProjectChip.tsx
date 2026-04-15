@@ -25,12 +25,13 @@ export interface ProjectChipProps {
   onValidateLinks: () => void;
   onExportHtml: () => void;
   onReport: () => void;
+  onOpenFolder: () => void;
   isDocumentation: boolean;
   showIndicators: boolean;
   onToggleIndicators: () => void;
 }
 
-export default function ProjectChip({ currentProject, currentProjectTitle, projects, titleMode, setTitleMode, onSwitchProject, onCreateProject, onArchiveProject, onRenameProject, onOpenProjectMd, onRefresh, onCreateFile, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, isDocumentation, showIndicators, onToggleIndicators }: ProjectChipProps) {
+export default function ProjectChip({ currentProject, currentProjectTitle, projects, titleMode, setTitleMode, onSwitchProject, onCreateProject, onArchiveProject, onRenameProject, onOpenProjectMd, onRefresh, onCreateFile, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, onOpenFolder, isDocumentation, showIndicators, onToggleIndicators }: ProjectChipProps) {
   const [renamingProject, setRenamingProject] = useState(false);
   const [renameProjectValue, setRenameProjectValue] = useState("");
   const [renameProjectError, setRenameProjectError] = useState("");
@@ -344,6 +345,12 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                 onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
               >&#65291; New project</div>
+
+              <div style={{ ...menuItem, color: "#1a6fa8" }}
+                onClick={() => { onOpenFolder(); setMenuOpen(false); }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+              >&#128193; Open folder&hellip;</div>
 
               <div style={{ ...menuItem, color: "#1a6fa8" }}
                 onClick={() => { startCreating(); setMenuOpen(false); }}

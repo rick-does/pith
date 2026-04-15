@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import re
 import time
@@ -18,7 +19,21 @@ def get_projects_dir() -> Path:
     return PROJECTS_DIR
 
 
+def get_external_path(project: str) -> Path | None:
+    ext_file = PROJECTS_DIR / project / "external.json"
+    if ext_file.exists():
+        try:
+            data = json.loads(ext_file.read_text(encoding="utf-8"))
+            return Path(data["path"])
+        except Exception:
+            return None
+    return None
+
+
 def get_markdowns_dir(project: str) -> Path:
+    ext = get_external_path(project)
+    if ext is not None:
+        return ext
     return PROJECTS_DIR / project / "markdowns"
 
 
@@ -185,6 +200,42 @@ def delete_project(name: str) -> None:
     proj_dir = PROJECTS_DIR / name
     if proj_dir.exists():
         shutil.rmtree(proj_dir)
+
+
+def open_external_project(path: str) -> str:
+    """Register an external directory as a pith project. Returns the project name."""
+    ext_path = Path(path).resolve()
+    if not ext_path.exists() or not ext_path.is_dir():
+        raise ValueError(f"Directory not found: {path}")
+
+    # Derive a safe project name from the directory name
+    base_name = re.sub(r"[^\w\-]", "-", ext_path.name).strip("-") or "external"
+    base_name = base_name.lower()
+    name = base_name
+    i = 1
+    while (PROJECTS_DIR / name).exists():
+        existing = get_external_path(name)
+        if existing and existing.resolve() == ext_path:
+            return name  # Already registered, reuse it
+        name = f"{base_name}-{i}"
+        i += 1
+
+    proj_dir = PROJECTS_DIR / name
+    proj_dir.mkdir(parents=True, exist_ok=True)
+    (proj_dir / "external.json").write_text(
+        json.dumps({"path": str(ext_path)}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    tree_file = get_collection_file(name)
+    if not tree_file.exists():
+        tree_file.write_text("root: []\n", encoding="utf-8")
+
+    pmd = get_project_md(name)
+    if not pmd.exists():
+        pmd.write_text(f"# {ext_path.name}\n", encoding="utf-8")
+
+    return name
 
 
 LINK_RE = re.compile(r"\[([^\]]*)\]\(([^)]+)\)")

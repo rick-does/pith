@@ -18,6 +18,7 @@ import {
   validateProjectLinks, validateFileLinks,
   fetchCompliance, batchUpdateFrontmatter, inferTemplateFromFile,
   importFromFormat, exportToFormat,
+  browseFolder, openExternalProject,
 } from "./api";
 import type { CollectionStructure, FileInfo, FileNode, ProjectInfo } from "./types";
 import type { FrontmatterTemplate, FrontmatterField, ComplianceItem, FileLinkReport, BrokenLink } from "./api";
@@ -94,6 +95,8 @@ export default function App() {
   const [showIndicators, setShowIndicators] = useState(() => localStorage.getItem("pith_indicators") !== "false");
   const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
   const [reportPreview, setReportPreview] = useState<string | null>(null);
+  const [folderInputOpen, setFolderInputOpen] = useState(false);
+  const [folderInputPath, setFolderInputPath] = useState("");
 
   const editorContentRef = useRef(editorContent);
   const savedContentRef = useRef(savedContent);
@@ -377,6 +380,40 @@ export default function App() {
     fetch(url).then(r => r.text()).then(setReportPreview).catch(() => {});
   }, [currentProject]);
 
+  const handleOpenFolder = useCallback(async () => {
+    const picked = await browseFolder();
+    if (picked) {
+      // pywebview returned a path — open directly
+      try {
+        const { name } = await openExternalProject(picked);
+        const ps = await listProjects();
+        setProjects(ps);
+        handleSwitchProject(name);
+      } catch (e: any) {
+        alert(e.message ?? "Failed to open folder");
+      }
+    } else {
+      // Browser mode — show path input modal
+      setFolderInputPath("");
+      setFolderInputOpen(true);
+    }
+  }, [handleSwitchProject]);
+
+  const handleFolderInputConfirm = useCallback(async () => {
+    const path = folderInputPath.trim();
+    if (!path) return;
+    try {
+      const { name } = await openExternalProject(path);
+      const ps = await listProjects();
+      setProjects(ps);
+      handleSwitchProject(name);
+      setFolderInputOpen(false);
+      setFolderInputPath("");
+    } catch (e: any) {
+      alert(e.message ?? "Failed to open folder");
+    }
+  }, [folderInputPath]);
+
   const handleUseAsTemplate = useCallback(async () => {
     if (!currentProject || !selectedPath) return;
     const t = await inferTemplateFromFile(currentProject, selectedPath);
@@ -624,6 +661,7 @@ export default function App() {
           onValidateLinks={handleShowLinkReport}
           onExportHtml={handleExportHtml}
           onReport={handleReport}
+          onOpenFolder={handleOpenFolder}
           brokenLinkMap={brokenLinkMap}
           frontmatterIssueMap={frontmatterIssueMap}
           showIndicators={showIndicators}
@@ -820,6 +858,27 @@ export default function App() {
             style={{ flex: 1, border: "none", width: "100%" }}
             title="Analysis report"
           />
+        </div>
+      )}
+
+      {folderInputOpen && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: "#fff", borderRadius: 8, padding: "24px 28px", minWidth: 420, boxShadow: "0 8px 32px rgba(0,0,0,0.25)" }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "#1a3a5c", marginBottom: 12 }}>Open folder as project</div>
+            <div style={{ fontSize: 13, color: "#666", marginBottom: 12 }}>Enter the full path to a directory containing markdown files.</div>
+            <input
+              autoFocus
+              value={folderInputPath}
+              onChange={e => setFolderInputPath(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") handleFolderInputConfirm(); if (e.key === "Escape") setFolderInputOpen(false); }}
+              placeholder={navigator.platform.startsWith("Win") ? "C:\\Users\\you\\my-docs" : "/home/you/my-docs"}
+              style={{ width: "100%", padding: "7px 10px", fontSize: 13, border: "1px solid #b3d9f7", borderRadius: 4, outline: "none", marginBottom: 16, boxSizing: "border-box" }}
+            />
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button onClick={() => setFolderInputOpen(false)} style={{ padding: "6px 16px", border: "1px solid #ccc", borderRadius: 4, background: "#f5f5f5", cursor: "pointer", fontSize: 13 }}>Cancel</button>
+              <button onClick={handleFolderInputConfirm} style={{ padding: "6px 16px", border: "none", borderRadius: 4, background: "#1a6fa8", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Open</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

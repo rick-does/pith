@@ -248,6 +248,26 @@ export async function exportToFormat(project: string, format: "mkdocs" | "docusa
   return r.json();
 }
 
+export async function browseFolder(): Promise<string | null> {
+  const r = await fetch(`${BASE}/browse/folder`);
+  if (!r.ok) return null;
+  const data = await r.json();
+  return data.path ?? null;
+}
+
+export async function openExternalProject(path: string): Promise<{ name: string; title: string }> {
+  const r = await fetch(`${BASE}/projects/open-external`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path }),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.detail ?? "Failed to open folder");
+  }
+  return r.json();
+}
+
 export async function restoreDocStructure(): Promise<void> {
   const r = await fetch(`${BASE}/projects/documentation/restore-structure`, { method: "POST" });
   if (!r.ok) throw new Error("Restore failed");
