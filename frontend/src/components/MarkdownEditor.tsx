@@ -212,8 +212,8 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
   const [issues, setIssues] = useState<IssuesData | null>(null);
-  const [issuesLoading, setScanLoading] = useState(false);
-  const [issuesError, setScanError] = useState<string | null>(null);
+  const [issuesLoading, setIssuesLoading] = useState(false);
+  const [issuesError, setIssuesError] = useState<string | null>(null);
 
   useEffect(() => { setStats(null); setIssues(null); }, [filePath]);
 
@@ -229,11 +229,11 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
 
   useEffect(() => {
     if (active === "issues" && project && filePath) {
-      setIssues(null); setScanError(null); setScanLoading(true);
+      setIssues(null); setIssuesError(null); setIssuesLoading(true);
       fetch(`/api/projects/${project}/issues/${filePath}`)
         .then(r => { if (!r.ok) throw new Error("Failed to load issues"); return r.json(); })
-        .then(d => { setScan(d); setScanLoading(false); })
-        .catch(e => { setScanError(e.message); setScanLoading(false); });
+        .then(d => { setIssues(d); setIssuesLoading(false); })
+        .catch(e => { setIssuesError(e.message); setIssuesLoading(false); });
     }
   }, [active, project, filePath]);
 
@@ -318,13 +318,13 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
         <div style={{ padding: "4px 12px 10px" }}>
           {issuesLoading && <span style={{ fontSize: 12, color: "#888" }}>Loading…</span>}
           {issuesError && <span style={{ fontSize: 12, color: "#f66" }}>{issuesError}</span>}
-          {scan && (
+          {issues && (
             <>
-              {scan.flags.length === 0 ? (
+              {issues.flags.length === 0 ? (
                 <span style={{ fontSize: 12, color: "#5c5" }}>No issues found</span>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  {scan.flags.map((flag, i) => (
+                  {issues.flags.map((flag, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                       <span style={{ fontSize: 11, color: flag.severity === "warn" ? "#fa0" : "#666", flexShrink: 0, marginTop: 1 }}>
                         {flag.severity === "warn" ? "\u26A0" : "\u2022"}
@@ -335,7 +335,7 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
                 </div>
               )}
               <div style={{ marginTop: 8, paddingTop: 6, borderTop: "1px solid #222" }}>
-                <span style={{ fontSize: 11, color: "#555" }}>{scan.shape.headings} heading{scan.shape.headings !== 1 ? "s" : ""}</span>
+                <span style={{ fontSize: 11, color: "#555" }}>{issues.shape.headings} heading{issues.shape.headings !== 1 ? "s" : ""}</span>
               </div>
             </>
           )}
