@@ -107,6 +107,11 @@ All per-file analysis panels (Stats, Issues, Structure) are live in the editor t
 - `pth check` — dropped; spaCy requires post-install model download, not bundleable, passive voice detection unreliable
 - `pth extract`, `pth lint`, `pth summary`, `pth watch` — terminal only
 
+**Custom projects directory:**
+- Allow user to choose a projects directory outside the local repo (e.g. `D:\my-docs\` instead of `projects/`)
+- All project operations (create, switch, archive, import) use the configured directory
+- Default remains `projects/` for backward compatibility
+
 **Image management:**
 - Image directory convention (e.g. `images/` or `assets/` sibling to markdown files)
 - UI for browsing images in the project directory
