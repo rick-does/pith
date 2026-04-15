@@ -81,6 +81,7 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 - Stats panel in editor (collapsible, on-demand): word count, sentence count, paragraph count, avg sentence length, 5 readability scores (Flesch, FK Grade, Gunning Fog, ARI, Coleman-Liau)
 - Vi keybindings in editor: :w saves, :x saves and closes
 - Scan Project: project-wide analysis report (stats + issues + structure on every file); accessible from Project menu and editor tab bar; renders in overlay with Save as HTML and Print/Save as PDF
+- External directory projects: open/manage markdown files in any filesystem directory (not just embedded `projects/`); "📁 Open folder…" in Project menu; pywebview uses native folder picker (`webview.FOLDER_DIALOG`), browser falls back to text-input modal; metadata stored in `projects/{name}/external.json`; `get_markdowns_dir()` transparently redirects all file ops to the external path; cross-platform (Win/Linux/Mac)
 
 ### To build
 
@@ -103,12 +104,11 @@ All per-file analysis panels (Stats, Issues, Structure) are live in the editor t
 - `pth check` — dropped; spaCy requires post-install model download, not bundleable, passive voice detection unreliable
 - `pth extract`, `pth lint`, `pth summary`, `pth watch` — terminal only
 
-**External directory projects:**
-- Open/manage markdown files in any directory on the filesystem, not just the embedded `projects/` folder
-- Includes file browser for project selection
-- Cross-platform (Win/Linux/Mac)
-
-**Image management** — tied to external directory work; image directory convention, UI for browsing/inserting images
+**Image management** — next feature; tied to external directory work:
+- Image directory convention (e.g. `images/` or `assets/` sibling to markdown files)
+- UI for browsing images in the project directory
+- Insert image into editor (markdown syntax)
+- Works for both embedded projects and external directory projects
 
 **Lower priority:**
 - Templates for new files — pre-populate new files with a skeleton (frontmatter, title heading, section stubs); configurable per project
