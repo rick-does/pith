@@ -1,7 +1,5 @@
 ---
 title: PiTH
-hide:
-  - navigation
 ---
 
 # PiTH
