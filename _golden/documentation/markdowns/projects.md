@@ -9,10 +9,34 @@ The orange chip at the top of the hierarchy pane is the project chip. It shows t
 ## Creating a project
 
 1. Click **⋮** on the project chip
-2. Click **Projects**, then **＋ New project**
-3. Type a name and press Enter
+2. Click **Projects → New project**
+3. Enter a project title and directory name, then click **Create**
 
-Project names use hyphens instead of spaces. The display title comes from the `# H1` heading in the project notes file.
+The directory name is derived automatically from the title (lowercased, spaces become hyphens). You can edit it independently. The display title comes from the `# H1` heading in the project notes file.
+
+## Creating a project from existing markdowns
+
+If you already have a folder of `.md` files you want to work with:
+
+1. Click **⋮** on the project chip
+2. Click **Projects → New Project from Markdowns**
+3. Enter a project title and directory name
+4. Expand **Copy from Markdowns directory** and browse to the folder containing your files
+5. Click **Create**
+
+All `.md` files in the selected directory are copied into the new project's `markdowns/` folder. The originals are not modified. Files appear in the [Unlinked pane](unlinked-files.md) ready to be organized into the hierarchy.
+
+## Adding files from another directory
+
+To add individual markdown files to an existing project:
+
+1. Click **⋮** on the project chip
+2. Click **File → Add File from Markdown**
+3. Browse to the directory containing the files
+4. Select or deselect files (all are selected by default)
+5. Click **Add**
+
+Files are copied into the project. If a file with the same name already exists, an index is appended (e.g. `notes-1.md`, `notes-2.md`).
 
 ## Switching projects
 
@@ -22,11 +46,11 @@ Project names use hyphens instead of spaces. The display title comes from the `#
 
 ## Renaming a project
 
-Double-click the project chip label to rename it inline, or use **⋮ → Projects → rename** from the menu.
+Double-click the project chip to open the project notes editor. Double-click the directory name in the editor toolbar to rename it. The directory on disk and the `.pith-project` title are both updated.
 
 ## Project notes
 
-Each project has a notes file for a description or anything else you want to keep alongside the files. Open it with **⋮ → Info**.
+Each project has a notes file for a description or anything else you want to keep alongside the files. Open it with **⋮ → File → Project info**, or double-click the project chip.
 
 ## Archiving a project
 

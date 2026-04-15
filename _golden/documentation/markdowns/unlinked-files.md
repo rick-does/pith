@@ -21,9 +21,17 @@ There are three ways to move an unlinked file into the hierarchy:
 
 Double-clicking an unlinked file opens it in the editor.
 
-**Alt+click** on a file chip shows a preview of the file's contents without opening the editor.
+**Alt+click** on a file chip shows a preview of the file's contents without opening the editor. The preview tooltip shows the opposite of the current label mode — if labels show filenames, the tooltip shows the title, and vice versa.
 
-To select multiple files, hold Ctrl/Cmd while clicking, or drag a selection rectangle around a group of files. The ← key moves all selected files at once.
+To select multiple files:
+
+- **Ctrl/Cmd+click** to toggle individual files
+- **Shift+click** to select a range between the last-clicked file and the shift-clicked file
+- **Drag a rectangle** around a group of files (rubber-band select)
+
+The ← key moves all selected files into the hierarchy at once. You can also multi-drag selected files onto the hierarchy.
+
+Hover over the **eye icon** on the Unlinked header to reveal status indicators on all unlinked chips at once, without selecting them.
 
 ## Sorting unlinked files
 
@@ -38,6 +46,8 @@ Dragging a file within the Unlinked pane, or using the ↑/↓ arrow keys with a
 ## Creating a new file
 
 Click **⋮** on the Unlinked chip and choose **＋ New file**. Type a filename and press Enter. The file is created in `markdowns/` and appears in the Unlinked pane, ready to be added to the hierarchy.
+
+You can also add existing markdown files from another directory — see [Adding files from another directory](projects.md#adding-files-from-another-directory).
 
 ## Files in subdirectories
 

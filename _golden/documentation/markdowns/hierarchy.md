@@ -4,7 +4,7 @@ The hierarchy pane shows your files as a tree. Files can be nested to any depth.
 
 ## Adding a file
 
-Click **⋮** on the project chip and choose **＋ New file**. The file is created in `markdowns/` and added to the bottom of the hierarchy.
+Click **⋮** on the project chip, then **File → New file**. The file is created in `markdowns/` and added to the bottom of the hierarchy.
 
 To add a child of an existing file, click **⋮** on that file chip and choose **New sub-page**. The child is added at the bottom of the parent's children.
 
@@ -35,7 +35,13 @@ Click **⋮** on a file chip and choose **Rename** to rename it inline. Spaces a
 
 ## Deleting a file
 
-Click **⋮** on a file chip and choose **Delete**. The file is moved to `markdowns/_archive/` rather than permanently deleted. To recover it, move it back to `markdowns/` by hand and refresh the project.
+Click **⋮** on a file chip and choose **Delete**. The file is moved to `markdowns/_archive/` rather than permanently deleted. To recover it, move it back to `markdowns/` by hand. The app detects file changes automatically within a few seconds.
+
+## Flatten and restore
+
+To move all files out of the hierarchy and into the [Unlinked pane](unlinked-files.md), click **⋮** on the project chip and choose **Flatten hierarchy**. This saves a backup of the current tree so you can undo it.
+
+After flattening, the menu item changes to **Restore hierarchy**. Click it to bring back the saved tree exactly as it was. The backup is automatically forgotten once you start building a new hierarchy by dragging files back in.
 
 ## Expanding and collapsing
 

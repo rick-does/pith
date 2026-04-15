@@ -4,15 +4,16 @@ PiTH can detect broken internal links across all files in a project. An internal
 
 ## Status indicators on chips
 
-Every file chip in the hierarchy shows two stacked status dots to the left of the three-dot menu:
+Every file chip in the hierarchy shows two stacked status dots to the left of the three-dot menu. The top dot shows link status; the bottom dot shows frontmatter status:
 
-- **Green circle outline** — no issues (links OK, frontmatter OK)
-- **Red filled dot** — one or more broken internal links
-- **Yellow filled dot** — frontmatter does not match the project template
+| Dot | Green outline | Filled color |
+|-----|--------------|--------------|
+| Top (links) | No broken links | Red — one or more broken links |
+| Bottom (frontmatter) | Matches template (or no template defined) | Yellow — missing or extra frontmatter keys |
 
-The top dot is the link status; the bottom dot is the frontmatter status. Hover over a dot to see details.
+Hover over a dot to see details.
 
-In the Unlinked pane, indicators appear when you hover over a chip, select it, or hover over the eye icon on the Unlinked header to reveal all at once.
+In the Unlinked pane, indicators appear when you hover over a chip, select it, or hover over the **eye icon** on the Unlinked header to reveal all at once.
 
 ## Validating links
 
