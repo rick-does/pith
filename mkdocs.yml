@@ -21,7 +21,7 @@ extra_css:
   - stylesheets/extra.css
 
 nav:
-  - Introduction: introduction.md
+  - Home: index.md
   - Getting Started: getting-started.md
   - Managing Projects: projects.md
   - Editing Files: editing.md

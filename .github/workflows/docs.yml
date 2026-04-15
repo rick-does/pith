@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "_golden/documentation/markdowns/**"
+      - "_pages/**"
       - "mkdocs.yml"
       - "docs/**"
       - ".github/workflows/docs.yml"
