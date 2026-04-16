@@ -2,6 +2,72 @@ import type { CollectionStructure, FileInfo, ProjectInfo } from "./types";
 
 const BASE = "/api";
 
+export interface RootInfo {
+  path: string;
+  name: string;
+  description: string;
+  last_project: string | null;
+  active: boolean;
+}
+
+export async function fetchConfig(): Promise<{ roots: RootInfo[]; active_root: string }> {
+  const r = await fetch(`${BASE}/config`);
+  if (!r.ok) throw new Error("Failed to fetch config");
+  return r.json();
+}
+
+export async function fetchRoots(): Promise<RootInfo[]> {
+  const r = await fetch(`${BASE}/roots`);
+  if (!r.ok) throw new Error("Failed to fetch roots");
+  return r.json();
+}
+
+export async function addRoot(path: string, name: string, description: string, createDir: boolean): Promise<{ path: string; name: string }> {
+  const r = await fetch(`${BASE}/roots`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path, name, description, create_dir: createDir }),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.detail ?? "Failed to add root");
+  }
+  return r.json();
+}
+
+export async function removeRoot(path: string): Promise<void> {
+  const r = await fetch(`${BASE}/roots`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path }),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.detail ?? "Failed to remove root");
+  }
+}
+
+export async function switchRoot(path: string): Promise<{ active_project: string | null; projects: ProjectInfo[] }> {
+  const r = await fetch(`${BASE}/roots/active`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path }),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.detail ?? "Failed to switch root");
+  }
+  return r.json();
+}
+
+export async function setLastProject(project: string): Promise<void> {
+  await fetch(`${BASE}/config/last-project`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ project }),
+  });
+}
+
 export async function listProjects(): Promise<ProjectInfo[]> {
   const r = await fetch(`${BASE}/projects`);
   if (!r.ok) throw new Error("Failed to fetch projects");

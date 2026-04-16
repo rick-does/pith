@@ -2,6 +2,36 @@
 
 A project is a self-contained set of markdown files with its own hierarchy. You can have as many projects as you like and switch between them freely.
 
+Projects live inside a **project root** — a directory on disk that holds one or more projects. By default PiTH uses the `projects/` folder inside the app directory. You can add additional roots to keep separate groups of projects in different locations (for example, a personal writing folder or a separate repo).
+
+## Project roots
+
+A project root is a directory that PiTH treats exactly like the default `projects/` folder — it can hold any number of projects. Switching roots changes which set of projects you see.
+
+### Adding a root
+
+1. Click **⋮** on the project chip
+2. Click **Projects → Project roots → New root**
+3. Enter a name and optional description
+4. Choose **Use existing directory** or **Create new directory**
+5. Browse to the location and click **Add Root**
+
+The new root becomes active immediately. A `.pith-project-root` file is written to the directory so PiTH can identify it later.
+
+### Switching roots
+
+1. Click **⋮** on the project chip
+2. Click **Projects → Project roots**
+3. Click any root in the list
+
+PiTH remembers the last project you had open in each root and returns to it when you switch back.
+
+### Removing a root
+
+Click the trash icon next to any non-default root in the **Project roots** list. This only removes it from the list — the directory and all its projects remain on disk. You can re-add it at any time.
+
+The default root (the built-in `projects/` folder) cannot be removed.
+
 ## The project chip
 
 The orange chip at the top of the hierarchy pane is the project chip. It shows the current project name. Click the **⋮** icon on it to open the project menu.

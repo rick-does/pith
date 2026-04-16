@@ -10,7 +10,7 @@ If you maintain a documentation site built with a static site generator — MkDo
 
 PiTH keeps your markdown files in a project folder and maintains the hierarchy in a `tree.yaml` file alongside them. You interact with the hierarchy visually: drag files to [reorder and nest them](hierarchy.md), and promote [unlinked files](unlinked-files.md) into the tree. The YAML is always up to date; you never touch it directly.
 
-PiTH also includes [full-text search](search.md) across all files in a project, and [frontmatter template management](frontmatter.md) — define the expected YAML frontmatter for your project, check which files are compliant, and batch-update files to match.
+PiTH also includes [full-text search](search.md) across all files in a project, and [frontmatter template management](frontmatter.md) — define the expected YAML frontmatter for your project, check which files are compliant, and batch-update files to match. Projects can be stored anywhere on disk using [project roots](projects.md).
 
 When you're ready to publish, PiTH can [export your hierarchy](import-export.md) directly to MkDocs or Docusaurus config format.
 

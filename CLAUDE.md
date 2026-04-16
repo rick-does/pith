@@ -75,8 +75,8 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 - Bundled documentation project (11 pages) — two-copy architecture:
   - `projects/documentation/markdowns/` — user-editable copy, shown in the app; gitignored, populated at runtime
   - `_golden/documentation/markdowns/` — source of truth for GitHub Pages and Restore Docs; tracked in git; the docs workflow only triggers on changes here
-  - On first launch, the backend lifespan auto-populates `projects/documentation/` from `_golden/documentation/` if missing
-  - **Rule:** whenever doc markdowns are edited, sync both copies. Copy from `projects/documentation/markdowns/` to `_golden/documentation/markdowns/` before committing.
+  - On first launch and on Restore Docs, the backend overwrites `projects/documentation/` from `_golden/documentation/` (unconditional — not "if missing")
+  - **Rule:** edit docs directly in `_golden/documentation/markdowns/` and commit. The runtime copy in `projects/documentation/` is disposable and never copied back to `_golden/`.
 - Project menu: Projects (New project, New Project from Markdowns, project list with archive), File (New file, Add File from Markdown, Project info), View YAML, Flatten/Restore hierarchy, Frontmatter (Template, Compliance), Validate links, View HTML/PDF, Scan Project, Restore Docs (documentation only), Import from..., Export to..., Settings
 - Stats panel in editor (collapsible, on-demand): word count, sentence count, paragraph count, avg sentence length, 5 readability scores (Flesch, FK Grade, Gunning Fog, ARI, Coleman-Liau)
 - Vi keybindings in editor: :w saves, :x saves and closes
@@ -85,6 +85,8 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 - Add File from Markdown: browse to a directory, select one or more `.md` files (default: all selected), copy into the current project's markdowns dir; duplicate filenames get incrementing index suffix (e.g. `notes-1.md`, `notes-2.md`) with matching title update
 - Flatten/Restore hierarchy: flatten moves all tree nodes to orphans (saves backup); restore brings back the saved hierarchy; backup is forgotten once user starts rebuilding the tree
 - Launcher kills stale processes on startup: `_kill_existing(port)` frees the port before uvicorn starts (Win + Unix)
+- Multiple project roots: `~/.pith/config.json` stores roots list + active root + last_project per root; default `projects/` root is permanent and cannot be removed; `.pith-project-root` file written to each root dir; active project migrated from localStorage to backend config
+- Help button (?) in header: opens GitHub Pages docs in system browser (pywebview-safe via `GET /api/open-url` → `webbrowser.open()`)
 
 ### To build
 
@@ -106,11 +108,6 @@ All per-file analysis panels (Stats, Issues, Structure) are live in the editor t
 **What's not in the GUI (ever):**
 - `pth check` — dropped; spaCy requires post-install model download, not bundleable, passive voice detection unreliable
 - `pth extract`, `pth lint`, `pth summary`, `pth watch` — terminal only
-
-**Custom projects directory:**
-- Allow user to choose a projects directory outside the local repo (e.g. `D:\my-docs\` instead of `projects/`)
-- All project operations (create, switch, archive, import) use the configured directory
-- Default remains `projects/` for backward compatibility
 
 **Image management:**
 - Image directory convention (e.g. `images/` or `assets/` sibling to markdown files)

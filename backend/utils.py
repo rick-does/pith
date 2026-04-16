@@ -10,29 +10,29 @@ from pathlib import Path
 import yaml
 
 from .models import FileNode, CollectionStructure
+from .config import get_active_projects_dir
 
-PROJECTS_DIR = Path("projects")
 GOLDEN_DIR = Path("_golden")
 
 
 def get_projects_dir() -> Path:
-    return PROJECTS_DIR
+    return get_active_projects_dir()
 
 
 def get_markdowns_dir(project: str) -> Path:
-    return PROJECTS_DIR / project / "markdowns"
+    return get_projects_dir() / project / "markdowns"
 
 
 def get_collection_file(project: str) -> Path:
-    return PROJECTS_DIR / project / "tree.yaml"
+    return get_projects_dir() / project / "tree.yaml"
 
 
 def get_project_md(project: str) -> Path:
-    return PROJECTS_DIR / project / ".pith-project"
+    return get_projects_dir() / project / ".pith-project"
 
 
 def get_hierarchy_backup_file(project: str) -> Path:
-    return PROJECTS_DIR / project / "tree-backup.yaml"
+    return get_projects_dir() / project / "tree-backup.yaml"
 
 
 def safe_path(project: str, rel_path: str) -> Path:
@@ -67,7 +67,7 @@ def list_projects() -> list[dict]:
 
 
 def create_project(name: str) -> None:
-    proj_dir = PROJECTS_DIR / name
+    proj_dir = get_projects_dir() / name
     proj_dir.mkdir(parents=True, exist_ok=True)
     (proj_dir / "markdowns").mkdir(exist_ok=True)
 
@@ -191,8 +191,8 @@ def rename_file(project: str, old_path: str, new_path: str) -> None:
 
 
 def archive_project(name: str) -> None:
-    src = PROJECTS_DIR / name
-    archive_dir = PROJECTS_DIR / "_archive"
+    src = get_projects_dir() / name
+    archive_dir = get_projects_dir() / "_archive"
     archive_dir.mkdir(exist_ok=True)
     dest = archive_dir / name
     if dest.exists():
@@ -201,7 +201,7 @@ def archive_project(name: str) -> None:
 
 
 def delete_project(name: str) -> None:
-    proj_dir = PROJECTS_DIR / name
+    proj_dir = get_projects_dir() / name
     if proj_dir.exists():
         shutil.rmtree(proj_dir)
 
@@ -216,18 +216,18 @@ def import_markdowns(path: str) -> str:
     base_name = base_name.lower()
     name = base_name
     i = 1
-    while (PROJECTS_DIR / name).exists():
+    while (get_projects_dir() / name).exists():
         name = f"{base_name}-{i}"
         i += 1
 
-    md_dir = PROJECTS_DIR / name / "markdowns"
+    md_dir = get_projects_dir() / name / "markdowns"
     md_dir.mkdir(parents=True, exist_ok=True)
 
     import glob as _glob
     pattern = os.path.join(str(src), "**", "*.md")
     found = _glob.glob(pattern, recursive=True)
     if not found:
-        shutil.rmtree(str(PROJECTS_DIR / name))
+        shutil.rmtree(str(get_projects_dir() / name))
         raise ValueError(f"No .md files found in: {src}")
     for src_file_str in found:
         src_file = Path(src_file_str)
@@ -324,7 +324,7 @@ def find_incoming_links(project: str, target_path: str) -> list[dict]:
 
 
 def get_template_file(project: str) -> Path:
-    return PROJECTS_DIR / project / "frontmatter.yaml"
+    return get_projects_dir() / project / "frontmatter.yaml"
 
 
 def load_template(project: str) -> dict:

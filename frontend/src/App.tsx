@@ -20,12 +20,12 @@ import {
   importFromFormat, exportToFormat,
   importMarkdowns, importFiles, browseDirs, browseStartDir,
   flattenHierarchy, restoreHierarchy, checkHierarchyBackup,
+  fetchConfig, fetchRoots, addRoot, removeRoot, switchRoot, setLastProject,
 } from "./api";
 import type { CollectionStructure, FileInfo, FileNode, ProjectInfo } from "./types";
-import type { FrontmatterTemplate, FrontmatterField, ComplianceItem, FileLinkReport, BrokenLink } from "./api";
+import type { FrontmatterTemplate, FrontmatterField, ComplianceItem, FileLinkReport, BrokenLink, RootInfo } from "./api";
 import { insertAsChild, insertAsLastChild, reorder, removeNode } from "./treeHelpers";
 
-const LAST_PROJECT_KEY = "pith_project";
 const LAST_FILE_KEY = "pith_selected_file";
 
 function parseFrontmatterClient(content: string): Record<string, any> {
@@ -110,6 +110,17 @@ export default function App() {
   const [addFileDialogOpen, setAddFileDialogOpen] = useState(false);
   const [addFileSelected, setAddFileSelected] = useState<Set<string>>(new Set());
   const [addFileError, setAddFileError] = useState("");
+  const [roots, setRoots] = useState<RootInfo[]>([]);
+  const [currentRoot, setCurrentRoot] = useState("");
+  const [newRootOpen, setNewRootOpen] = useState(false);
+  const [newRootName, setNewRootName] = useState("");
+  const [newRootDescription, setNewRootDescription] = useState("");
+  const [newRootCreateDir, setNewRootCreateDir] = useState(false);
+  const [newRootNewDirName, setNewRootNewDirName] = useState("");
+  const [newRootError, setNewRootError] = useState("");
+  const [rootBrowserPath, setRootBrowserPath] = useState("");
+  const [rootBrowserDirs, setRootBrowserDirs] = useState<string[]>([]);
+  const [rootBrowserParent, setRootBrowserParent] = useState<string | null>(null);
 
   const editorContentRef = useRef(editorContent);
   const savedContentRef = useRef(savedContent);
@@ -181,14 +192,18 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        const ps = await listProjects();
+        const [cfg, ps] = await Promise.all([fetchConfig(), listProjects()]);
+        const rootList = cfg.roots.map((r: RootInfo) => ({ ...r, active: r.path === cfg.active_root }));
+        setRoots(rootList);
+        setCurrentRoot(cfg.active_root);
         setProjects(ps);
         if (ps.length === 0) {
           setLoading(false);
           return;
         }
-        const saved = localStorage.getItem(LAST_PROJECT_KEY);
-        const project = (saved && ps.some(p => p.name === saved)) ? saved : ps[0].name;
+        const activeRoot = rootList.find((r: RootInfo) => r.active);
+        const lastProject = activeRoot?.last_project;
+        const project = (lastProject && ps.some((p: ProjectInfo) => p.name === lastProject)) ? lastProject : ps[0].name;
         setCurrentProject(project);
         await loadCollection(project);
       } catch {
@@ -226,7 +241,7 @@ export default function App() {
 
   const handleSwitchProject = useCallback(async (name: string) => {
     setCurrentProject(name);
-    localStorage.setItem(LAST_PROJECT_KEY, name);
+    setLastProject(name).catch(() => {});
     localStorage.removeItem(LAST_FILE_KEY);
     setSelectedPath(null);
     setOverlayType(null);
@@ -437,6 +452,91 @@ export default function App() {
       setNewProjectError(e.message ?? "Failed to create project");
     }
   }, [newProjectDir, newProjectTitle, folderBrowserPath, newProjectMdExpanded, handleSwitchProject]);
+
+  const navigateRootBrowser = useCallback(async (path: string) => {
+    try {
+      const data = await browseDirs(path);
+      setRootBrowserPath(data.path);
+      setRootBrowserDirs(data.dirs);
+      setRootBrowserParent(data.parent);
+    } catch {}
+  }, []);
+
+  const handleOpenNewRoot = useCallback(() => {
+    setNewRootName("");
+    setNewRootDescription("");
+    setNewRootCreateDir(false);
+    setNewRootNewDirName("");
+    setNewRootError("");
+    setRootBrowserPath("");
+    setRootBrowserDirs([]);
+    setRootBrowserParent(null);
+    setNewRootOpen(true);
+    browseStartDir().then(startPath => navigateRootBrowser(startPath));
+  }, [navigateRootBrowser]);
+
+  const handleAddRoot = useCallback(async () => {
+    if (!newRootName.trim()) { setNewRootError("Name is required"); return; }
+    if (!rootBrowserPath) { setNewRootError("Select a directory"); return; }
+    const targetPath = newRootCreateDir
+      ? `${rootBrowserPath}/${newRootNewDirName.trim()}`
+      : rootBrowserPath;
+    if (newRootCreateDir && !newRootNewDirName.trim()) { setNewRootError("Enter a directory name"); return; }
+    try {
+      const { path } = await addRoot(targetPath, newRootName.trim(), newRootDescription.trim(), newRootCreateDir);
+      const updatedRoots = await fetchRoots();
+      setRoots(updatedRoots);
+      setNewRootOpen(false);
+      const result = await switchRoot(path);
+      setCurrentRoot(path);
+      setRoots(prev => prev.map(r => ({ ...r, active: r.path === path })));
+      setProjects(result.projects);
+      if (result.active_project) {
+        setCurrentProject(result.active_project);
+        await loadCollection(result.active_project);
+      } else {
+        setCurrentProject(null);
+        setCollection({ root: [] });
+        setOrphans([]);
+      }
+    } catch (e: any) {
+      setNewRootError(e.message ?? "Failed to add root");
+    }
+  }, [newRootName, newRootDescription, newRootCreateDir, newRootNewDirName, rootBrowserPath, loadCollection]);
+
+  const handleSwitchRoot = useCallback(async (path: string) => {
+    try {
+      const result = await switchRoot(path);
+      setCurrentRoot(path);
+      setRoots(prev => prev.map(r => ({ ...r, active: r.path === path })));
+      setSelectedPath(null);
+      setOverlayType(null);
+      localStorage.removeItem(LAST_FILE_KEY);
+      setProjects(result.projects);
+      if (result.active_project) {
+        setCurrentProject(result.active_project);
+        await loadCollection(result.active_project);
+      } else {
+        setCurrentProject(null);
+        setCollection({ root: [] });
+        setOrphans([]);
+      }
+    } catch {}
+  }, [loadCollection]);
+
+  const handleRemoveRoot = useCallback(async (path: string) => {
+    try {
+      await removeRoot(path);
+      const updatedRoots = await fetchRoots();
+      setRoots(updatedRoots);
+      const active = updatedRoots.find(r => r.active);
+      if (active && active.path !== currentRoot) {
+        await handleSwitchRoot(active.path);
+      }
+    } catch (e: any) {
+      alert(e.message ?? "Failed to remove root");
+    }
+  }, [currentRoot, handleSwitchRoot]);
 
   const handleOpenAddFile = useCallback(() => {
     setAddFileSelected(new Set());
@@ -671,11 +771,29 @@ export default function App() {
               display: "flex", alignItems: "center",
             }}
             onMouseEnter={(e) => { (e.currentTarget.querySelector("svg") as SVGElement).style.opacity = "1"; e.currentTarget.style.background = "rgba(255,255,255,0.15)"; }}
-            onMouseLeave={(e) => { (e.currentTarget.querySelector("svg") as SVGElement).style.opacity = searchOpen ? "1" : "0.5"; e.currentTarget.style.background = searchOpen ? "rgba(255,255,255,0.15)" : "transparent"; }}
+            onMouseLeave={(e) => { (e.currentTarget.querySelector("svg") as SVGElement).style.opacity = searchOpen ? "1" : "0.7"; e.currentTarget.style.background = searchOpen ? "rgba(255,255,255,0.15)" : "transparent"; }}
           >
-            <svg width="20" height="20" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block", opacity: searchOpen ? 1 : 0.5 }}>
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block", opacity: searchOpen ? 1 : 0.7 }}>
               <circle cx="6.5" cy="6.5" r="4.5" stroke="white" strokeWidth="2"/>
               <line x1="10" y1="10" x2="14.5" y2="14.5" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+          <button
+            onClick={() => fetch(`/api/open-url?url=${encodeURIComponent("https://rick-does.github.io/pith/")}`)}
+            title="Documentation"
+            style={{
+              background: "transparent",
+              border: "none", borderRadius: "50%",
+              color: "#fff", cursor: "pointer", padding: "2px",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: 28, height: 28,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.15)"; (e.currentTarget.querySelector("svg") as SVGElement).style.opacity = "1"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; (e.currentTarget.querySelector("svg") as SVGElement).style.opacity = "0.7"; }}
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block", opacity: 0.7 }}>
+              <circle cx="10" cy="10" r="9" stroke="white" strokeWidth="2"/>
+              <text x="10" y="15" textAnchor="middle" fill="white" fontSize="12" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" fontWeight="bold">?</text>
             </svg>
           </button>
         </div>
@@ -730,6 +848,11 @@ export default function App() {
           frontmatterIssueMap={frontmatterIssueMap}
           showIndicators={showIndicators}
           onToggleIndicators={handleToggleIndicators}
+          roots={roots}
+          currentRoot={currentRoot}
+          onSwitchRoot={handleSwitchRoot}
+          onAddRoot={handleOpenNewRoot}
+          onRemoveRoot={handleRemoveRoot}
         />
       </div>
 
@@ -789,7 +912,7 @@ export default function App() {
                 const ps = await listProjects();
                 setProjects(ps);
                 setCurrentProject(dirName);
-                localStorage.setItem(LAST_PROJECT_KEY, dirName);
+                setLastProject(dirName).catch(() => {});
                 const text = await fetchProjectMd(dirName);
                 setProjectMdContent(text);
               } catch (e: any) {
@@ -1127,6 +1250,91 @@ export default function App() {
               {addFileSelected.size > 0 && <span style={{ fontSize: 12, color: "#888", flex: 1 }}>{addFileSelected.size} file{addFileSelected.size !== 1 ? "s" : ""} selected</span>}
               <button onClick={() => setAddFileDialogOpen(false)} style={{ padding: "6px 16px", border: "1px solid #ccc", borderRadius: 4, background: "#f5f5f5", cursor: "pointer", fontSize: 13 }}>Cancel</button>
               <button onClick={handleAddFileConfirm} disabled={addFileSelected.size === 0} style={{ padding: "6px 16px", border: "none", borderRadius: 4, background: addFileSelected.size > 0 ? "#1a6fa8" : "#a0c4e8", color: "#fff", cursor: addFileSelected.size > 0 ? "pointer" : "default", fontSize: 13, fontWeight: 600 }}>Add</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {newRootOpen && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}
+          onKeyDown={e => { if (e.key === "Escape") setNewRootOpen(false); }}>
+          <div style={{ background: "#fff", borderRadius: 8, minWidth: 480, maxWidth: 600, width: "90vw", boxShadow: "0 8px 32px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column", maxHeight: "85vh" }}>
+            <div style={{ padding: "16px 20px 12px", borderBottom: "1px solid #e8e8e8" }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: "#1a3a5c", marginBottom: 12 }}>New Project Root</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div>
+                  <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>Name</div>
+                  <input autoFocus value={newRootName}
+                    onChange={e => { setNewRootName(e.target.value); setNewRootError(""); }}
+                    placeholder="My Docs"
+                    style={{ width: "100%", padding: "7px 10px", fontSize: 13, border: "1px solid #b3d9f7", borderRadius: 4, outline: "none", boxSizing: "border-box" }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>Description <span style={{ color: "#bbb" }}>(optional)</span></div>
+                  <input value={newRootDescription}
+                    onChange={e => setNewRootDescription(e.target.value)}
+                    placeholder="Personal documentation projects"
+                    style={{ width: "100%", padding: "7px 10px", fontSize: 13, border: "1px solid #b3d9f7", borderRadius: 4, outline: "none", boxSizing: "border-box" }} />
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {(["Use existing directory", "Create new directory"] as const).map((label, i) => (
+                    <button key={label} onClick={() => setNewRootCreateDir(i === 1)}
+                      style={{ flex: 1, padding: "6px 10px", border: `1px solid ${newRootCreateDir === (i === 1) ? "#1a6fa8" : "#ccc"}`, borderRadius: 4, background: newRootCreateDir === (i === 1) ? "#e8f4fd" : "#fff", color: newRootCreateDir === (i === 1) ? "#1a6fa8" : "#555", cursor: "pointer", fontSize: 12, fontWeight: newRootCreateDir === (i === 1) ? 600 : 400 }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {newRootCreateDir && (
+                  <div>
+                    <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>New directory name</div>
+                    <input value={newRootNewDirName}
+                      onChange={e => { setNewRootNewDirName(e.target.value); setNewRootError(""); }}
+                      placeholder="my-projects"
+                      style={{ width: "100%", padding: "7px 10px", fontSize: 13, border: "1px solid #b3d9f7", borderRadius: 4, outline: "none", boxSizing: "border-box", fontFamily: "monospace" }} />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={{ padding: "8px 20px 4px", fontSize: 12, color: "#555" }}>
+              {newRootCreateDir ? "Choose parent directory:" : "Select directory:"}
+              {rootBrowserPath && <span style={{ marginLeft: 8, fontFamily: "monospace", color: "#888" }}>{newRootCreateDir && newRootNewDirName ? `${rootBrowserPath}/${newRootNewDirName}` : rootBrowserPath}</span>}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 20px 6px" }}>
+              <button
+                onClick={() => rootBrowserParent !== null && navigateRootBrowser(rootBrowserParent)}
+                disabled={rootBrowserParent === null}
+                title="Go up"
+                style={{ padding: "3px 8px", border: "1px solid #ccc", borderRadius: 4, background: rootBrowserParent !== null ? "#f5f5f5" : "#fafafa", cursor: rootBrowserParent !== null ? "pointer" : "default", fontSize: 13, color: rootBrowserParent !== null ? "#333" : "#bbb", flexShrink: 0 }}
+              >↑</button>
+              <div style={{ fontSize: 12, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace" }}>
+                {rootBrowserPath || "Select a drive"}
+              </div>
+            </div>
+            <div style={{ overflowY: "auto", flex: 1, padding: "2px 0", minHeight: 160 }}>
+              {rootBrowserDirs.map(dir => {
+                const label = dir.replace(/[\\/]$/, "").split(/[\\/]/).pop() || dir;
+                return (
+                  <div key={dir}
+                    onClick={() => navigateRootBrowser(dir)}
+                    style={{ padding: "6px 20px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, color: "#1a3a5c" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "#f0f7ff")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "")}
+                  >
+                    <span style={{ fontSize: 15 }}>📁</span>
+                    <span>{label}</span>
+                  </div>
+                );
+              })}
+              {rootBrowserDirs.length === 0 && rootBrowserPath && (
+                <div style={{ padding: "12px 20px", fontSize: 13, color: "#999" }}>No subdirectories.</div>
+              )}
+            </div>
+
+            {newRootError && <div style={{ padding: "8px 20px 0", color: "#c0392b", fontSize: 12 }}>{newRootError}</div>}
+            <div style={{ padding: "12px 20px", borderTop: "1px solid #e8e8e8", display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button onClick={() => setNewRootOpen(false)} style={{ padding: "6px 16px", border: "1px solid #ccc", borderRadius: 4, background: "#f5f5f5", cursor: "pointer", fontSize: 13 }}>Cancel</button>
+              <button onClick={handleAddRoot} style={{ padding: "6px 16px", border: "none", borderRadius: 4, background: "#1a6fa8", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Add Root</button>
             </div>
           </div>
         </div>

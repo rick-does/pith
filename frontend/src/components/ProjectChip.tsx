@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, CSSProperties, KeyboardEvent } from "react";
 import type { ProjectInfo } from "../types";
+import type { RootInfo } from "../api";
 import { GAP } from "./SortableItemConstants";
 
 export interface ProjectChipProps {
@@ -32,15 +33,21 @@ export interface ProjectChipProps {
   isDocumentation: boolean;
   showIndicators: boolean;
   onToggleIndicators: () => void;
+  roots: RootInfo[];
+  currentRoot: string;
+  onSwitchRoot: (path: string) => void;
+  onAddRoot: () => void;
+  onRemoveRoot: (path: string) => void;
 }
 
-export default function ProjectChip({ currentProject, currentProjectTitle, projects, titleMode, setTitleMode, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onCreateFile, onAddFileFromMd, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, isDocumentation, showIndicators, onToggleIndicators }: ProjectChipProps) {
+export default function ProjectChip({ currentProject, currentProjectTitle, projects, titleMode, setTitleMode, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onCreateFile, onAddFileFromMd, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, isDocumentation, showIndicators, onToggleIndicators, roots, currentRoot, onSwitchRoot, onAddRoot, onRemoveRoot }: ProjectChipProps) {
 
 
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [projectSubmenuOpen, setProjectSubmenuOpen] = useState(false);
+  const [rootsSubmenuOpen, setRootsSubmenuOpen] = useState(false);
   const [importSubmenuOpen, setImportSubmenuOpen] = useState(false);
   const [exportSubmenuOpen, setExportSubmenuOpen] = useState(false);
   const [frontmatterSubmenuOpen, setFrontmatterSubmenuOpen] = useState(false);
@@ -147,7 +154,49 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                 <span>Projects</span>
                 <span style={flyoutArrow}>&#9656;</span>
                 {projectSubmenuOpen && (
-                  <div style={submenuStyle}>
+                  <div style={{ ...submenuStyle, overflow: "visible" }}>
+                    {/* Project roots sub-flyout */}
+                    <div
+                      style={{ ...menuItem, justifyContent: "space-between", position: "relative" }}
+                      onMouseEnter={() => setRootsSubmenuOpen(true)}
+                      onMouseLeave={() => setRootsSubmenuOpen(false)}
+                    >
+                      <span>Project roots</span>
+                      <span style={flyoutArrow}>&#9656;</span>
+                      {rootsSubmenuOpen && (
+                        <div style={{ ...submenuStyle, minWidth: "220px" }}>
+                          <div style={{ ...menuItem }}
+                            onClick={() => { onAddRoot(); setMenuOpen(false); setProjectSubmenuOpen(false); setRootsSubmenuOpen(false); }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                          >New root</div>
+                          <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />
+                          {roots.map(root => (
+                            <div key={root.path}
+                              style={{ ...menuItem, justifyContent: "space-between", paddingRight: "8px", background: root.path === currentRoot ? "#e8f4fd" : "transparent", color: root.path === currentRoot ? "#1a6fa8" : "#666", fontWeight: root.path === currentRoot ? 600 : 400 }}
+                              onClick={() => { if (root.path !== currentRoot) { onSwitchRoot(root.path); setMenuOpen(false); setProjectSubmenuOpen(false); setRootsSubmenuOpen(false); } }}
+                              onMouseEnter={(e) => { if (root.path !== currentRoot) (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                              onMouseLeave={(e) => { if (root.path !== currentRoot) (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                            >
+                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                                {root.path === currentRoot && <span style={{ color: "#1a6fa8", fontSize: "11px", marginRight: "4px" }}>&#10003;</span>}
+                                {root.name}
+                              </span>
+                              {root.path !== currentRoot && (
+                                <span
+                                  title="Remove root"
+                                  onClick={(e) => { e.stopPropagation(); onRemoveRoot(root.path); setMenuOpen(false); setProjectSubmenuOpen(false); setRootsSubmenuOpen(false); }}
+                                  style={{ color: "#555", fontSize: "18px", lineHeight: 1, padding: "2px 6px", borderRadius: "3px", cursor: "pointer", flexShrink: 0 }}
+                                  onMouseEnter={(e) => { e.stopPropagation(); (e.currentTarget as HTMLSpanElement).style.color = "#c0392b"; }}
+                                  onMouseLeave={(e) => { (e.currentTarget as HTMLSpanElement).style.color = "#555"; }}
+                                >&#128465;</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />
                     <div style={{ ...menuItem }}
                       onClick={() => { onNewProject(false); setMenuOpen(false); setProjectSubmenuOpen(false); }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}

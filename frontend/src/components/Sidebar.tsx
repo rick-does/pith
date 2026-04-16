@@ -35,6 +35,7 @@ import { GAP, COL_W, TOP_SENTINEL } from "./SortableItemConstants";
 import { SortableItem } from "./SortableItem";
 import OrphanPane from "./OrphanPane";
 import ProjectChip from "./ProjectChip";
+import type { RootInfo } from "../api";
 
 function deepestPointerCollision(args: Parameters<typeof closestCenter>[0]) {
   const hits = pointerWithin(args);
@@ -96,9 +97,14 @@ interface SidebarProps {
   frontmatterIssueMap: Record<string, boolean>;
   showIndicators: boolean;
   onToggleIndicators: () => void;
+  roots: RootInfo[];
+  currentRoot: string;
+  onSwitchRoot: (path: string) => void;
+  onAddRoot: () => void;
+  onRemoveRoot: (path: string) => void;
 }
 
-export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onAddFileFromMd, onDeleteFile, onRenameFile, onCreateChildFile, onCopyToChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onRefresh, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, brokenLinkMap, frontmatterIssueMap, showIndicators, onToggleIndicators }: SidebarProps) {
+export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onAddFileFromMd, onDeleteFile, onRenameFile, onCreateChildFile, onCopyToChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onRefresh, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, brokenLinkMap, frontmatterIssueMap, showIndicators, onToggleIndicators, roots, currentRoot, onSwitchRoot, onAddRoot, onRemoveRoot }: SidebarProps) {
   const [titleMode, setTitleMode] = useState(() => localStorage.getItem("pith_title_mode") !== "false");
   const [orphanSort, setOrphanSort] = useState<"recent" | "alpha" | "custom">("recent");
   const [orphanOrder, setOrphanOrder] = useState<string[]>([]);
@@ -549,6 +555,11 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
                   isDocumentation={currentProject === "documentation"}
                   showIndicators={showIndicators}
                   onToggleIndicators={onToggleIndicators}
+                  roots={roots}
+                  currentRoot={currentRoot}
+                  onSwitchRoot={onSwitchRoot}
+                  onAddRoot={onAddRoot}
+                  onRemoveRoot={onRemoveRoot}
                 />
               )}
 

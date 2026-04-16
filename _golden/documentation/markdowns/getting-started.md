@@ -24,7 +24,7 @@ Unzip to wherever you want to keep the app and your files. This creates a `pith/
 
 **Linux:** Run `./pith` from a terminal. The server starts and prints a URL — open it in your browser. Press `Ctrl+C` to stop.
 
-Your projects are stored in a `projects/` folder created automatically inside the app directory.
+Your projects are stored in a `projects/` folder created automatically inside the app directory. You can add additional project roots from the project menu to store projects anywhere on your machine.
 
 ## Web app (run from source)
 

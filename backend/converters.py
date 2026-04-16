@@ -7,7 +7,7 @@ from pathlib import Path
 import yaml
 
 from .models import FileNode
-from .utils import get_markdowns_dir, PROJECTS_DIR
+from .utils import get_markdowns_dir, get_projects_dir
 
 
 def _mkdocs_nav_to_nodes(nav: list, order_start: int = 0) -> list[FileNode]:
@@ -42,7 +42,7 @@ def _mkdocs_nav_to_nodes(nav: list, order_start: int = 0) -> list[FileNode]:
 
 
 def import_mkdocs(project: str) -> list[FileNode]:
-    mkdocs_file = PROJECTS_DIR / project / "mkdocs.yml"
+    mkdocs_file = get_projects_dir() / project / "mkdocs.yml"
     if not mkdocs_file.exists():
         raise FileNotFoundError("mkdocs.yml not found in project root")
     data = yaml.safe_load(mkdocs_file.read_text(encoding="utf-8"))
@@ -64,7 +64,7 @@ def _nodes_to_mkdocs_nav(nodes: list[FileNode]) -> list:
 def export_mkdocs(project: str, nodes: list[FileNode]) -> str:
     nav = _nodes_to_mkdocs_nav(nodes)
     output = yaml.dump({"nav": nav}, default_flow_style=False)
-    dest = PROJECTS_DIR / project / "mkdocs.yml"
+    dest = get_projects_dir() / project / "mkdocs.yml"
     dest.write_text(output, encoding="utf-8")
     return str(dest)
 
@@ -104,7 +104,7 @@ def _docusaurus_to_nodes(items: list, order_start: int = 0) -> list[FileNode]:
 
 
 def import_docusaurus(project: str, filename: str | None = None) -> list[FileNode]:
-    proj_dir = PROJECTS_DIR / project
+    proj_dir = get_projects_dir() / project
     candidates = [filename] if filename else ["sidebars.js", "sidebars.ts"]
     sidebar_file = None
     for name in candidates:
@@ -153,6 +153,6 @@ def _nodes_to_docusaurus(nodes: list[FileNode]) -> list:
 def export_docusaurus(project: str, nodes: list[FileNode]) -> str:
     sidebar = _nodes_to_docusaurus(nodes)
     js_content = "module.exports = " + json.dumps({"docs": sidebar}, indent=2) + ";\n"
-    dest = PROJECTS_DIR / project / "sidebars.js"
+    dest = get_projects_dir() / project / "sidebars.js"
     dest.write_text(js_content, encoding="utf-8")
     return str(dest)
