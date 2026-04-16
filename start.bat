@@ -18,5 +18,8 @@ for /f "tokens=5" %%a in ('netstat -aon 2^>nul ^| findstr ":8002 "') do (
     taskkill /f /pid %%a >nul 2>&1
 )
 
+echo Watching frontend for changes...
+start /b cmd /c "cd frontend && node node_modules\vite\bin\vite.js build --watch >nul 2>&1"
+
 echo Starting PiTH server on http://127.0.0.1:8002
 uvicorn backend.main:app --reload --host 0.0.0.0 --port 8002
