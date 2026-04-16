@@ -26,6 +26,7 @@ interface OrphanPaneProps {
   arrowBtnRef?: RefObject<HTMLButtonElement | null>;
   brokenLinkMap?: Record<string, number>;
   frontmatterIssueMap?: Record<string, boolean>;
+  templateIssueMap?: Record<string, boolean>;
   showIndicators?: boolean;
 }
 
@@ -35,7 +36,7 @@ export default function OrphanPane({
   orphanSort, setOrphanSort, orphanOrder,
   rubberBand, orphanSectionRef, orphanChipRefs,
   onOpen, onDelete, onAddOrphansToCollection, onRefresh,
-  arrowBtnRef, brokenLinkMap, frontmatterIssueMap, showIndicators,
+  arrowBtnRef, brokenLinkMap, frontmatterIssueMap, templateIssueMap, showIndicators,
 }: OrphanPaneProps) {
   const hasOrphans = orphans.length > 0;
   const [forceShowIndicators, setForceShowIndicators] = useState(false);
@@ -238,6 +239,7 @@ export default function OrphanPane({
                 activeId={activeId}
                 brokenLinkMap={brokenLinkMap}
                 frontmatterIssueMap={frontmatterIssueMap}
+                templateIssueMap={templateIssueMap}
                 showIndicators={showIndicators}
                 forceShowIndicators={forceShowIndicators}
               />

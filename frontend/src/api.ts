@@ -314,6 +314,43 @@ export async function batchUpdateFrontmatter(project: string, addDefaults: boole
   return r.json();
 }
 
+export interface FileTemplateComplianceItem {
+  path: string;
+  missing_headings: string[];
+}
+
+export async function fetchFileTemplate(project: string): Promise<{ content: string | null }> {
+  const r = await fetch(`${BASE}/projects/${project}/file-template`);
+  if (!r.ok) throw new Error("Failed to fetch file template");
+  return r.json();
+}
+
+export async function saveFileTemplate(project: string, content: string): Promise<void> {
+  const r = await fetch(`${BASE}/projects/${project}/file-template`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+  });
+  if (!r.ok) throw new Error("Failed to save file template");
+}
+
+export async function deleteFileTemplate(project: string): Promise<void> {
+  const r = await fetch(`${BASE}/projects/${project}/file-template`, { method: "DELETE" });
+  if (!r.ok) throw new Error("Failed to delete file template");
+}
+
+export async function fetchFileTemplateCompliance(project: string): Promise<FileTemplateComplianceItem[]> {
+  const r = await fetch(`${BASE}/projects/${project}/file-template/compliance`);
+  if (!r.ok) throw new Error("Failed to fetch file template compliance");
+  return r.json();
+}
+
+export async function applyFileTemplate(project: string, path: string): Promise<{ content: string }> {
+  const r = await fetch(`${BASE}/projects/${project}/file-template/apply/${path}`, { method: "POST" });
+  if (!r.ok) throw new Error("Failed to apply file template");
+  return r.json();
+}
+
 export async function fetchOrphans(project: string): Promise<FileInfo[]> {
   const r = await fetch(`${BASE}/projects/${project}/orphans`);
   if (!r.ok) throw new Error("Failed to fetch orphans");

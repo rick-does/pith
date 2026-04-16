@@ -15,10 +15,25 @@ body { overflow: hidden; }
   transform: translateX(100%);
   transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 10;
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.18);
   display: flex;
-  flex-direction: column;
-  background: #1a1a2e;
+  flex-direction: row;
+  background: transparent;
+}
+
+.editor-tab:hover {
+  filter: brightness(0.92);
+}
+
+.editor-tab-close {
+  opacity: 0;
+  transition: opacity 0.12s;
+  color: #4a5568;
+}
+.editor-tab:hover .editor-tab-close {
+  opacity: 1;
+}
+.editor-tab-close:hover {
+  color: #1a1a1a !important;
 }
 
 .overlay-panel--open {

@@ -13,6 +13,7 @@ standalone/
 *.exe
 *.bak
 .env
+.claude/
 
 # Track the projects directory itself but ignore all content (populated at runtime from _golden)
 projects/*

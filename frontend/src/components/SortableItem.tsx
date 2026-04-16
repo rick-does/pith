@@ -85,10 +85,11 @@ export interface ItemProps {
   currentProject: string;
   brokenLinkMap?: Record<string, number>;
   frontmatterIssueMap?: Record<string, boolean>;
+  templateIssueMap?: Record<string, boolean>;
   showIndicators?: boolean;
 }
 
-export function SortableItem({ node, depth, isLast, ancestors, selectedPath, titleMode, onSelect, onOpen, onDelete, onRename, onCreateChild, onCopyToChild, expanded, toggleExpand, overId, activeId, activeLabel, dragDeltaX, showTopIndicator, currentProject, brokenLinkMap, frontmatterIssueMap, showIndicators }: ItemProps) {
+export function SortableItem({ node, depth, isLast, ancestors, selectedPath, titleMode, onSelect, onOpen, onDelete, onRename, onCreateChild, onCopyToChild, expanded, toggleExpand, overId, activeId, activeLabel, dragDeltaX, showTopIndicator, currentProject, brokenLinkMap, frontmatterIssueMap, templateIssueMap, showIndicators }: ItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: node.path });
   const [renaming, setRenaming] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -326,6 +327,7 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
             currentProject={currentProject}
             brokenLinkMap={brokenLinkMap}
             frontmatterIssueMap={frontmatterIssueMap}
+            templateIssueMap={templateIssueMap}
             showIndicators={showIndicators}
           />
         ))

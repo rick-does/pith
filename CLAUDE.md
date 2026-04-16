@@ -88,6 +88,8 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 - Multiple project roots: `~/.pith/config.json` stores roots list + active root + last_project per root; default `projects/` root is permanent and cannot be removed; `.pith-project-root` file written to each root dir; active project migrated from localStorage to backend config
 - Help button (?) in header: opens GitHub Pages docs in system browser (pywebview-safe via `GET /api/open-url` → `webbrowser.open()`)
 - Image management: fixed `images/` dir as standard project artifact (sibling to `markdowns/`); backend endpoints for list/serve/upload/delete/open-folder; ImageBrowser dialog (thumbnail grid, upload, delete-with-confirm, insert at cursor); Images flyout in project menu (Browse/Insert, Add images, Open folder); Images button in editor sub-bar; preview pane rewrites `../images/` src paths; cursor-position insertion via forwardRef chain (App → MarkdownEditor → CodeEditor)
+- File templates for new files: per-project `file-template.md` pre-populates new markdown files with a skeleton (frontmatter, title heading, section stubs); backend endpoints load/save/delete/compliance-scan/apply; compliance scan reports files missing required headings; applying to an existing file appends missing sections; new files auto-populate from template with title heading swapped in; menu access via Frontmatter flyout (Edit file template, File template compliance); FileTemplateComplianceReport shows missing headings per file with "Apply to file" action
+- Multi-tab editor pane: opening files adds them as tabs (vertical tab strip on left edge of editor pane) with alternating blue (`#e8f4fd`/`#1a6fa8`) and orange (`#fff3e0`/`#ff8c00`) colors from selected file chip palette; active tab indicated by inset 5px box-shadow on left edge and 3px leftward growth (with matching paddingLeft to keep content centered); unsaved-changes circle indicator at tab bottom (opposite tab color); close icon at tab top (hidden when overlay closed); vertical text via `writing-mode: vertical-rl` + `rotate(180deg)` reads bottom-to-top; tabs persist to localStorage per-project (tabs list, active tab, overlayType) with `tabsRestoredRef` guard preventing save-before-restore; `«`/`»` toggle buttons at top edge with own `drop-shadow` (not merged with tab strip shadow); `no-cache` header on `index.html` response (backend/main.py) ensures browser refresh picks up Vite rebuilds without requiring app restart
 
 ### To build
 
@@ -110,8 +112,8 @@ All per-file analysis panels (Stats, Issues, Structure) are live in the editor t
 - `pth check` — dropped; spaCy requires post-install model download, not bundleable, passive voice detection unreliable
 - `pth extract`, `pth lint`, `pth summary`, `pth watch` — terminal only
 
-**Lower priority:**
-- Templates for new files — pre-populate new files with a skeleton (frontmatter, title heading, section stubs); configurable per project
+**Lower priority / open:**
+- Tab alignment refinements: small horizontal offset between the text glyph center and the circle/close-icon axis in vertical tabs (writing-mode: vertical-rl draws Latin glyphs with baseline near one side of the line-box; a `translateX(-2px)` compensator is in place but may need tuning per font/zoom)
 
 ---
 

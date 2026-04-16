@@ -17,11 +17,12 @@ export interface OrphanItemProps {
   activeId: string | null;
   brokenLinkMap?: Record<string, number>;
   frontmatterIssueMap?: Record<string, boolean>;
+  templateIssueMap?: Record<string, boolean>;
   showIndicators?: boolean;
   forceShowIndicators?: boolean;
 }
 
-export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSelect, onAddToSelection, onOpen, onDelete, onAddToHierarchy, currentProject, setChipRef, activeId, brokenLinkMap, frontmatterIssueMap, showIndicators, forceShowIndicators }: OrphanItemProps) {
+export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSelect, onAddToSelection, onOpen, onDelete, onAddToHierarchy, currentProject, setChipRef, activeId, brokenLinkMap, frontmatterIssueMap, templateIssueMap, showIndicators, forceShowIndicators }: OrphanItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: path });
   const [hovered, setHovered] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);

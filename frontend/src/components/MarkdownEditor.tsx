@@ -27,12 +27,14 @@ interface Props {
   onApplyTemplate?: () => void;
   onEditTemplate?: () => void;
   onViewCompliance?: () => void;
+  onUseAsFileTemplate?: () => void;
+  onApplyFileTemplate?: () => void;
   onClose?: () => void;
   onReport?: () => void;
   onOpenImageBrowser?: () => void;
 }
 
-const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function MarkdownEditor({ project, path, content, savedContent, onContentChange, viMode, onViModeChange, onSaved, onSave, onRename, onUseAsTemplate, onApplyTemplate, onEditTemplate, onViewCompliance, onClose, onReport, onOpenImageBrowser, brokenLinks }, ref) {
+const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function MarkdownEditor({ project, path, content, savedContent, onContentChange, viMode, onViModeChange, onSaved, onSave, onRename, onUseAsTemplate, onApplyTemplate, onEditTemplate, onViewCompliance, onUseAsFileTemplate, onApplyFileTemplate, onClose, onReport, onOpenImageBrowser, brokenLinks }, ref) {
   const [view, setView] = useState<"edit" | "preview" | "split">("split");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
@@ -133,8 +135,8 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function Markdown
         <div style={{ flex: 1 }} />
       </div>
 
-      {(project || onApplyTemplate || onUseAsTemplate || onEditTemplate || onViewCompliance) && (
-        <FmBar onApplyTemplate={onApplyTemplate} onUseAsTemplate={onUseAsTemplate} onEditTemplate={onEditTemplate} onViewCompliance={onViewCompliance} project={project} filePath={path} onReport={onReport} onOpenImageBrowser={onOpenImageBrowser} />
+      {(project || onApplyTemplate || onUseAsTemplate || onEditTemplate || onViewCompliance || onUseAsFileTemplate || onApplyFileTemplate) && (
+        <FmBar onApplyTemplate={onApplyTemplate} onUseAsTemplate={onUseAsTemplate} onEditTemplate={onEditTemplate} onViewCompliance={onViewCompliance} onUseAsFileTemplate={onUseAsFileTemplate} onApplyFileTemplate={onApplyFileTemplate} project={project} filePath={path} onReport={onReport} onOpenImageBrowser={onOpenImageBrowser} />
       )}
 
       {brokenLinks && brokenLinks.length > 0 && (
@@ -222,13 +224,15 @@ interface IssuesData {
 interface StructureSection { level: number; title: string; word_count: number; }
 interface StructureData { sections: StructureSection[]; max_depth: number; total_words: number; }
 
-type ActivePanel = "frontmatter" | "stats" | "issues" | "structure" | null;
+type ActivePanel = "frontmatter" | "template" | "stats" | "issues" | "structure" | null;
 
-function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewCompliance, project, filePath, onReport, onOpenImageBrowser }: {
+function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewCompliance, onUseAsFileTemplate, onApplyFileTemplate, project, filePath, onReport, onOpenImageBrowser }: {
   onApplyTemplate?: () => Promise<void> | void;
   onUseAsTemplate?: () => Promise<void> | void;
   onEditTemplate?: () => void;
   onViewCompliance?: () => void;
+  onUseAsFileTemplate?: () => Promise<void> | void;
+  onApplyFileTemplate?: () => Promise<void> | void;
   project?: string;
   filePath?: string;
   onReport?: () => void;
@@ -287,6 +291,7 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
   };
 
   const hasFm = onApplyTemplate || onUseAsTemplate || onEditTemplate || onViewCompliance;
+  const hasFt = onUseAsFileTemplate || onApplyFileTemplate;
 
   const Tab = ({ id, label }: { id: NonNullable<ActivePanel>; label: string }) => {
     const isActive = active === id;
@@ -319,6 +324,11 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
         {hasFm && (
           <div style={{ position: "relative", display: "flex", marginLeft: 12 }}>
             <Tab id="frontmatter" label="Frontmatter" />
+          </div>
+        )}
+        {hasFt && (
+          <div style={{ position: "relative", display: "flex", marginLeft: hasFm ? 0 : 12 }}>
+            <Tab id="template" label="Template" />
           </div>
         )}
         {project && (
@@ -451,6 +461,18 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
           )}
           {onViewCompliance && (
             <button onClick={onViewCompliance} title="View frontmatter compliance report" style={fmBtnStyle} onMouseEnter={fmBtnHover} onMouseLeave={fmBtnLeave}>View compliance</button>
+          )}
+          {fmMsg && <span style={{ fontSize: 12, color: "#7ec8f7" }}>{fmMsg}</span>}
+        </div>
+      )}
+
+      {active === "template" && hasFt && (
+        <div style={{ padding: "4px 12px 6px 32px", display: "flex", gap: 8, alignItems: "center" }}>
+          {onUseAsFileTemplate && (
+            <button onClick={() => runFm(onUseAsFileTemplate, "Saved as template")} title="Save this file as the project file template" style={fmBtnStyle} onMouseEnter={fmBtnHover} onMouseLeave={fmBtnLeave}>Use as template</button>
+          )}
+          {onApplyFileTemplate && (
+            <button onClick={() => runFm(onApplyFileTemplate, "Applied")} title="Add missing template sections to this file" style={fmBtnStyle} onMouseEnter={fmBtnHover} onMouseLeave={fmBtnLeave}>Apply template</button>
           )}
           {fmMsg && <span style={{ fontSize: 12, color: "#7ec8f7" }}>{fmMsg}</span>}
         </div>

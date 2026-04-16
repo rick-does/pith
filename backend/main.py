@@ -36,6 +36,11 @@ from .utils import (
     list_projects,
     load_collection,
     load_template,
+    load_file_template,
+    save_file_template,
+    delete_file_template,
+    scan_file_template_compliance,
+    apply_file_template,
     parse_frontmatter,
     rename_file,
     safe_path,
@@ -568,6 +573,51 @@ async def api_batch_update(project: str, request: Request):
     return {"updated": updated, "count": len(updated)}
 
 
+# File template
+# ---------------------------------------------------------------------------
+
+@app.get("/api/projects/{project}/file-template")
+async def api_get_file_template(project: str):
+    if not (get_projects_dir() / project).exists():
+        raise HTTPException(404, "Project not found")
+    return {"content": load_file_template(project)}
+
+
+@app.put("/api/projects/{project}/file-template")
+async def api_save_file_template(project: str, request: Request):
+    if not (get_projects_dir() / project).exists():
+        raise HTTPException(404, "Project not found")
+    data = await request.json()
+    save_file_template(project, data["content"])
+    return {"status": "saved"}
+
+
+@app.delete("/api/projects/{project}/file-template")
+async def api_delete_file_template(project: str):
+    if not (get_projects_dir() / project).exists():
+        raise HTTPException(404, "Project not found")
+    delete_file_template(project)
+    return {"status": "deleted"}
+
+
+@app.get("/api/projects/{project}/file-template/compliance")
+async def api_file_template_compliance(project: str):
+    if not (get_projects_dir() / project).exists():
+        raise HTTPException(404, "Project not found")
+    return scan_file_template_compliance(project)
+
+
+@app.post("/api/projects/{project}/file-template/apply/{file_path:path}")
+async def api_apply_file_template(project: str, file_path: str):
+    if not (get_projects_dir() / project).exists():
+        raise HTTPException(404, "Project not found")
+    fp = safe_path(project, file_path)
+    if not fp.exists():
+        raise HTTPException(404, "File not found")
+    content = apply_file_template(project, file_path)
+    return {"content": content}
+
+
 @app.post("/api/projects/documentation/restore-structure")
 async def api_restore_structure():
     """Restore the documentation project's tree.yaml from the bundled golden copy."""
@@ -667,7 +717,14 @@ async def api_create_markdown(project: str, file_path: str):
         raise HTTPException(409, "File already exists")
     fp.parent.mkdir(parents=True, exist_ok=True)
     title = Path(file_path).stem.replace("-", " ").replace("_", " ").title()
-    fp.write_text(f"# {title}\n", encoding="utf-8")
+    tmpl = load_file_template(project)
+    if tmpl:
+        content = re.sub(r'^#\s+.+$', f'# {title}', tmpl, count=1, flags=re.MULTILINE)
+        if not re.search(r'^#\s+', content, re.MULTILINE):
+            content = f"# {title}\n{content}"
+    else:
+        content = f"# {title}\n"
+    fp.write_text(content, encoding="utf-8")
     return {"path": file_path, "status": "created"}
 
 
@@ -1050,5 +1107,5 @@ if FRONTEND_DIST.exists():
     async def spa_fallback(full_path: str):
         index = FRONTEND_DIST / "index.html"
         if index.exists():
-            return HTMLResponse(index.read_text(encoding="utf-8"))
+            return HTMLResponse(index.read_text(encoding="utf-8"), headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
         raise HTTPException(404, "Frontend not built")

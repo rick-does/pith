@@ -364,6 +364,65 @@ def infer_template_from_file(project: str, rel_path: str) -> dict:
     return {"fields": fields}
 
 
+def get_file_template_path(project: str) -> Path:
+    return get_projects_dir() / project / "file-template.md"
+
+
+def load_file_template(project: str) -> str | None:
+    p = get_file_template_path(project)
+    return p.read_text(encoding="utf-8") if p.exists() else None
+
+
+def save_file_template(project: str, content: str) -> None:
+    get_file_template_path(project).write_text(content, encoding="utf-8")
+
+
+def delete_file_template(project: str) -> None:
+    p = get_file_template_path(project)
+    if p.exists():
+        p.unlink()
+
+
+def get_file_template_headings(content: str) -> list[str]:
+    return [m.group(1).strip() for m in re.finditer(r'^#{2,}\s+(.+)$', content, re.MULTILINE)]
+
+
+def scan_file_template_compliance(project: str) -> list[dict]:
+    template_content = load_file_template(project)
+    if not template_content:
+        return []
+    required = get_file_template_headings(template_content)
+    if not required:
+        return []
+    markdowns_dir = get_projects_dir() / project / "markdowns"
+    if not markdowns_dir.exists():
+        return []
+    non_compliant = []
+    for md_file in sorted(markdowns_dir.rglob("*.md")):
+        content = md_file.read_text(encoding="utf-8")
+        file_headings = {m.group(1).strip() for m in re.finditer(r'^#{2,}\s+(.+)$', content, re.MULTILINE)}
+        missing = [h for h in required if h not in file_headings]
+        if missing:
+            rel = str(md_file.relative_to(markdowns_dir)).replace("\\", "/")
+            non_compliant.append({"path": rel, "missing_headings": missing})
+    return non_compliant
+
+
+def apply_file_template(project: str, rel_path: str) -> str:
+    fp = safe_path(project, rel_path)
+    template_content = load_file_template(project)
+    if not template_content:
+        return fp.read_text(encoding="utf-8")
+    content = fp.read_text(encoding="utf-8")
+    template_heading_lines = re.findall(r'^#{2,}\s+.+$', template_content, re.MULTILINE)
+    file_headings = {m.group(1).strip() for m in re.finditer(r'^#{2,}\s+(.+)$', content, re.MULTILINE)}
+    missing = [h for h in template_heading_lines if re.match(r'^#{2,}\s+(.+)$', h).group(1).strip() not in file_headings]
+    if missing:
+        content = content.rstrip() + "\n\n" + "\n\n".join(missing) + "\n"
+        fp.write_text(content, encoding="utf-8")
+    return content
+
+
 def parse_frontmatter(content: str) -> tuple[dict, str]:
     """Parse YAML frontmatter from markdown content. Returns (metadata, body).
     Handles both standard (---/---) and Jekyll-style (no opening ---) formats."""
