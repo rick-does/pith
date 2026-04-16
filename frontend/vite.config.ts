@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: "dist",
-    emptyOutDir: true,
+    emptyOutDir: process.env.VITE_CLEAN === "1",
   },
   server: {
     port: 5173,

@@ -4,7 +4,7 @@ set -e
 echo "Building frontend..."
 cd frontend
 npm install
-node node_modules/vite/bin/vite.js build
+VITE_CLEAN=1 node node_modules/vite/bin/vite.js build
 cd ..
 
 echo "Setting up backend..."

@@ -3,7 +3,9 @@
 echo Building frontend...
 cd frontend
 call npm install
+set VITE_CLEAN=1
 call node node_modules\vite\bin\vite.js build
+set VITE_CLEAN=
 cd ..
 
 echo Setting up backend...
