@@ -2,18 +2,19 @@ from __future__ import annotations
 
 import re
 import shutil
-import time
+import subprocess
+import sys
 import webbrowser
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 import markdown
 import frontmatter
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from .models import CollectionStructure, DocusaurusImportRequest, FileNode
+from .models import CollectionStructure, FileNode
 from .utils import (
     archive_file,
     archive_project,
@@ -27,6 +28,7 @@ from .utils import (
     get_all_md_files,
     get_collection_file,
     get_hierarchy_backup_file,
+    get_images_dir,
     get_markdowns_dir,
     get_orphans,
     get_project_md,
@@ -67,6 +69,7 @@ async def lifespan(app: FastAPI):
         doc_dir = projects_dir / "documentation"
         doc_dir.mkdir(parents=True, exist_ok=True)
         doc_md.mkdir(exist_ok=True)
+        (doc_dir / "images").mkdir(exist_ok=True)
         golden_tree = golden_doc / "tree.yaml"
         if golden_tree.exists():
             shutil.copy2(str(golden_tree), str(doc_dir / "tree.yaml"))
@@ -144,11 +147,18 @@ async def add_root(body: dict):
     if abs_path in existing_paths:
         raise HTTPException(status_code=400, detail="This directory is already a project root")
 
+    stub_name = "new-project"
+    stub_dir = root_path.resolve() / stub_name
+    (stub_dir / "markdowns").mkdir(parents=True, exist_ok=True)
+    (stub_dir / "images").mkdir(parents=True, exist_ok=True)
+    (stub_dir / "tree.yaml").write_text("root: []\n", encoding="utf-8")
+    (stub_dir / ".pith-project").write_text("# New Project\n", encoding="utf-8")
+
     cfg["roots"].append({
         "path": abs_path,
         "name": name,
         "description": description,
-        "last_project": None,
+        "last_project": stub_name,
     })
     save_config(cfg)
     return {"path": abs_path, "name": name}
@@ -254,6 +264,7 @@ async def api_import_files(request: Request):
         raise HTTPException(404, "Project not found")
     md_dir = get_markdowns_dir(project)
     md_dir.mkdir(parents=True, exist_ok=True)
+    get_images_dir(project).mkdir(exist_ok=True)
     copied = []
     for src_str in files:
         src_file = Path(src_str)
@@ -678,6 +689,73 @@ async def api_delete_markdown(project: str, file_path: str):
         raise HTTPException(404, "File not found")
     fp.unlink()
     return {"path": file_path, "status": "deleted"}
+
+
+# ---------------------------------------------------------------------------
+# Images
+# ---------------------------------------------------------------------------
+
+@app.get("/api/projects/{project}/images")
+async def api_list_images(project: str):
+    images_dir = get_images_dir(project)
+    if not images_dir.exists():
+        return []
+    result = []
+    for fp in sorted(images_dir.iterdir()):
+        if fp.is_file() and fp.suffix.lower() in {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".bmp"}:
+            result.append({"name": fp.name, "size": fp.stat().st_size})
+    return result
+
+
+@app.get("/api/projects/{project}/image/{filename:path}")
+async def api_get_image(project: str, filename: str):
+    images_dir = get_images_dir(project).resolve()
+    target = (images_dir / filename).resolve()
+    if not str(target).startswith(str(images_dir)):
+        raise HTTPException(400, "Invalid path")
+    if not target.exists():
+        raise HTTPException(404, "Image not found")
+    return FileResponse(str(target))
+
+
+@app.post("/api/projects/{project}/images")
+async def api_upload_images(project: str, files: list[UploadFile] = File(...)):
+    images_dir = get_images_dir(project)
+    images_dir.mkdir(exist_ok=True)
+    uploaded = []
+    for file in files:
+        filename = Path(file.filename or "image").name
+        dest = images_dir / filename
+        content = await file.read()
+        dest.write_bytes(content)
+        uploaded.append(filename)
+    return {"uploaded": uploaded}
+
+
+@app.delete("/api/projects/{project}/image/{filename}")
+async def api_delete_image(project: str, filename: str):
+    images_dir = get_images_dir(project).resolve()
+    target = (images_dir / filename).resolve()
+    if not str(target).startswith(str(images_dir)):
+        raise HTTPException(400, "Invalid path")
+    if not target.exists():
+        raise HTTPException(404, "Image not found")
+    target.unlink()
+    return {"status": "deleted"}
+
+
+@app.get("/api/projects/{project}/images/open-folder")
+async def api_open_images_folder(project: str):
+    images_dir = get_images_dir(project)
+    images_dir.mkdir(exist_ok=True)
+    path = str(images_dir.resolve())
+    if sys.platform == "win32":
+        subprocess.Popen(["explorer", path])
+    elif sys.platform == "darwin":
+        subprocess.Popen(["open", path])
+    else:
+        subprocess.Popen(["xdg-open", path])
+    return {"ok": True}
 
 
 @app.post("/api/projects/{project}/archive-markdown/{file_path:path}")

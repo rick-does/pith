@@ -87,6 +87,7 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 - Launcher kills stale processes on startup: `_kill_existing(port)` frees the port before uvicorn starts (Win + Unix)
 - Multiple project roots: `~/.pith/config.json` stores roots list + active root + last_project per root; default `projects/` root is permanent and cannot be removed; `.pith-project-root` file written to each root dir; active project migrated from localStorage to backend config
 - Help button (?) in header: opens GitHub Pages docs in system browser (pywebview-safe via `GET /api/open-url` → `webbrowser.open()`)
+- Image management: fixed `images/` dir as standard project artifact (sibling to `markdowns/`); backend endpoints for list/serve/upload/delete/open-folder; ImageBrowser dialog (thumbnail grid, upload, delete-with-confirm, insert at cursor); Images flyout in project menu (Browse/Insert, Add images, Open folder); Images button in editor sub-bar; preview pane rewrites `../images/` src paths; cursor-position insertion via forwardRef chain (App → MarkdownEditor → CodeEditor)
 
 ### To build
 
@@ -108,11 +109,6 @@ All per-file analysis panels (Stats, Issues, Structure) are live in the editor t
 **What's not in the GUI (ever):**
 - `pth check` — dropped; spaCy requires post-install model download, not bundleable, passive voice detection unreliable
 - `pth extract`, `pth lint`, `pth summary`, `pth watch` — terminal only
-
-**Image management:**
-- Image directory convention (e.g. `images/` or `assets/` sibling to markdown files)
-- UI for browsing images in the project directory
-- Insert image into editor (markdown syntax)
 
 **Lower priority:**
 - Templates for new files — pre-populate new files with a skeleton (frontmatter, title heading, section stubs); configurable per project

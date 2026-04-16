@@ -20,7 +20,6 @@ function RenameInput({ currentPath, onCommit, onCancel }: {
       onChange={(e) => setValue(e.target.value)}
       onKeyDown={(e) => {
         if (e.key === "Enter") { e.stopPropagation(); onCommit(value.trim()); }
-        if (e.key === "Escape") { e.stopPropagation(); onCancel(); }
       }}
       onBlur={() => onCommit(value.trim())}
       onClick={(e) => e.stopPropagation()}
@@ -264,7 +263,6 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
                   onChange={(e) => { setChildName(e.target.value); setChildError(""); }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") submitChild();
-                    if (e.key === "Escape") { setAddingChild(false); setChildName(""); setChildError(""); }
                   }}
                   placeholder="filename.md"
                   style={{ padding: "4px 6px", background: "#fff", border: "1px solid #b3d9f7", borderRadius: "4px", color: "#1a1a1a", fontSize: "12px", outline: "none", width: "140px" }}

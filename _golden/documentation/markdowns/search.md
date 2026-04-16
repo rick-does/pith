@@ -24,7 +24,7 @@ Click any result — the file title or any matching line — to open that file i
 
 ## Closing search
 
-Click the **✕** button in the search panel header, or press `Escape`.
+Click the **✕** button in the search panel header.
 
 ## Notes
 

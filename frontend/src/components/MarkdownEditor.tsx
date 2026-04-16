@@ -1,10 +1,15 @@
-import { useState, useEffect, useRef, useCallback, KeyboardEvent } from "react";
+import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle, KeyboardEvent } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import CodeEditor from "./CodeEditor";
+import type { CodeEditorHandle } from "./CodeEditor";
 import MermaidBlock from "./MermaidBlock";
 import type { BrokenLink } from "../api";
+
+export interface MarkdownEditorHandle {
+  insertText: (text: string) => void;
+}
 
 interface Props {
   project?: string;
@@ -24,9 +29,10 @@ interface Props {
   onViewCompliance?: () => void;
   onClose?: () => void;
   onReport?: () => void;
+  onOpenImageBrowser?: () => void;
 }
 
-export default function MarkdownEditor({ project, path, content, savedContent, onContentChange, viMode, onViModeChange, onSaved, onSave, onRename, onUseAsTemplate, onApplyTemplate, onEditTemplate, onViewCompliance, onClose, onReport, brokenLinks }: Props) {
+const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function MarkdownEditor({ project, path, content, savedContent, onContentChange, viMode, onViModeChange, onSaved, onSave, onRename, onUseAsTemplate, onApplyTemplate, onEditTemplate, onViewCompliance, onClose, onReport, onOpenImageBrowser, brokenLinks }, ref) {
   const [view, setView] = useState<"edit" | "preview" | "split">("split");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
@@ -34,6 +40,11 @@ export default function MarkdownEditor({ project, path, content, savedContent, o
   const [renameValue, setRenameValue] = useState("");
   const savedContentRef = useRef(savedContent ?? content);
   const isDirty = content !== savedContentRef.current;
+  const codeEditorRef = useRef<CodeEditorHandle>(null);
+
+  useImperativeHandle(ref, () => ({
+    insertText(text: string) { codeEditorRef.current?.insertText(text); },
+  }));
 
   useEffect(() => {
     savedContentRef.current = savedContent ?? content;
@@ -72,7 +83,6 @@ export default function MarkdownEditor({ project, path, content, savedContent, o
               onChange={(e) => setRenameValue(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") { e.stopPropagation(); setRenaming(false); const n = renameValue.trim(); if (n && n !== path) onRename?.(path, n); }
-                if (e.key === "Escape") { e.stopPropagation(); setRenaming(false); }
               }}
               onBlur={() => { setRenaming(false); const n = renameValue.trim(); if (n && n !== path) onRename?.(path, n); }}
               onClick={(e) => e.stopPropagation()}
@@ -98,12 +108,12 @@ export default function MarkdownEditor({ project, path, content, savedContent, o
           </label>
           <button onClick={handleSave} disabled={saving || !isDirty} style={{
             padding: "4px 12px", fontSize: "13px", border: "none", cursor: isDirty ? "pointer" : "default", borderRadius: "3px",
-            background: isDirty ? "#3a7d44" : "#2a2a3a", color: isDirty ? "#fff" : "#888", flexShrink: 0,
+            background: isDirty ? "#1a6fa8" : "#2a2a3a", color: isDirty ? "#fff" : "#888", flexShrink: 0,
             transition: "background 0.15s, color 0.15s",
           }}>
             {saving ? "..." : "Save"}
           </button>
-          {saveMsg && <span style={{ color: "#5f9", fontSize: "13px", flexShrink: 0 }}>{saveMsg}</span>}
+          {saveMsg && <span style={{ color: "#7ec8f7", fontSize: "13px", flexShrink: 0 }}>{saveMsg}</span>}
           {brokenLinks && brokenLinks.length > 0 && (
             <span style={{ color: "#f66", fontSize: "12px", flexShrink: 0, display: "flex", alignItems: "center", gap: 4 }}>
               &#9888; {brokenLinks.length} broken link{brokenLinks.length !== 1 ? "s" : ""}
@@ -124,7 +134,7 @@ export default function MarkdownEditor({ project, path, content, savedContent, o
       </div>
 
       {(project || onApplyTemplate || onUseAsTemplate || onEditTemplate || onViewCompliance) && (
-        <FmBar onApplyTemplate={onApplyTemplate} onUseAsTemplate={onUseAsTemplate} onEditTemplate={onEditTemplate} onViewCompliance={onViewCompliance} project={project} filePath={path} onReport={onReport} />
+        <FmBar onApplyTemplate={onApplyTemplate} onUseAsTemplate={onUseAsTemplate} onEditTemplate={onEditTemplate} onViewCompliance={onViewCompliance} project={project} filePath={path} onReport={onReport} onOpenImageBrowser={onOpenImageBrowser} />
       )}
 
       {brokenLinks && brokenLinks.length > 0 && (
@@ -145,7 +155,7 @@ export default function MarkdownEditor({ project, path, content, savedContent, o
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
         {(view === "edit" || view === "split") && (
           <div style={{ flex: view === "split" ? "0 0 559px" : 1, minWidth: 0, overflow: "hidden", borderRight: view === "split" ? "1px solid #333" : "none" }}>
-            <CodeEditor value={content} onChange={onContentChange} language="markdown" viMode={viMode} onSave={handleSave} onClose={onClose} />
+            <CodeEditor ref={codeEditorRef} value={content} onChange={onContentChange} language="markdown" viMode={viMode} onSave={handleSave} onClose={onClose} />
           </div>
         )}
         {(view === "preview" || view === "split") && (
@@ -158,6 +168,17 @@ export default function MarkdownEditor({ project, path, content, savedContent, o
               remarkPlugins={[remarkGfm]}
               rehypePlugins={[rehypeHighlight]}
               components={{
+                img({ src, alt, ...props }) {
+                  let resolved = src;
+                  if (project && src) {
+                    if (src.startsWith("../images/")) {
+                      resolved = `/api/projects/${project}/image/${src.slice("../images/".length)}`;
+                    } else if (src.startsWith("images/")) {
+                      resolved = `/api/projects/${project}/image/${src.slice("images/".length)}`;
+                    }
+                  }
+                  return <img src={resolved} alt={alt} {...props} style={{ maxWidth: "100%" }} />;
+                },
                 pre({ children, node }) {
                   const codeEl = node?.children?.[0];
                   if (codeEl && "properties" in codeEl) {
@@ -183,7 +204,9 @@ export default function MarkdownEditor({ project, path, content, savedContent, o
       </div>
     </div>
   );
-}
+});
+
+export default MarkdownEditor;
 
 interface StatsData {
   word_count: number; sentence_count: number; paragraph_count: number;
@@ -201,7 +224,7 @@ interface StructureData { sections: StructureSection[]; max_depth: number; total
 
 type ActivePanel = "frontmatter" | "stats" | "issues" | "structure" | null;
 
-function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewCompliance, project, filePath, onReport }: {
+function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewCompliance, project, filePath, onReport, onOpenImageBrowser }: {
   onApplyTemplate?: () => Promise<void> | void;
   onUseAsTemplate?: () => Promise<void> | void;
   onEditTemplate?: () => void;
@@ -209,6 +232,7 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
   project?: string;
   filePath?: string;
   onReport?: () => void;
+  onOpenImageBrowser?: () => void;
 }) {
   const [active, setActive] = useState<ActivePanel>(null);
   const [fmMsg, setFmMsg] = useState("");
@@ -394,8 +418,14 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
           </div>
         )}
         <div style={{ flex: 1 }} />
-        {active === "frontmatter" && fmMsg && (
-          <span style={{ fontSize: 12, color: "#7ec8f7", padding: "4px 12px", alignSelf: "center" }}>{fmMsg}</span>
+        {onOpenImageBrowser && (
+          <button
+            onClick={onOpenImageBrowser}
+            style={{ ...fmBtnStyle, marginRight: 6, marginTop: 1, marginBottom: 1 }}
+            onMouseEnter={fmBtnHover}
+            onMouseLeave={fmBtnLeave}
+            title="Browse and insert images"
+          >Images</button>
         )}
         {onReport && project && (
           <button
@@ -422,6 +452,7 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
           {onViewCompliance && (
             <button onClick={onViewCompliance} title="View frontmatter compliance report" style={fmBtnStyle} onMouseEnter={fmBtnHover} onMouseLeave={fmBtnLeave}>View compliance</button>
           )}
+          {fmMsg && <span style={{ fontSize: 12, color: "#7ec8f7" }}>{fmMsg}</span>}
         </div>
       )}
     </div>

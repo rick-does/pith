@@ -84,13 +84,13 @@ Each project has a notes file for a description or anything else you want to kee
 
 ## Archiving a project
 
-Projects are never permanently deleted from the UI. Instead, archiving moves the entire project folder to `projects/_archive/`. To archive:
+Projects are never permanently deleted from the UI. Instead, archiving moves the entire project folder to `_archive/` inside the current project root. To archive:
 
 1. Click **⋮** on the project chip
 2. Click **Projects**
 3. Click the trash icon next to the project you want to archive
 
-To permanently delete a project, remove its folder from `projects/_archive/` by hand.
+To permanently delete a project, remove its folder from `_archive/` inside the project root by hand.
 
 ## Viewing the hierarchy file
 

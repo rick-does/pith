@@ -97,9 +97,9 @@ export function findParent(
   for (const n of nodes) {
     if (n.path === path) return parent;
     const p = findParent(n.children ?? [], path, n);
-    if (p !== undefined) return p;
+    if (p !== null) return p;
   }
-  return undefined as any;
+  return null;
 }
 
 export function swapSiblings(nodes: FileNode[], path: string, dir: "up" | "down"): FileNode[] {

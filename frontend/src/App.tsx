@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Sidebar from "./components/Sidebar";
 import MarkdownEditor from "./components/MarkdownEditor";
+import type { MarkdownEditorHandle } from "./components/MarkdownEditor";
+import ImageBrowser from "./components/ImageBrowser";
 import YAMLEditor from "./components/YAMLEditor";
 import ImportModal from "./components/ImportModal";
 import ExportModal from "./components/ExportModal";
@@ -21,6 +23,7 @@ import {
   importMarkdowns, importFiles, browseDirs, browseStartDir,
   flattenHierarchy, restoreHierarchy, checkHierarchyBackup,
   fetchConfig, fetchRoots, addRoot, removeRoot, switchRoot, setLastProject,
+  uploadImages, openImagesFolder,
 } from "./api";
 import type { CollectionStructure, FileInfo, FileNode, ProjectInfo } from "./types";
 import type { FrontmatterTemplate, FrontmatterField, ComplianceItem, FileLinkReport, BrokenLink, RootInfo } from "./api";
@@ -85,6 +88,8 @@ export default function App() {
   const [importModal, setImportModal] = useState<{ format: "mkdocs" | "docusaurus" } | null>(null);
   const [exportModal, setExportModal] = useState<{ format: "mkdocs" | "docusaurus" } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [imageBrowserOpen, setImageBrowserOpen] = useState(false);
+  const [imageBrowserTriggerAdd, setImageBrowserTriggerAdd] = useState(false);
   const [template, setTemplate] = useState<FrontmatterTemplate>({ fields: [] });
   const [fileFrontmatter, setFileFrontmatter] = useState<Record<string, any>>({});
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
@@ -124,6 +129,7 @@ export default function App() {
 
   const editorContentRef = useRef(editorContent);
   const savedContentRef = useRef(savedContent);
+  const markdownEditorRef = useRef<MarkdownEditorHandle>(null);
   const htmlIframeRef = useRef<HTMLIFrameElement>(null);
   const reportIframeRef = useRef<HTMLIFrameElement>(null);
   const folderBrowserScrollRef = useRef<HTMLDivElement>(null);
@@ -143,9 +149,6 @@ export default function App() {
       if ((e.ctrlKey || e.metaKey) && e.key === "f" && !overlayType) {
         e.preventDefault();
         setSearchOpen(true);
-      }
-      if (e.key === "Escape" && overlayType) {
-        handleCloseOverlay();
       }
     };
     document.addEventListener("keydown", handler);
@@ -476,7 +479,7 @@ export default function App() {
   }, [navigateRootBrowser]);
 
   const handleAddRoot = useCallback(async () => {
-    if (!newRootName.trim()) { setNewRootError("Name is required"); return; }
+    if (!newRootName.trim()) { setNewRootError("Title is required"); return; }
     if (!rootBrowserPath) { setNewRootError("Select a directory"); return; }
     const targetPath = newRootCreateDir
       ? `${rootBrowserPath}/${newRootNewDirName.trim()}`
@@ -853,6 +856,9 @@ export default function App() {
           onSwitchRoot={handleSwitchRoot}
           onAddRoot={handleOpenNewRoot}
           onRemoveRoot={handleRemoveRoot}
+          onBrowseImages={() => { setImageBrowserTriggerAdd(false); setImageBrowserOpen(true); }}
+          onAddImages={() => { setImageBrowserTriggerAdd(true); setImageBrowserOpen(true); }}
+          onOpenImagesFolder={() => { if (currentProject) openImagesFolder(currentProject); }}
         />
       </div>
 
@@ -860,6 +866,7 @@ export default function App() {
         <span className="overlay-close-btn" onClick={handleCloseOverlay}>&#10005;</span>
         {overlayType === "editor" && selectedPath && (
           <MarkdownEditor
+            ref={markdownEditorRef}
             key={selectedPath}
             project={currentProject ?? undefined}
             path={selectedPath}
@@ -880,6 +887,7 @@ export default function App() {
             onViewCompliance={handleShowCompliance}
             onClose={handleCloseOverlay}
             onReport={handleReport}
+            onOpenImageBrowser={() => { setImageBrowserTriggerAdd(false); setImageBrowserOpen(true); }}
             brokenLinks={fileBrokenLinks}
           />
         )}
@@ -952,9 +960,19 @@ export default function App() {
           onExport={async () => {
             const result = await exportToFormat(currentProject, exportModal.format);
             setExportModal(null);
-            window.alert(`Exported to: ${result.file_path}`);
+            window.alert(`Exported to: ${result.path}`);
           }}
           onClose={() => setExportModal(null)}
+        />
+      )}
+
+      {imageBrowserOpen && currentProject && (
+        <ImageBrowser
+          project={currentProject}
+          editorOpen={overlayType === "editor" && selectedPath !== null}
+          onInsert={(markdown) => { markdownEditorRef.current?.insertText(markdown); }}
+          onClose={() => { setImageBrowserOpen(false); setImageBrowserTriggerAdd(false); }}
+          triggerAdd={imageBrowserTriggerAdd}
         />
       )}
 
@@ -1065,7 +1083,7 @@ export default function App() {
 
       {newProjectOpen && (
         <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}
-          onKeyDown={e => { if (e.key === "Escape") setNewProjectOpen(false); }}>
+>
           <div style={{ background: "#fff", borderRadius: 8, minWidth: 480, maxWidth: 600, width: "90vw", boxShadow: "0 8px 32px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column", maxHeight: "80vh" }}>
             <div style={{ padding: "16px 20px 12px", borderBottom: "1px solid #e8e8e8" }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: "#1a3a5c", marginBottom: 12 }}>New Project</div>
@@ -1177,7 +1195,7 @@ export default function App() {
 
       {addFileDialogOpen && (
         <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}
-          onKeyDown={e => { if (e.key === "Escape") setAddFileDialogOpen(false); }}>
+>
           <div style={{ background: "#fff", borderRadius: 8, minWidth: 480, maxWidth: 600, width: "90vw", boxShadow: "0 8px 32px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column", height: 480 }}>
             <div style={{ padding: "16px 20px 12px", borderBottom: "1px solid #e8e8e8" }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: "#1a3a5c", marginBottom: 8 }}>Add File from Markdown</div>
@@ -1257,14 +1275,23 @@ export default function App() {
 
       {newRootOpen && (
         <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}
-          onKeyDown={e => { if (e.key === "Escape") setNewRootOpen(false); }}>
+>
           <div style={{ background: "#fff", borderRadius: 8, minWidth: 480, maxWidth: 600, width: "90vw", boxShadow: "0 8px 32px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column", maxHeight: "85vh" }}>
             <div style={{ padding: "16px 20px 12px", borderBottom: "1px solid #e8e8e8" }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: "#1a3a5c", marginBottom: 12 }}>New Project Root</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {newRootCreateDir && (
+                  <div>
+                    <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>New directory name</div>
+                    <input autoFocus value={newRootNewDirName}
+                      onChange={e => { setNewRootNewDirName(e.target.value.replace(/\s+/g, "-").replace(/[/\\<>:"|?*\0]/g, "").toLowerCase()); setNewRootError(""); }}
+                      placeholder="my-projects"
+                      style={{ width: "100%", padding: "7px 10px", fontSize: 13, border: "1px solid #b3d9f7", borderRadius: 4, outline: "none", boxSizing: "border-box", fontFamily: "monospace" }} />
+                  </div>
+                )}
                 <div>
-                  <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>Name</div>
-                  <input autoFocus value={newRootName}
+                  <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>Title</div>
+                  <input autoFocus={!newRootCreateDir} value={newRootName}
                     onChange={e => { setNewRootName(e.target.value); setNewRootError(""); }}
                     placeholder="My Docs"
                     style={{ width: "100%", padding: "7px 10px", fontSize: 13, border: "1px solid #b3d9f7", borderRadius: 4, outline: "none", boxSizing: "border-box" }} />
@@ -1284,15 +1311,6 @@ export default function App() {
                     </button>
                   ))}
                 </div>
-                {newRootCreateDir && (
-                  <div>
-                    <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>New directory name</div>
-                    <input value={newRootNewDirName}
-                      onChange={e => { setNewRootNewDirName(e.target.value); setNewRootError(""); }}
-                      placeholder="my-projects"
-                      style={{ width: "100%", padding: "7px 10px", fontSize: 13, border: "1px solid #b3d9f7", borderRadius: 4, outline: "none", boxSizing: "border-box", fontFamily: "monospace" }} />
-                  </div>
-                )}
               </div>
             </div>
 

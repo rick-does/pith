@@ -212,7 +212,7 @@ export default function OrphanPane({
                     ref={inputRef}
                     value={newFileName}
                     onChange={(e) => { setNewFileName(e.target.value); setCreateError(""); }}
-                    onKeyDown={(e) => { if (e.key === "Enter") submitFile(); if (e.key === "Escape") { setCreatingFile(false); setNewFileName(""); setCreateError(""); } }}
+                    onKeyDown={(e) => { if (e.key === "Enter") submitFile();  }}
                     placeholder="filename.md"
                     style={{ padding: "4px 6px", background: "#fff", border: "1px solid #b3d9f7", borderRadius: "4px", color: "#1a1a1a", fontSize: "12px", outline: "none", width: "140px" }}
                   />

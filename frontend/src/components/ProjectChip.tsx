@@ -38,9 +38,12 @@ export interface ProjectChipProps {
   onSwitchRoot: (path: string) => void;
   onAddRoot: () => void;
   onRemoveRoot: (path: string) => void;
+  onBrowseImages: () => void;
+  onAddImages: () => void;
+  onOpenImagesFolder: () => void;
 }
 
-export default function ProjectChip({ currentProject, currentProjectTitle, projects, titleMode, setTitleMode, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onCreateFile, onAddFileFromMd, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, isDocumentation, showIndicators, onToggleIndicators, roots, currentRoot, onSwitchRoot, onAddRoot, onRemoveRoot }: ProjectChipProps) {
+export default function ProjectChip({ currentProject, currentProjectTitle, projects, titleMode, setTitleMode, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onCreateFile, onAddFileFromMd, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, isDocumentation, showIndicators, onToggleIndicators, roots, currentRoot, onSwitchRoot, onAddRoot, onRemoveRoot, onBrowseImages, onAddImages, onOpenImagesFolder }: ProjectChipProps) {
 
 
 
@@ -53,6 +56,7 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
   const [frontmatterSubmenuOpen, setFrontmatterSubmenuOpen] = useState(false);
   const [restoreSubmenuOpen, setRestoreSubmenuOpen] = useState(false);
   const [fileSubmenuOpen, setFileSubmenuOpen] = useState(false);
+  const [imagesSubmenuOpen, setImagesSubmenuOpen] = useState(false);
   const [settingsSubmenuOpen, setSettingsSubmenuOpen] = useState(false);
   const menuRef = useRef<HTMLSpanElement>(null);
   const menuButtonRef = useRef<HTMLSpanElement>(null);
@@ -92,7 +96,6 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
   };
   const handleInputKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") submitNewFile();
-    if (e.key === "Escape") cancelCreating();
   };
 
   const menuItem: CSSProperties = {
@@ -179,7 +182,6 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                               onMouseLeave={(e) => { if (root.path !== currentRoot) (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
                             >
                               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-                                {root.path === currentRoot && <span style={{ color: "#1a6fa8", fontSize: "11px", marginRight: "4px" }}>&#10003;</span>}
                                 {root.name}
                               </span>
                               {root.path !== currentRoot && (
@@ -215,14 +217,16 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                         onMouseEnter={(e) => { if (p.name !== currentProject) (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                         onMouseLeave={(e) => { if (p.name !== currentProject) (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
                       >
-                        <span>{p.name === currentProject && <span style={{ color: "#1a6fa8", fontSize: "11px", marginRight: "4px" }}>&#10003;</span>}{titleMode ? p.title : p.name}</span>
-                        <span
-                          title="Archive project"
-                          onClick={(e) => { e.stopPropagation(); onArchiveProject(p.name); setMenuOpen(false); setProjectSubmenuOpen(false); }}
-                          style={{ color: "#555", fontSize: "18px", lineHeight: 1, padding: "2px 6px", borderRadius: "3px", cursor: "pointer", flexShrink: 0 }}
-                          onMouseEnter={(e) => { e.stopPropagation(); (e.currentTarget as HTMLSpanElement).style.color = "#c0392b"; }}
-                          onMouseLeave={(e) => { (e.currentTarget as HTMLSpanElement).style.color = "#555"; }}
-                        >&#128465;</span>
+                        <span>{titleMode ? p.title : p.name}</span>
+                        {p.name !== currentProject && (
+                          <span
+                            title="Archive project"
+                            onClick={(e) => { e.stopPropagation(); onArchiveProject(p.name); setMenuOpen(false); setProjectSubmenuOpen(false); }}
+                            style={{ color: "#555", fontSize: "18px", lineHeight: 1, padding: "2px 6px", borderRadius: "3px", cursor: "pointer", flexShrink: 0 }}
+                            onMouseEnter={(e) => { e.stopPropagation(); (e.currentTarget as HTMLSpanElement).style.color = "#c0392b"; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLSpanElement).style.color = "#555"; }}
+                          >&#128465;</span>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -249,6 +253,35 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
                     >Add File from Markdown</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Images flyout */}
+              <div
+                style={{ ...menuItem, justifyContent: "space-between", position: "relative" }}
+                onMouseEnter={() => setImagesSubmenuOpen(true)}
+                onMouseLeave={() => setImagesSubmenuOpen(false)}
+              >
+                <span>Images</span>
+                <span style={flyoutArrow}>&#9656;</span>
+                {imagesSubmenuOpen && (
+                  <div style={submenuStyle}>
+                    <div style={{ ...menuItem }}
+                      onClick={() => { onBrowseImages(); setMenuOpen(false); setImagesSubmenuOpen(false); }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    >Browse / Insert</div>
+                    <div style={{ ...menuItem }}
+                      onClick={() => { onAddImages(); setMenuOpen(false); setImagesSubmenuOpen(false); }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    >Add images</div>
+                    <div style={{ ...menuItem }}
+                      onClick={() => { onOpenImagesFolder(); setMenuOpen(false); setImagesSubmenuOpen(false); }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    >Open folder</div>
                   </div>
                 )}
               </div>

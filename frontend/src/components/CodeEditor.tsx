@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { EditorState, Extension } from "@codemirror/state";
 import { EditorView, ViewUpdate, keymap, lineNumbers, highlightActiveLine } from "@codemirror/view";
 import { defaultKeymap, historyKeymap, history } from "@codemirror/commands";
@@ -6,6 +6,10 @@ import { markdown } from "@codemirror/lang-markdown";
 import { yaml } from "@codemirror/lang-yaml";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { vim, Vim } from "@replit/codemirror-vim";
+
+export interface CodeEditorHandle {
+  insertText: (text: string) => void;
+}
 
 interface Props {
   value: string;
@@ -18,7 +22,7 @@ interface Props {
   onClose?: () => void;
 }
 
-export default function CodeEditor({ value, onChange, language = "markdown", viMode = true, dark = true, readOnly = false, onSave, onClose }: Props) {
+const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEditor({ value, onChange, language = "markdown", viMode = true, dark = true, readOnly = false, onSave, onClose }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
@@ -27,6 +31,16 @@ export default function CodeEditor({ value, onChange, language = "markdown", viM
   onSaveRef.current = onSave;
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+
+  useImperativeHandle(ref, () => ({
+    insertText(text: string) {
+      const view = viewRef.current;
+      if (!view) return;
+      const { from } = view.state.selection.main;
+      view.dispatch({ changes: { from, insert: text }, selection: { anchor: from + text.length } });
+      view.focus();
+    },
+  }));
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -80,4 +94,6 @@ export default function CodeEditor({ value, onChange, language = "markdown", viM
   }, [value]);
 
   return <div ref={containerRef} style={{ height: "100%", width: "100%" }} />;
-}
+});
+
+export default CodeEditor;

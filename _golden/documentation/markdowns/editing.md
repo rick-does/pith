@@ -28,7 +28,7 @@ Use the **edit / split / preview** buttons in the top-right of the editor toolba
 
 ## Saving
 
-Press `Ctrl+S` (or `Cmd+S` on Mac) to save. The Save button in the toolbar turns green when there are unsaved changes and goes dim when the file is clean. The file title in the hierarchy updates automatically if you change the `# H1` heading.
+Press `Ctrl+S` (or `Cmd+S` on Mac) to save. The Save button in the toolbar turns blue when there are unsaved changes and goes dim when the file is clean. The file title in the hierarchy updates automatically if you change the `# H1` heading.
 
 With vi mode enabled, `:w` saves and `:x` saves then closes the editor. See [Vi Mode](#vi-mode) below.
 
@@ -45,7 +45,7 @@ Vi-specific save commands:
 
 ## Frontmatter, Stats, Issues, and Structure
 
-Below the editor toolbar is a bar with four tabs: **Frontmatter**, **Stats**, **Issues**, and **Structure**, and a **Scan Project** button on the right. Click any tab header to expand it; clicking an open tab collapses it. Only one tab can be open at a time. The Stats, Issues, and Structure panels open as floating overlays so they don't push the editor down.
+Below the editor toolbar is a bar with four tabs: **Frontmatter**, **Stats**, **Issues**, and **Structure**, and on the right side an **Images** button and a **Scan Project** button. Click any tab header to expand it; clicking an open tab collapses it. Only one tab can be open at a time. The Stats, Issues, and Structure panels open as floating overlays so they don't push the editor down.
 
 ## Frontmatter
 
@@ -95,6 +95,22 @@ The **Structure** tab shows the heading skeleton of the current file — the out
 
 Each line shows the heading level (`#`, `##`, etc.), the heading title, and the word count for that section's direct body text (not including sub-sections). Sections with no body text show a dash. The footer shows total heading count, maximum nesting depth, and total word count.
 
+## Images
+
+The **Images** button on the right of the tab bar opens the Project images dialog, which shows all images in the project's `images/` folder (a sibling directory of `markdowns/`).
+
+From this dialog you can:
+
+- **Browse** — view thumbnails of all images in the project
+- **Insert** — click any thumbnail to insert it at the cursor position in the editor as `![](../images/filename)`
+- **Add images** — click **Add images** in the dialog header to open a file picker and copy images into the project's `images/` folder
+- **Open folder** — click **Open folder** to open the `images/` directory in your file manager
+- **Delete** — hover over a thumbnail and click **✕** to delete an image (with confirmation)
+
+The Images button is only visible when a file is open in the editor. To manage images without opening a file, use **⋮ → Images** on the project chip.
+
+If you click a thumbnail while the editor is open, the image is inserted at the current cursor position and the dialog closes. If you open the dialog from the project chip menu (not the editor), clicking thumbnails does nothing — use it to browse or manage images only.
+
 ## Scan Project
 
 The **Scan Project** button on the right of the tab bar runs Stats, Issues, and Structure analysis on every file in the current project and produces a single HTML report. The same action is available from **⋮ → Scan Project** in the project menu.
@@ -112,7 +128,7 @@ Double-click the filename in the editor toolbar to rename the file inline. The f
 
 ## Closing the editor
 
-Click the **✕** button in the top right corner of the editor panel, or press `Escape`. See [Keyboard Shortcuts](keyboard-shortcuts.md) for all editor keys.
+Click the **✕** button in the top right corner of the editor panel. See [Keyboard Shortcuts](keyboard-shortcuts.md) for all editor keys.
 
 ## Mermaid diagrams
 
@@ -132,4 +148,4 @@ If the syntax is invalid, the preview shows an error message instead of the diag
 
 ## Project notes
 
-The project notes file can also be opened for editing via **⋮ → Info** on the project chip. This file does not appear in the hierarchy and cannot be renamed.
+The project notes file can also be opened for editing via **⋮ → File → Project info** on the project chip. This file does not appear in the hierarchy and cannot be renamed.

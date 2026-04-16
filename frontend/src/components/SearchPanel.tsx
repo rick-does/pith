@@ -41,7 +41,6 @@ export default function SearchPanel({ currentProject, onOpen, onClose }: Props) 
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") onClose();
   };
 
   const totalMatches = results.reduce((sum, r) => sum + r.matches.length, 0);

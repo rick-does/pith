@@ -102,9 +102,12 @@ interface SidebarProps {
   onSwitchRoot: (path: string) => void;
   onAddRoot: () => void;
   onRemoveRoot: (path: string) => void;
+  onBrowseImages: () => void;
+  onAddImages: () => void;
+  onOpenImagesFolder: () => void;
 }
 
-export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onAddFileFromMd, onDeleteFile, onRenameFile, onCreateChildFile, onCopyToChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onRefresh, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, brokenLinkMap, frontmatterIssueMap, showIndicators, onToggleIndicators, roots, currentRoot, onSwitchRoot, onAddRoot, onRemoveRoot }: SidebarProps) {
+export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onAddFileFromMd, onDeleteFile, onRenameFile, onCreateChildFile, onCopyToChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onRefresh, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, brokenLinkMap, frontmatterIssueMap, showIndicators, onToggleIndicators, roots, currentRoot, onSwitchRoot, onAddRoot, onRemoveRoot, onBrowseImages, onAddImages, onOpenImagesFolder }: SidebarProps) {
   const [titleMode, setTitleMode] = useState(() => localStorage.getItem("pith_title_mode") !== "false");
   const [orphanSort, setOrphanSort] = useState<"recent" | "alpha" | "custom">("recent");
   const [orphanOrder, setOrphanOrder] = useState<string[]>([]);
@@ -560,6 +563,9 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
                   onSwitchRoot={onSwitchRoot}
                   onAddRoot={onAddRoot}
                   onRemoveRoot={onRemoveRoot}
+                  onBrowseImages={onBrowseImages}
+                  onAddImages={onAddImages}
+                  onOpenImagesFolder={onOpenImagesFolder}
                 />
               )}
 

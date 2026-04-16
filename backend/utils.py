@@ -23,6 +23,10 @@ def get_markdowns_dir(project: str) -> Path:
     return get_projects_dir() / project / "markdowns"
 
 
+def get_images_dir(project: str) -> Path:
+    return get_projects_dir() / project / "images"
+
+
 def get_collection_file(project: str) -> Path:
     return get_projects_dir() / project / "tree.yaml"
 
@@ -70,6 +74,7 @@ def create_project(name: str) -> None:
     proj_dir = get_projects_dir() / name
     proj_dir.mkdir(parents=True, exist_ok=True)
     (proj_dir / "markdowns").mkdir(exist_ok=True)
+    (proj_dir / "images").mkdir(exist_ok=True)
 
     tree_file = get_collection_file(name)
     if not tree_file.exists():
@@ -172,10 +177,10 @@ def get_orphans(project: str, collection: CollectionStructure) -> list[dict]:
 def archive_file(project: str, rel_path: str) -> str:
     md_dir = get_markdowns_dir(project)
     src = safe_path(project, rel_path)
-    archive_dir = md_dir / "_archive"
-    archive_dir.mkdir(exist_ok=True)
-    dest_name = Path(rel_path).name
-    dest = archive_dir / dest_name
+    rel = Path(rel_path)
+    archive_dir = md_dir / "_archive" / rel.parent
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    dest = archive_dir / rel.name
     if dest.exists():
         stem = dest.stem
         dest = archive_dir / f"{stem}-{int(time.time())}{dest.suffix}"
@@ -222,6 +227,7 @@ def import_markdowns(path: str) -> str:
 
     md_dir = get_projects_dir() / name / "markdowns"
     md_dir.mkdir(parents=True, exist_ok=True)
+    (get_projects_dir() / name / "images").mkdir(exist_ok=True)
 
     import glob as _glob
     pattern = os.path.join(str(src), "**", "*.md")

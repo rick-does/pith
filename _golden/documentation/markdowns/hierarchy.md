@@ -46,3 +46,7 @@ After flattening, the menu item changes to **Restore hierarchy**. Click it to br
 ## Expanding and collapsing
 
 Click the triangle next to any file that has children to expand or collapse it. See [Keyboard Shortcuts](keyboard-shortcuts.md) for the full list of navigation keys.
+
+## Previewing a file
+
+**Alt+click** any file chip to preview its contents without opening the editor. The tooltip shows the opposite of the current label mode — if chips show filenames, the tooltip shows the title, and vice versa.

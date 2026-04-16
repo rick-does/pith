@@ -25,12 +25,17 @@ These shortcuts work when one or more files in the Unlinked pane are selected.
 
 Using ↑ or ↓ in the Unlinked pane automatically switches the sort order to Custom.
 
+## Search
+
+| Key | Action |
+|-----|--------|
+| Ctrl+F / Cmd+F | Open full-text search |
+
 ## Editor shortcuts
 
 | Key | Action |
 |-----|--------|
 | Ctrl+S / Cmd+S | Save the current file |
-| Escape | Close the editor |
 
 ## Vi mode commands
 

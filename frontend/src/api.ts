@@ -2,6 +2,32 @@ import type { CollectionStructure, FileInfo, ProjectInfo } from "./types";
 
 const BASE = "/api";
 
+export interface ImageInfo { name: string; size: number; }
+
+export async function listImages(project: string): Promise<ImageInfo[]> {
+  const r = await fetch(`${BASE}/projects/${project}/images`);
+  if (!r.ok) throw new Error("Failed to list images");
+  return r.json();
+}
+
+export async function uploadImages(project: string, files: FileList): Promise<{ uploaded: string[] }> {
+  const form = new FormData();
+  for (const f of Array.from(files)) form.append("files", f);
+  const r = await fetch(`${BASE}/projects/${project}/images`, { method: "POST", body: form });
+  if (!r.ok) throw new Error("Upload failed");
+  return r.json();
+}
+
+export async function deleteImage(project: string, filename: string): Promise<void> {
+  const r = await fetch(`${BASE}/projects/${project}/image/${encodeURIComponent(filename)}`, { method: "DELETE" });
+  if (!r.ok) throw new Error("Failed to delete image");
+}
+
+export async function openImagesFolder(project: string): Promise<void> {
+  const r = await fetch(`${BASE}/projects/${project}/images/open-folder`);
+  if (!r.ok) throw new Error("Failed to open images folder");
+}
+
 export interface RootInfo {
   path: string;
   name: string;
@@ -294,7 +320,7 @@ export async function fetchOrphans(project: string): Promise<FileInfo[]> {
   return r.json();
 }
 
-export async function importFromFormat(project: string, format: "mkdocs" | "docusaurus", filename?: string): Promise<{ warnings: string[]; node_count: number }> {
+export async function importFromFormat(project: string, format: "mkdocs" | "docusaurus", filename?: string): Promise<void> {
   const body = format === "docusaurus" && filename ? JSON.stringify({ filename }) : undefined;
   const r = await fetch(`${BASE}/projects/${project}/import/${format}`, {
     method: "POST",
@@ -308,7 +334,7 @@ export async function importFromFormat(project: string, format: "mkdocs" | "docu
   return r.json();
 }
 
-export async function exportToFormat(project: string, format: "mkdocs" | "docusaurus"): Promise<{ file_path: string; markdowns_path: string }> {
+export async function exportToFormat(project: string, format: "mkdocs" | "docusaurus"): Promise<{ path: string }> {
   const r = await fetch(`${BASE}/projects/${project}/export/${format}`, { method: "POST" });
   if (!r.ok) throw new Error("Export failed");
   return r.json();

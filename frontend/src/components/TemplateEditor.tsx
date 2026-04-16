@@ -41,7 +41,7 @@ export default function TemplateEditor({ template, onSave, onClose, onViewCompli
         </div>
 
         <p style={{ fontSize: 12, color: "#666", marginBottom: 16 }}>
-          Define the expected frontmatter keys for files in this project. New files will be pre-filled with these fields.
+          Define the expected frontmatter keys for files in this project. Use <strong>Apply template</strong> in the Frontmatter panel to apply these fields to a file.
         </p>
 
         <div style={{ maxHeight: 400, overflowY: "auto" }}>

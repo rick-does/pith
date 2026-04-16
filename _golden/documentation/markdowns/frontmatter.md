@@ -69,4 +69,4 @@ File chips in the hierarchy show a small dot for frontmatter status:
 
 ## New files
 
-When a frontmatter template is defined, new files created in PiTH are pre-filled with the template's keys and default values. See [Building Your Hierarchy](hierarchy.md) for how to create files.
+New files are created with a title heading only. To apply the template to a new file, open it and click **Apply template** in the Frontmatter panel. See [Building Your Hierarchy](hierarchy.md) for how to create files.
