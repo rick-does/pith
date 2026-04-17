@@ -3,7 +3,9 @@ html, body, #root { height: 100%; margin: 0; padding: 0; }
 body { overflow: hidden; }
 
 /* Syntax highlighting in preview */
-.hljs { background: #282c34; color: #abb2bf; padding: 1em; border-radius: 8px; overflow-x: auto; }
+.hljs { color: #abb2bf; background: transparent; }
+pre:has(code.hljs) { background: #282c34; padding: 1em; border-radius: 8px; overflow-x: auto; }
+code:not(pre code) { background: #e8e8e8; padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.88em; }
 
 /* Overlay panel */
 .overlay-panel {
@@ -58,3 +60,11 @@ body { overflow: hidden; }
   color: #fff;
   background: rgba(255, 255, 255, 0.1);
 }
+
+.cm-spell-primary {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.cm-diagnostic-hint { border-left-color: #ff8c00 !important; }
+.cm-lintPoint-hint::after { border-bottom-color: #ff8c00 !important; }

@@ -50,7 +50,7 @@ from .utils import (
     find_incoming_links,
     GOLDEN_DIR,
 )
-from .config import load_config, save_config, DEFAULT_ROOT_PATH
+from .config import load_config, save_config, DEFAULT_ROOT_PATH, CONFIG_DIR
 from .converters import (
     export_docusaurus,
     export_mkdocs,
@@ -61,6 +61,9 @@ from .stats import compute_stats
 from .issues import compute_issues
 from .structure import compute_structure
 from .report import generate_report_html
+
+PERSONAL_DIC = CONFIG_DIR / "personal.dic"
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -128,6 +131,30 @@ async def put_prefs(request: Request):
     cfg.setdefault("prefs", {}).update(data)
     save_config(cfg)
     return cfg["prefs"]
+
+
+@app.get("/api/personal-dictionary")
+async def get_personal_dictionary():
+    if not PERSONAL_DIC.exists():
+        return {"words": []}
+    words = [w.strip() for w in PERSONAL_DIC.read_text(encoding="utf-8").splitlines() if w.strip()]
+    return {"words": words}
+
+
+@app.post("/api/personal-dictionary")
+async def add_personal_word(request: Request):
+    data = await request.json()
+    word = data.get("word", "").strip()
+    if not word:
+        return {"ok": False}
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    existing: set[str] = set()
+    if PERSONAL_DIC.exists():
+        existing = {w.strip() for w in PERSONAL_DIC.read_text(encoding="utf-8").splitlines() if w.strip()}
+    if word not in existing:
+        with PERSONAL_DIC.open("a", encoding="utf-8") as f:
+            f.write(word + "\n")
+    return {"ok": True}
 
 
 @app.get("/api/roots")
@@ -1104,6 +1131,8 @@ FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"
 
 if FRONTEND_DIST.exists():
     app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST / "assets")), name="assets")
+    if (FRONTEND_DIST / "dictionaries").exists():
+        app.mount("/dictionaries", StaticFiles(directory=str(FRONTEND_DIST / "dictionaries")), name="dictionaries")
 
     @app.get("/{full_path:path}")
     async def spa_fallback(full_path: str):

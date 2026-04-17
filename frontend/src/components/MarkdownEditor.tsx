@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle, KeyboardEvent } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, forwardRef, useImperativeHandle, KeyboardEvent } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
@@ -6,6 +6,7 @@ import CodeEditor, { EDITOR_THEMES } from "./CodeEditor";
 import type { CodeEditorHandle } from "./CodeEditor";
 import MermaidBlock from "./MermaidBlock";
 import type { BrokenLink } from "../api";
+import { initSpellWorker, addWordToWorker } from "../spellcheck";
 
 export interface MarkdownEditorHandle {
   insertText: (text: string) => void;
@@ -42,6 +43,25 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function Markdown
   const savedContentRef = useRef(savedContent ?? content);
   const isDirty = content !== savedContentRef.current;
   const codeEditorRef = useRef<CodeEditorHandle>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const editPaneRef = useRef<HTMLDivElement>(null);
+  const viewRef = useRef(view);
+  viewRef.current = view;
+  const [splitBtnLeft, setSplitBtnLeft] = useState(0);
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      if (viewRef.current !== "split" || !toolbarRef.current || !editPaneRef.current) return;
+      const divideX = editPaneRef.current.getBoundingClientRect().right;
+      const toolbarX = toolbarRef.current.getBoundingClientRect().left;
+      setSplitBtnLeft(divideX - toolbarX - 99);
+    };
+    measure();
+    const obs = new ResizeObserver(measure);
+    if (toolbarRef.current) obs.observe(toolbarRef.current);
+    if (editPaneRef.current) obs.observe(editPaneRef.current);
+    return () => obs.disconnect();
+  }, [view]);
 
   useImperativeHandle(ref, () => ({
     insertText(text: string) { codeEditorRef.current?.insertText(text); },
@@ -50,6 +70,22 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function Markdown
   useEffect(() => {
     savedContentRef.current = savedContent ?? content;
   }, [path]);
+
+  useEffect(() => {
+    fetch("/api/personal-dictionary")
+      .then(r => r.json())
+      .then(({ words }) => initSpellWorker(words))
+      .catch(() => initSpellWorker([]));
+  }, []);
+
+  const handleAddWord = useCallback((word: string) => {
+    addWordToWorker(word);
+    fetch("/api/personal-dictionary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ word }),
+    }).catch(() => {});
+  }, []);
 
   const handleThemeChange = (id: string) => {
     setEditorTheme(id);
@@ -80,7 +116,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function Markdown
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#222" }} onKeyDown={handleKeyDown}>
-      <div style={{ display: "flex", alignItems: "center", padding: "10px 12px", borderBottom: "1px solid #333", background: "#111", flexShrink: 0 }}>
+      <div ref={toolbarRef} style={{ display: "flex", alignItems: "center", padding: "10px 12px", borderBottom: "1px solid #333", background: "#111", flexShrink: 0, position: "relative" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1, minWidth: 0 }}>
           {renaming ? (
             <input
@@ -126,17 +162,18 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function Markdown
             </span>
           )}
         </div>
-        <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
-          {["edit", "split", "preview"].map((v) => (
-            <button key={v} onClick={() => setView(v as any)} style={{
-              padding: "4px 10px", fontSize: "13px", border: "none", cursor: "pointer", borderRadius: "3px",
-              background: view === v ? "#f90" : "#2d2d44", color: view === v ? "#fff" : "#aaa",
-            }}>
-              {v}
-            </button>
-          ))}
+        <div style={{ position: "absolute", top: 0, bottom: 0, left: splitBtnLeft, display: "flex", alignItems: "center", pointerEvents: "none" }}>
+          <div style={{ display: "flex", gap: "6px", pointerEvents: "auto" }}>
+            {["edit", "split", "preview"].map((v) => (
+              <button key={v} onClick={() => setView(v as any)} style={{
+                padding: "4px 0", width: "62px", textAlign: "center", fontSize: "13px", border: "none", cursor: "pointer", borderRadius: "3px",
+                background: view === v ? "#ff8c00" : "#2d2d44", color: view === v ? "#fff" : "#aaa",
+              }}>
+                {v}
+              </button>
+            ))}
+          </div>
         </div>
-        <div style={{ flex: 1 }} />
       </div>
 
       {(project || onApplyTemplate || onUseAsTemplate || onEditTemplate || onViewCompliance) && (
@@ -160,13 +197,13 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function Markdown
 
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
         {(view === "edit" || view === "split") && (
-          <div style={{ flex: view === "split" ? "0 0 559px" : 1, minWidth: 0, overflow: "hidden", borderRight: view === "split" ? "1px solid #333" : "none" }}>
-            <CodeEditor ref={codeEditorRef} value={content} onChange={onContentChange} language="markdown" viMode={viMode} theme={editorTheme} onSave={handleSave} onClose={onClose} />
+          <div ref={editPaneRef} style={{ flex: 1, minWidth: 0, overflow: "hidden", borderRight: view === "split" ? "1px solid #333" : "none" }}>
+            <CodeEditor ref={codeEditorRef} value={content} onChange={onContentChange} language="markdown" viMode={viMode} theme={editorTheme} onSave={handleSave} onClose={onClose} onAddWord={handleAddWord} />
           </div>
         )}
         {(view === "preview" || view === "split") && (
           <div style={{
-            flex: view === "split" ? "0 0 559px" : 1, minWidth: 0, overflowY: "auto", padding: "1.5rem 2rem",
+            flex: 1, minWidth: 0, overflowY: "auto", padding: "1.5rem 2rem",
             background: "#fafafa", color: "#1a1a1a", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
             lineHeight: "1.7",
           }}>

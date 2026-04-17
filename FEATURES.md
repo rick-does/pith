@@ -40,22 +40,7 @@ Implementation details for shipped and planned features. Not auto-loaded — rea
 - **Image management:** `images/` dir sibling to `markdowns/`; endpoints: list/serve/upload/delete/open-folder; ImageBrowser: thumbnail grid, upload, delete-with-confirm, insert at cursor; insertion path is depth-aware: `'../'.repeat(depth + 1)`; forwardRef chain: App → MarkdownEditor → CodeEditor
 - **Multi-tab editor:** vertical tab strip on left edge; alternating blue (`#e8f4fd`/`#1a6fa8`) and orange (`#fff3e0`/`#ff8c00`); active tab: inset 5px box-shadow + 3px leftward growth; unsaved-changes circle at tab bottom; close icon at tab top; `writing-mode: vertical-rl` + `rotate(180deg)` reads bottom-to-top; tabs persist to localStorage per-project with `tabsRestoredRef` guard; `«`/`»` toggle buttons; `no-cache` on `index.html` response so browser refresh picks up Vite rebuilds
 - **Editor themes:** Themes button in sub-bar; dark: One Dark, Monokai, Andromeda, Gruvbox Dark, Xcode Dark; light: Xcode Light, Solarized Light; via `@uiw/codemirror-theme-*`; `@babel/runtime` required as peer dep; theme state in `MarkdownEditor`, menu state in `FmBar`
-- **Spell check (native):** `EditorView.contentAttributes.of({ spellcheck: "true" })` in `CodeEditor.tsx`, markdown mode only
-
----
-
-## Spell Check — Next Step
-
-Native browser spell check is live. Downside: markdown-unaware — flags code spans, URLs, frontmatter, heading markers.
-
-Right long-term solution: DIY lezer-tree spell checker (~200–300 lines):
-- Walk CodeMirror markdown syntax tree (`@lezer/markdown`), collect only prose text nodes
-- Skip: `FencedCode`, `InlineCode`, `CodeBlock`, `Link`, `URL`, `Image`, `HTMLBlock`, YAML frontmatter
-- Check words against `nspell` + Hunspell `.dic`/`.aff` (~2MB for en-US) in a Web Worker
-- Emit `@codemirror/lint` `Diagnostic` objects with correct `from`/`to` positions
-- Debounce re-checks; ideally only re-check changed syntax tree nodes
-
-No maintained CM6 spell check npm package as of 2026-04. CM6 maintainer's own recommendation is this DIY approach.
+- **Spell check (lezer/nspell):** `spellcheck.ts` + `spellcheck.worker.ts`; Web Worker loads `nspell` + Hunspell en-US dictionaries from `frontend/public/dictionaries/`; `spellcheckExtension()` walks the lezer syntax tree via `syntaxTree()` to collect only prose text, skipping frontmatter, `FencedCode`, `InlineCode`, `CodeBlock`, `HTMLBlock`, `URL`, marks, and other non-prose nodes; emits `@codemirror/lint` Diagnostic hints with "Add to dictionary" action; 750ms debounce; personal word list persisted to `~/.pith/personal.dic` via `GET /POST /api/personal-dictionary`; markdown mode only
 
 ---
 

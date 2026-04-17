@@ -49,7 +49,7 @@ interface EditorTab {
 
 const TAB_STYLES = [
   { bg: "#e8f4fd", text: "#555", border: "#1a6fa8", indicator: "#ff8c00" },
-  { bg: "#fff3e0", text: "#555", border: "#ff8c00", indicator: "#1a6fa8" },
+  { bg: "#fff3e0", text: "#555", border: "#ff8c00", indicator: "#ff8c00" },
 ];
 
 function getTitleForPath(path: string, col: CollectionStructure, orph: FileInfo[]): string {
@@ -287,9 +287,11 @@ export default function App() {
 
   useEffect(() => {
     if (loading || !currentProject) return;
+    let hadStoredTabs = false;
     try {
       const stored = localStorage.getItem(TABS_KEY(currentProject));
       if (stored) {
+        hadStoredTabs = true;
         const parsedTabs: EditorTab[] = JSON.parse(stored);
         if (parsedTabs.length > 0) {
           const storedActiveId = localStorage.getItem(ACTIVE_TAB_KEY(currentProject));
@@ -308,8 +310,10 @@ export default function App() {
       }
     } catch {}
     tabsRestoredRef.current = true;
-    const savedPath = localStorage.getItem(LAST_FILE_KEY);
-    if (savedPath) handleSelect(savedPath).catch(() => localStorage.removeItem(LAST_FILE_KEY));
+    if (!hadStoredTabs) {
+      const savedPath = localStorage.getItem(LAST_FILE_KEY);
+      if (savedPath) handleSelect(savedPath).catch(() => localStorage.removeItem(LAST_FILE_KEY));
+    }
   }, [loading]);
 
   useEffect(() => {

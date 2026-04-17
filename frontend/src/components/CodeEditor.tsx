@@ -1,6 +1,8 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { EditorState, Extension } from "@codemirror/state";
 import { EditorView, ViewUpdate, keymap, lineNumbers, highlightActiveLine } from "@codemirror/view";
+import { lintGutter } from "@codemirror/lint";
+import { spellcheckExtension } from "../spellcheck";
 import { defaultKeymap, historyKeymap, history } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
 import { yaml } from "@codemirror/lang-yaml";
@@ -79,9 +81,10 @@ interface Props {
   readOnly?: boolean;
   onSave?: () => Promise<void> | void;
   onClose?: () => void;
+  onAddWord?: (word: string) => void;
 }
 
-const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEditor({ value, onChange, language = "markdown", viMode = true, theme = "one-dark", readOnly = false, onSave, onClose }, ref) {
+const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEditor({ value, onChange, language = "markdown", viMode = true, theme = "one-dark", readOnly = false, onSave, onClose, onAddWord }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
@@ -90,6 +93,8 @@ const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEditor({ val
   onSaveRef.current = onSave;
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const onAddWordRef = useRef(onAddWord);
+  onAddWordRef.current = onAddWord;
 
   useImperativeHandle(ref, () => ({
     insertText(text: string) {
@@ -118,6 +123,7 @@ const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEditor({ val
       EditorView.theme({
         "&": { height: "100%", fontSize: "14px" },
         ".cm-scroller": { overflow: "auto", fontFamily: "'JetBrains Mono', 'Fira Code', monospace" },
+        ".cm-lintRange-hint": { borderBottom: "2px dotted #e06c75", paddingBottom: "1px" },
       }),
     ];
 
@@ -129,7 +135,8 @@ const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEditor({ val
     extensions.push(themeExtension(theme));
     if (language === "markdown") {
       extensions.push(markdown());
-      extensions.push(EditorView.contentAttributes.of({ spellcheck: "true" }));
+      extensions.push(lintGutter());
+      extensions.push(spellcheckExtension((word) => onAddWordRef.current?.(word)));
     } else extensions.push(yaml());
     if (readOnly) extensions.push(EditorState.readOnly.of(true));
 

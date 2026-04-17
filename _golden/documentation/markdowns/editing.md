@@ -150,6 +150,18 @@ Double-click the filename in the editor toolbar to rename the file inline. The f
 
 Click the **✕** button in the top right corner of the editor panel to close the entire panel. To close a single file without closing the panel, click the close icon at the top of its tab in the vertical strip. See [Keyboard Shortcuts](keyboard-shortcuts.md) for all editor keys.
 
+## Spell check
+
+The editor checks your prose for spelling as you type. Misspelled words are underlined with a hint indicator in the gutter.
+
+Spell check skips code blocks, inline code, URLs, frontmatter, and markdown syntax marks — only regular prose text is checked.
+
+The checker uses the standard en-US Hunspell dictionary, so technical terms, compound words, acronyms (e.g. GFM, LTS), and proper nouns (e.g. names of people or products) will be flagged even when spelled correctly. Add them to your personal dictionary once and they will never be flagged again.
+
+To add a word to your personal dictionary, hover over the underlined word and click **Add to dictionary** in the tooltip. Words you add are saved immediately and persist across sessions and projects.
+
+Your personal word list is stored at `~/.pith/personal.dic` (one word per line). You can edit this file directly to add or remove words in bulk, or copy it to another machine to carry your custom vocabulary with you.
+
 ## Mermaid diagrams
 
 The preview pane renders Mermaid diagram code blocks as actual diagrams. Use a fenced code block with `mermaid` as the language:

@@ -33,7 +33,7 @@ No hosted backend. Runs entirely on the user's machine.
 
 ## GUI Features (shipped)
 
-Drag-and-drop hierarchy editor · live markdown preview · CodeMirror editor (vi mode, split/edit/preview) · project management · orphan file management · keyboard navigation · alt+click tooltips · full-text search · unified project template (`template.md`): "Use as template" copies editor content directly to `template.md`; apply has three independently toggleable options: update frontmatter (adds missing keys, optionally removes extras, never overwrites values), append template body minus h1 with separator; compliance scan flags missing/extra FM keys and missing headings, filtered by active options; apply prefs persisted to `~/.pith/config.json` · template compliance scan + batch apply · chip status indicators (green/yellow/red) · internal link validation · filesystem polling · import/export (MkDocs, Docusaurus) · HTML/PDF export · Mermaid rendering · multi-tab editor pane · editor color themes · stats/issues/structure panels · Scan Project report · image management · multiple project roots · spell check (native browser) · vi `:w`/`:x` bindings · settings (localStorage) · pywebview-safe throughout · PyInstaller standalone builds · bundled documentation project
+Drag-and-drop hierarchy editor · live markdown preview · CodeMirror editor (vi mode, split/edit/preview) · project management · orphan file management · keyboard navigation · alt+click tooltips · full-text search · unified project template (`template.md`): "Use as template" copies editor content directly to `template.md`; apply has three independently toggleable options: update frontmatter (adds missing keys, optionally removes extras, never overwrites values), append template body minus h1 with separator; compliance scan flags missing/extra FM keys and missing headings, filtered by active options; apply prefs persisted to `~/.pith/config.json` · template compliance scan + batch apply · chip status indicators (green/yellow/red) · internal link validation · filesystem polling · import/export (MkDocs, Docusaurus) · HTML/PDF export · Mermaid rendering · multi-tab editor pane · editor color themes · stats/issues/structure panels · Scan Project report · image management · multiple project roots · spell check (lezer/nspell, personal dictionary) · vi `:w`/`:x` bindings · settings (localStorage) · pywebview-safe throughout · PyInstaller standalone builds · bundled documentation project
 
 See `FEATURES.md` for implementation details on any of the above.
 
@@ -43,7 +43,6 @@ See `FEATURES.md` for implementation details on any of the above.
 - Backend overwrites runtime copy from golden on first launch and Restore Docs (unconditional)
 
 **Open items:**
-- Spell check: native browser spell check is live but markdown-unaware. DIY lezer-tree checker is the right next step — see `FEATURES.md` for the full plan.
 - Tab alignment: minor glyph offset in vertical tabs; `translateX(-2px)` compensator in place, may need tuning.
 
 **Analysis (pith only, no pith-cli dependency):** Uses `textstat` + `markdown-it-py`. No spaCy anywhere in pith.
