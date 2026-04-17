@@ -110,4 +110,4 @@ This option only appears when the Documentation project is selected. Other proje
 Click **⋮ → Settings** on the project chip. Available options:
 
 - **Labels** — toggle between showing file titles or filenames on chips. This preference persists across sessions.
-- **Status indicators** — show or hide the link validation and frontmatter compliance dots on chips. This preference persists across sessions.
+- **Status indicators** — show or hide the status indicator on each chip (link validation, frontmatter compliance, and file template compliance). This preference persists across sessions.

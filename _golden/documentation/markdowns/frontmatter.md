@@ -62,10 +62,9 @@ Click **Update** to apply changes to the selected files. Key order follows the t
 
 ## Status indicators
 
-File chips in the hierarchy show a small dot for frontmatter status:
+Frontmatter compliance is one of three checks reflected in the status indicator on each file chip. If a file's frontmatter is non-compliant, the chip shows a yellow ⚠. Hover the indicator to see a popup with three rows — **Frontmatter**, **Template**, and **Links** — each showing a green circle (passing) or warning icon (failing).
 
-- **Pale green outline** — frontmatter matches the template (or no template is defined)
-- **Yellow filled dot** — frontmatter has missing or extra keys relative to the template
+A red ⚠ on the chip means the file has broken links, which takes priority over the yellow frontmatter warning. See [Link Validation](link-validation.md) for details on the full indicator scheme.
 
 ## New files
 

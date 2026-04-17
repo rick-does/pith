@@ -4,16 +4,17 @@ PiTH can detect broken internal links across all files in a project. An internal
 
 ## Status indicators on chips
 
-Every file chip in the hierarchy shows two stacked status dots to the left of the three-dot menu. The top dot shows link status; the bottom dot shows frontmatter status:
+Every file chip in the hierarchy shows a single status indicator to the left of the three-dot menu:
 
-| Dot | Green outline | Filled color |
-|-----|--------------|--------------|
-| Top (links) | No broken links | Red — one or more broken links |
-| Bottom (frontmatter) | Matches template (or no template defined) | Yellow — missing or extra frontmatter keys |
+| Indicator | Meaning |
+|-----------|---------|
+| Green circle | All checks pass — no broken links, frontmatter compliant, file template compliant |
+| Yellow ⚠ | Style issue — frontmatter or file template is non-compliant (no broken links) |
+| Red ⚠ | Broken links found (takes priority over yellow) |
 
-Hover over a dot to see details.
+Hover over the indicator to see a popup with three rows — **Frontmatter**, **Template**, and **Links** — each showing its own green circle or warning icon. This lets you see at a glance which checks are passing and which are not.
 
-In the Unlinked pane, indicators appear when you hover over a chip, select it, or hover over the **eye icon** on the Unlinked header to reveal all at once.
+In the Unlinked pane, the indicator appears when you hover over a chip, select it, or hover over the **eye icon** on the Unlinked header to reveal all at once.
 
 ## Validating links
 
@@ -31,10 +32,10 @@ When you open a file that has broken links:
 Edit the file to correct or remove the broken links, then save (`Ctrl+S`). PiTH re-validates the file on save and immediately updates:
 
 - The broken link panel in the editor
-- The status dot on the file's hierarchy chip
+- The status indicator on the file's chip
 
-The red dot disappears as soon as all links in the file are valid.
+The indicator turns green as soon as all links in the file are valid.
 
 ## Turning off indicators
 
-If you prefer a cleaner look, click **⋮** on the project chip, then **Settings → Hide status indicators**. This hides all status dots from hierarchy and unlinked chips, and removes the eye icon from the Unlinked header. The setting persists across sessions.
+If you prefer a cleaner look, click **⋮** on the project chip, then **Settings → Hide status indicators**. This hides all status indicators from hierarchy and unlinked chips, and removes the eye icon from the Unlinked header. The setting persists across sessions.
