@@ -105,6 +105,9 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
   const [indicatorOpen, setIndicatorOpen] = useState(false);
   const [indicatorPos, setIndicatorPos] = useState<{ bottom: number; centerX: number } | null>(null);
   const indicatorButtonRef = useRef<HTMLSpanElement>(null);
+  const indicatorHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleHide = () => { indicatorHideTimer.current = setTimeout(() => setIndicatorOpen(false), 150); };
+  const cancelHide = () => { if (indicatorHideTimer.current) { clearTimeout(indicatorHideTimer.current); indicatorHideTimer.current = null; } };
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -216,8 +219,8 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
               {showIndicators && (
                 <span
                   ref={indicatorButtonRef}
-                  onMouseEnter={() => { if (indicatorButtonRef.current) { const r = indicatorButtonRef.current.getBoundingClientRect(); setIndicatorPos({ bottom: window.innerHeight - r.top + 8, centerX: r.left + r.width / 2 }); setIndicatorOpen(true); } }}
-                  onMouseLeave={() => setIndicatorOpen(false)}
+                  onMouseEnter={() => { cancelHide(); if (indicatorButtonRef.current) { const r = indicatorButtonRef.current.getBoundingClientRect(); setIndicatorPos({ bottom: window.innerHeight - r.top + 8, centerX: r.left + r.width / 2 }); setIndicatorOpen(true); } }}
+                  onMouseLeave={scheduleHide}
                   style={{ position: "absolute", right: "31px", top: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center", width: "14px", cursor: "pointer" }}
                 >
                   {indicatorLevel === "green"
@@ -225,16 +228,16 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
                     : <span style={{ fontSize: "13px", lineHeight: 1, fontWeight: "bold", color: indicatorLevel === "red" ? "#c00" : "#cc8800", userSelect: "none" }}>&#9888;</span>
                   }
                   {indicatorOpen && indicatorPos && (
-                    <div style={{ position: "fixed", bottom: indicatorPos.bottom, left: indicatorPos.centerX, transform: "translateX(-50%)", zIndex: 1000, background: "#fff", border: "1px solid #d0e8f7", borderRadius: "8px", boxShadow: "0 4px 16px rgba(0,0,0,0.12)", padding: "6px 10px", minWidth: "170px" }}>
+                    <div onMouseEnter={cancelHide} onMouseLeave={scheduleHide} style={{ position: "fixed", bottom: indicatorPos.bottom, left: indicatorPos.centerX, transform: "translateX(-50%)", zIndex: 1000, background: "#fff", border: "1px solid #d0e8f7", borderRadius: "8px", boxShadow: "0 4px 16px rgba(0,0,0,0.12)", padding: "6px 10px", minWidth: "170px" }}>
                       <div style={{ position: "absolute", bottom: -9, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "9px solid transparent", borderRight: "9px solid transparent", borderTop: "9px solid #d0e8f7" }} />
                       <div style={{ position: "absolute", bottom: -8, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderTop: "8px solid #fff" }} />
                       <div title={hasFmIssue ? "Frontmatter is non-compliant" : "Frontmatter OK"} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "3px 0" }}>
                         {hasFmIssue ? <span style={{ fontSize: "13px", lineHeight: 1, fontWeight: "bold", color: "#cc8800", userSelect: "none" }}>&#9888;</span> : <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#3a7d44", flexShrink: 0 }} />}
                         <span style={{ fontSize: "12px", color: "#555" }}>Frontmatter</span>
                       </div>
-                      <div title={hasTmplIssue ? "Template is non-compliant" : "Template OK"} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "3px 0" }}>
+                      <div title={hasTmplIssue ? "Structure is non-compliant" : "Structure OK"} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "3px 0" }}>
                         {hasTmplIssue ? <span style={{ fontSize: "13px", lineHeight: 1, fontWeight: "bold", color: "#cc8800", userSelect: "none" }}>&#9888;</span> : <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#3a7d44", flexShrink: 0 }} />}
-                        <span style={{ fontSize: "12px", color: "#555" }}>Template</span>
+                        <span style={{ fontSize: "12px", color: "#555" }}>Structure</span>
                       </div>
                       <div title={brokenCount > 0 ? `${brokenCount} broken link${brokenCount !== 1 ? "s" : ""}` : "Links OK"} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "3px 0" }}>
                         {brokenCount > 0 ? <span style={{ fontSize: "13px", lineHeight: 1, fontWeight: "bold", color: "#c00", userSelect: "none" }}>&#9888;</span> : <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#3a7d44", flexShrink: 0 }} />}
