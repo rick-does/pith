@@ -212,6 +212,7 @@ export default function App() {
   }, [overlayType, handleCloseOverlay]);
 
   const lastFileCountRef = useRef<number>(-1);
+  const collectionLoadingRef = useRef(false);
 
   const refreshBrokenLinks = useCallback(async (project: string) => {
     try {
@@ -308,7 +309,9 @@ export default function App() {
           return;
         }
       }
-    } catch {}
+    } catch (e) {
+      console.warn("Failed to restore tabs from localStorage:", e);
+    }
     tabsRestoredRef.current = true;
     if (!hadStoredTabs) {
       const savedPath = localStorage.getItem(LAST_FILE_KEY);
@@ -326,7 +329,10 @@ export default function App() {
         const { count } = await r.json();
         if (lastFileCountRef.current >= 0 && count !== lastFileCountRef.current) {
           lastFileCountRef.current = count;
-          loadCollection(currentProject);
+          if (!collectionLoadingRef.current) {
+            collectionLoadingRef.current = true;
+            loadCollection(currentProject).finally(() => { collectionLoadingRef.current = false; });
+          }
         } else {
           lastFileCountRef.current = count;
         }
@@ -420,8 +426,8 @@ export default function App() {
     try {
       const y = await fetchCollectionYaml(currentProject);
       setYamlContent(y);
+      setOverlayType("yaml");
     } catch {}
-    setOverlayType("yaml");
   }, [currentProject]);
 
   const handleOpenProjectMd = useCallback(async () => {
@@ -429,8 +435,8 @@ export default function App() {
     try {
       const text = await fetchProjectMd(currentProject);
       setProjectMdContent(text);
+      setOverlayType("project-md");
     } catch {}
-    setOverlayType("project-md");
   }, [currentProject]);
 
   const handleYamlSaved = useCallback(() => {

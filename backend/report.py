@@ -27,15 +27,15 @@ def generate_report_html(project: str) -> str:
 
         try:
             stats = compute_stats(fp)
-        except Exception:
+        except (OSError, ValueError, AttributeError):
             stats = None
         try:
             issues = compute_issues(fp)
-        except Exception:
+        except (OSError, ValueError, AttributeError):
             issues = None
         try:
             structure = compute_structure(fp)
-        except Exception:
+        except (OSError, ValueError, AttributeError):
             structure = None
 
         file_id = rel.replace("/", "-").replace("\\", "-").replace(".", "-")

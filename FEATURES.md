@@ -27,7 +27,7 @@ Implementation details for shipped and planned features. Not auto-loaded — rea
 - **Copy to sub-page:** duplicates parent content as child file with "-copy" title
 - **New files/sub-pages:** added at bottom of list, not top
 - **PyInstaller standalone:** Win/Mac/Linux; pywebview-safe (no `window.open`; overlays/downloads instead)
-- **Bundled docs:** 11 pages; `_golden/` is source of truth; runtime copy in `projects/documentation/` is disposable
+- **Bundled docs:** 12 pages; `_golden/` is source of truth; runtime copy in `projects/documentation/` is disposable
 - **Project menu structure:** Projects (New project, New Project from Markdowns, list+archive) · File (New file, Add File from Markdown, Project info) · View YAML · Flatten/Restore hierarchy · Template (View template, Compliance) · Validate links · View HTML/PDF · Scan Project · Restore Docs · Import from... · Export to... · Images (Browse/Insert, Add images, Open folder) · Settings
 - **Stats panel:** word count, sentence count, paragraph count, avg sentence length, 5 readability scores (Flesch, FK Grade, Gunning Fog, ARI, Coleman-Liau); collapsible, on-demand
 - **Scan Project:** stats+issues+structure on every file; HTML report in overlay with Save as HTML + Print/Save as PDF; endpoint `GET /api/projects/{project}/report/html` (`backend/report.py`)
@@ -46,7 +46,7 @@ Implementation details for shipped and planned features. Not auto-loaded — rea
 
 ## Analysis Architecture
 
-pith does NOT depend on pith-cli. Analysis uses `textstat` + `markdown-it-py` (both PyInstaller-friendly). No spaCy, no subprocess calls, no shared dep.
+pith does NOT depend on pith-cli. Analysis uses `textstat` + `markdown` (both PyInstaller-friendly). No spaCy, no subprocess calls, no shared dep.
 
 | Feature | Location | Status |
 |---|---|---|

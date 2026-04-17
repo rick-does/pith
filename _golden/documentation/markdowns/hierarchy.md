@@ -4,7 +4,7 @@ The hierarchy pane shows your files as a tree. Files can be nested to any depth.
 
 ## Adding a file
 
-Click **⋮** on the project chip, then **File → New file**. The file is created in `markdowns/` and added to the bottom of the hierarchy. If the project has a file template set, the new file is pre-populated from it — see [Template](editing.md#template).
+Click **⋮** on the project chip, then **File → New file**. The file is created in `markdowns/` and added to the bottom of the hierarchy. To create a new file in the [Unlinked pane](unlinked-files.md) instead, use **⋮** on the Unlinked chip. If the project has a file template set, the new file is pre-populated from it — see [Template](editing.md#template).
 
 To add a child of an existing file, click **⋮** on that file chip and choose **New sub-page**. The child is added at the bottom of the parent's children and is also pre-populated from the file template if one is set.
 

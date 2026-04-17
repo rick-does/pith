@@ -434,7 +434,7 @@ async def api_browse_start_dir(project: str = ""):
             p = get_markdowns_dir(project).parent
             if p.exists():
                 return {"path": str(p)}
-        except Exception:
+        except (OSError, ValueError):
             pass
     return {"path": str(_Path.home())}
 
@@ -532,7 +532,7 @@ async def api_search(project: str, q: str = ""):
     for fp, rel in iter_md_files(md_dir):
         try:
             content = fp.read_text(encoding="utf-8")
-        except Exception:
+        except (OSError, UnicodeDecodeError):
             continue
         lines = content.split("\n")
         matches = []
@@ -600,7 +600,7 @@ async def api_apply_template(project: str, file_path: str, request: Request):
         remove_extra = bool(data.get("remove_extra", False))
         apply_fm = bool(data.get("apply_fm", True))
         append_body = bool(data.get("append_body", True))
-    except Exception:
+    except (ValueError, KeyError):
         remove_extra = False
         apply_fm = True
         append_body = True
@@ -629,7 +629,7 @@ async def api_template_from_file(project: str, file_path: str, request: Request)
     try:
         data = await request.json()
         content = data.get("content") if isinstance(data, dict) else None
-    except Exception:
+    except ValueError:
         content = None
     if content is None:
         fp = safe_path(project, file_path)
@@ -797,7 +797,9 @@ async def api_list_images(project: str):
 async def api_get_image(project: str, filename: str):
     images_dir = get_images_dir(project).resolve()
     target = (images_dir / filename).resolve()
-    if not str(target).startswith(str(images_dir)):
+    try:
+        target.relative_to(images_dir)
+    except ValueError:
         raise HTTPException(400, "Invalid path")
     if not target.exists():
         raise HTTPException(404, "Image not found")
@@ -822,7 +824,9 @@ async def api_upload_images(project: str, files: list[UploadFile] = File(...)):
 async def api_delete_image(project: str, filename: str):
     images_dir = get_images_dir(project).resolve()
     target = (images_dir / filename).resolve()
-    if not str(target).startswith(str(images_dir)):
+    try:
+        target.relative_to(images_dir)
+    except ValueError:
         raise HTTPException(400, "Invalid path")
     if not target.exists():
         raise HTTPException(404, "Image not found")

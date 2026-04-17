@@ -69,7 +69,9 @@ def export_mkdocs(project: str, nodes: list[FileNode]) -> str:
     return str(dest)
 
 
-def _docusaurus_to_nodes(items: list, order_start: int = 0) -> list[FileNode]:
+def _docusaurus_to_nodes(items: list, order_start: int = 0, _depth: int = 0) -> list[FileNode]:
+    if _depth > 20:
+        return []
     nodes = []
     for i, item in enumerate(items):
         if isinstance(item, str):
@@ -80,7 +82,7 @@ def _docusaurus_to_nodes(items: list, order_start: int = 0) -> list[FileNode]:
             item_type = item.get("type", "doc")
             if item_type == "category":
                 label = item.get("label", "Untitled")
-                children = _docusaurus_to_nodes(item.get("items", []))
+                children = _docusaurus_to_nodes(item.get("items", []), _depth=_depth + 1)
                 link = item.get("link", {})
                 if link.get("type") == "doc":
                     doc_id = link.get("id", "")
@@ -128,7 +130,7 @@ def import_docusaurus(project: str, filename: str | None = None) -> list[FileNod
 
     data = json.loads(json_str)
     all_nodes = []
-    for _key, items in data.items():
+    for items in data.values():
         if isinstance(items, list):
             all_nodes.extend(_docusaurus_to_nodes(items))
     return all_nodes

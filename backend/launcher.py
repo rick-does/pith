@@ -62,7 +62,7 @@ def _kill_existing(port: int) -> None:
                                        capture_output=True, timeout=5)
                 except ValueError:
                     pass
-    except Exception:
+    except (OSError, ValueError, subprocess.TimeoutExpired):
         pass
 
 

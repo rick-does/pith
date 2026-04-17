@@ -41,7 +41,7 @@ Click **⋮** on the project chip and choose **Template → View template** or *
 
 ### Editing the template directly
 
-The template is a plain markdown file. Open it via **View template** and edit it directly. Save to update the project template. The frontmatter keys and h2+ headings you define become the compliance requirements for all project files. Any body content below the h1 heading can be optionally appended to files when applying.
+The template is a plain markdown file. Open it via **View template** and edit it directly. Save to update the project template. The frontmatter keys you define become the compliance requirements for all project files. The h2+ headings you define are checked for compliance only when **Append template body** is on. Any body content below the h1 heading can be optionally appended to files when applying.
 
 ## Applying the template
 
@@ -71,6 +71,6 @@ The **View template** button (bottom-left of the dialog) closes the compliance d
 
 ## Status indicators
 
-Template compliance is reflected in the status indicator on each file chip. If a file is out of compliance, the chip shows a yellow ⚠. Hover the indicator to see a popup with the compliance details and link check results.
+Template compliance is reflected in the status indicator on each file chip. If a file is out of compliance, the chip shows a yellow ⚠. Hover the indicator to see a popup with three rows — **Frontmatter**, **Structure**, and **Links** — each showing its own status. Frontmatter checks key compliance; Structure checks required headings from the template.
 
 A red ⚠ on the chip means the file has broken links, which takes priority over the yellow compliance warning. See [Link Validation](link-validation.md) for details.

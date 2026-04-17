@@ -24,7 +24,7 @@ mkdocs.yml        MkDocs Material config for GitHub Pages
 - **Frontend:** React/TypeScript — visual hierarchy editor, live markdown preview
 - **Backend:** FastAPI — file I/O, project management, analysis endpoints
 - **Desktop:** pywebview — packages frontend + backend as a local desktop app
-- **CLI:** pith-cli (`pth` command) — pulled in as a dependency; lives in rick-does/pith-cli, not this repo
+- **CLI:** pith-cli (`pth` command) — separate repo (rick-does/pith-cli), not a dependency of pith
 - **Distribution:** pip-installable + standalone executable (PyInstaller, Win/Mac/Linux)
 
 No hosted backend. Runs entirely on the user's machine.
@@ -45,7 +45,7 @@ See `FEATURES.md` for implementation details on any of the above.
 **Open items:**
 - Tab alignment: minor glyph offset in vertical tabs; `translateX(-2px)` compensator in place, may need tuning.
 
-**Analysis (pith only, no pith-cli dependency):** Uses `textstat` + `markdown-it-py`. No spaCy anywhere in pith.
+**Analysis (pith only, no pith-cli dependency):** Uses `textstat` + `markdown`. No spaCy anywhere in pith.
 
 ---
 

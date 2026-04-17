@@ -51,8 +51,8 @@ Below the editor toolbar is a bar with the following tabs: **Template**, **Stats
 
 The **Template** tab shows action buttons for working with the project template:
 
-- **Apply template** — applies the template to this file using the currently configured options
-- **Use as template** — copies this file's full content to `template.md`, replacing the previous template
+- **Apply template** — applies the template to this file using the currently configured options (configure them in **View template** or the compliance dialog — see [Frontmatter and Templates](frontmatter.md))
+- **Use as template** — saves this file's current content as `template.md`, replacing the previous template. The content is saved verbatim, including any specific frontmatter values. If you want placeholder values in the template (e.g. `Title:` with no value), edit the template directly via **View template** instead
 - **View template** — opens the project template in an editor modal, where you can edit the template, configure apply options, and click **Apply to open file** to apply directly to the file you have open
 - **View compliance** — opens the compliance report showing which files are out of compliance given the current apply options
 
@@ -180,4 +180,4 @@ If the syntax is invalid, the preview shows an error message instead of the diag
 
 ## Project notes
 
-The project notes file can also be opened for editing via **⋮ → File → Project info** on the project chip. This file does not appear in the hierarchy and cannot be renamed.
+The project notes file can also be opened for editing via **⋮ → Project info** on the project chip. This file does not appear in the hierarchy and cannot be renamed.

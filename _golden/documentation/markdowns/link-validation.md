@@ -38,4 +38,4 @@ The indicator turns green as soon as all links in the file are valid.
 
 ## Turning off indicators
 
-If you prefer a cleaner look, click **⋮** on the project chip, then **Settings → Hide status indicators**. This hides all status indicators from hierarchy and unlinked chips, and removes the eye icon from the Unlinked header. The setting persists across sessions.
+If you prefer a cleaner look, click **⋮** on the project chip, then **Settings → Hide/Show status indicators**. This toggles all status indicators on hierarchy and unlinked chips, and the eye icon on the Unlinked header. The setting persists across sessions.

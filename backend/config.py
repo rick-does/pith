@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 CONFIG_DIR = Path.home() / ".pith"
 CONFIG_FILE = CONFIG_DIR / "config.json"
@@ -47,7 +50,8 @@ def load_config() -> dict:
     try:
         with open(CONFIG_FILE, "r", encoding="utf-8") as f:
             cfg = json.load(f)
-    except Exception:
+    except (json.JSONDecodeError, OSError) as e:
+        logger.warning("config load failed, resetting to defaults: %s", e)
         cfg = _default_config()
         save_config(cfg)
         return cfg

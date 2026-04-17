@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import time
@@ -8,6 +9,8 @@ import shutil
 from pathlib import Path
 
 import yaml
+
+logger = logging.getLogger(__name__)
 
 from .models import FileNode, CollectionStructure
 from .config import get_active_projects_dir
@@ -42,7 +45,9 @@ def get_hierarchy_backup_file(project: str) -> Path:
 def safe_path(project: str, rel_path: str) -> Path:
     base = get_markdowns_dir(project).resolve()
     target = (base / rel_path).resolve()
-    if not str(target).startswith(str(base)):
+    try:
+        target.relative_to(base)
+    except ValueError:
         raise ValueError("Path traversal detected")
     return target
 
@@ -479,8 +484,8 @@ def batch_apply_unified_template(project: str, files: list[str], remove_extra: b
             apply_unified_template(project, rel_path, remove_extra=remove_extra,
                                    apply_fm=apply_fm, append_body=append_body)
             updated.append(rel_path)
-        except Exception:
-            pass
+        except (OSError, ValueError) as e:
+            logger.warning("batch apply failed for %s: %s", rel_path, e)
     return updated
 
 
@@ -514,7 +519,7 @@ def parse_frontmatter(content: str) -> tuple[dict, str]:
             return {}, content
         body = "\n".join(lines[end_idx + 1:])
         return meta, body
-    except Exception:
+    except yaml.YAMLError:
         return {}, content
 
 

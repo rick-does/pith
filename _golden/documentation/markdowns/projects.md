@@ -80,7 +80,7 @@ Double-click the project chip to open the project notes editor. Double-click the
 
 ## Project notes
 
-Each project has a notes file for a description or anything else you want to keep alongside the files. Open it with **⋮ → File → Project info**, or double-click the project chip.
+Each project has a notes file for a description or anything else you want to keep alongside the files. Open it with **⋮ → Project info**, or double-click the project chip.
 
 ## Archiving a project
 
@@ -110,4 +110,4 @@ This option only appears when the Documentation project is selected. Other proje
 Click **⋮ → Settings** on the project chip. Available options:
 
 - **Labels** — toggle between showing file titles or filenames on chips. This preference persists across sessions.
-- **Status indicators** — show or hide the status indicator on each chip (link validation, frontmatter compliance, and file template compliance). This preference persists across sessions.
+- **Hide/Show status indicators** — toggles the status indicator on each chip (link validation, frontmatter compliance, and file template compliance). This preference persists across sessions.
