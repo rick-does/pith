@@ -45,7 +45,7 @@ Vi-specific save commands:
 
 ## Editor tab bar
 
-Below the editor toolbar is a bar with the following tabs: **Frontmatter**, **Template**, **Stats**, **Issues**, and **Structure**, and on the right side an **Images** button and a **Scan Project** button. Click any tab header to expand it; clicking an open tab collapses it. Only one tab can be open at a time. The Stats, Issues, and Structure panels open as floating overlays so they don't push the editor down.
+Below the editor toolbar is a bar with the following tabs: **Frontmatter**, **Template**, **Stats**, **Issues**, and **Structure**, and on the right side a **Themes** button, an **Images** button, and a **Scan Project** button. Click any tab header to expand it; clicking an open tab collapses it. Only one tab can be open at a time. The Stats, Issues, and Structure panels open as floating overlays so they don't push the editor down.
 
 ## Frontmatter
 
@@ -105,6 +105,15 @@ See [Issues Example](scan-test.md) for a sample file that triggers every Issues 
 The **Structure** tab shows the heading skeleton of the current file — the outline with per-section word counts.
 
 Each line shows the heading level (`#`, `##`, etc.), the heading title, and the word count for that section's direct body text (not including sub-sections). Sections with no body text show a dash. The footer shows total heading count, maximum nesting depth, and total word count.
+
+## Themes
+
+The **Themes** button opens a menu of editor color themes. Select any theme to apply it immediately. Your choice persists across sessions.
+
+Available themes:
+
+- **One Dark**, **Monokai**, **Andromeda**, **Gruvbox Dark**, **Xcode Dark** — dark themes
+- **Xcode Light**, **Solarized Light** — light themes
 
 ## Images
 

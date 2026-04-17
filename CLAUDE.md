@@ -90,6 +90,8 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 - Image management: fixed `images/` dir as standard project artifact (sibling to `markdowns/`); backend endpoints for list/serve/upload/delete/open-folder; ImageBrowser dialog (thumbnail grid, upload, delete-with-confirm, insert at cursor); Images flyout in project menu (Browse/Insert, Add images, Open folder); Images button in editor sub-bar; preview pane rewrites `../images/` src paths; cursor-position insertion via forwardRef chain (App → MarkdownEditor → CodeEditor)
 - File templates for new files: per-project `file-template.md` pre-populates new markdown files with a skeleton (frontmatter, title heading, section stubs); backend endpoints load/save/delete/compliance-scan/apply; compliance scan reports files missing required headings; applying to an existing file appends missing sections; new files auto-populate from template with title heading swapped in; menu access via File Template flyout (View template, Compliance); Template tab in editor (Use as template, Apply template); FileTemplateComplianceReport shows missing headings per file with "Apply to file" action; image insertion path is depth-aware: `'../'.repeat(depth + 1)` where depth = selectedPath.split('/').length - 1
 - Multi-tab editor pane: opening files adds them as tabs (vertical tab strip on left edge of editor pane) with alternating blue (`#e8f4fd`/`#1a6fa8`) and orange (`#fff3e0`/`#ff8c00`) colors from selected file chip palette; active tab indicated by inset 5px box-shadow on left edge and 3px leftward growth (with matching paddingLeft to keep content centered); unsaved-changes circle indicator at tab bottom (opposite tab color); close icon at tab top (hidden when overlay closed); vertical text via `writing-mode: vertical-rl` + `rotate(180deg)` reads bottom-to-top; tabs persist to localStorage per-project (tabs list, active tab, overlayType) with `tabsRestoredRef` guard preventing save-before-restore; `«`/`»` toggle buttons at top edge with own `drop-shadow` (not merged with tab strip shadow); `no-cache` header on `index.html` response (backend/main.py) ensures browser refresh picks up Vite rebuilds without requiring app restart
+- Editor color themes: **Themes** button in editor sub-bar (left of Images) opens a dropdown; theme applied immediately and persisted to localStorage (`editorTheme` key); dark themes: One Dark, Monokai, Andromeda, Gruvbox Dark, Xcode Dark; light themes: Xcode Light, Solarized Light; separator between groups; implemented via `@uiw/codemirror-theme-*` packages + `EDITOR_THEMES` export from `CodeEditor.tsx`; theme state lives in `MarkdownEditor`, menu state in `FmBar`; `@babel/runtime` required as peer dep of uiw packages
+- Native browser spell check in markdown editor: `EditorView.contentAttributes.of({ spellcheck: "true" })` in `CodeEditor.tsx`, markdown mode only
 
 ### To build
 
@@ -114,6 +116,20 @@ All per-file analysis panels (Stats, Issues, Structure) are live in the editor t
 
 **Lower priority / open:**
 - Tab alignment refinements: small horizontal offset between the text glyph center and the circle/close-icon axis in vertical tabs (writing-mode: vertical-rl draws Latin glyphs with baseline near one side of the line-box; a `translateX(-2px)` compensator is in place but may need tuning per font/zoom)
+
+**Spell check — current state and next step:**
+
+Browser native spell check is live: `EditorView.contentAttributes.of({ spellcheck: "true" })` in `CodeEditor.tsx`, markdown mode only. Zero deps, one line. Downside: markdown-unaware — flags code spans, URLs, frontmatter, heading markers as misspellings.
+
+The right long-term solution is a DIY lezer-tree spell checker:
+- Walk the CodeMirror markdown syntax tree (`@lezer/markdown`) and collect only prose text nodes
+- Skip: `FencedCode`, `InlineCode`, `CodeBlock`, `Link`, `URL`, `Image`, `HTMLBlock`, YAML frontmatter
+- Split text ranges into words, check each against a dictionary (`nspell` + Hunspell `.dic`/`.aff` files, ~2MB for en-US)
+- Load dictionary and run checks in a Web Worker (avoid blocking UI thread)
+- Emit `@codemirror/lint` `Diagnostic` objects with correct `from`/`to` document positions
+- Debounce re-checks; ideally only re-check changed syntax tree nodes
+
+No maintained npm package exists for CM6 spell checking (as of 2026-04). All CM6 spell check packages are unmaintained or CM5-only. The CM6 maintainer's own recommendation (discuss.codemirror.net) is this exact DIY approach. Roughly 200–300 lines; non-trivial but well-understood.
 
 ---
 

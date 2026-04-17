@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHand
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
-import CodeEditor from "./CodeEditor";
+import CodeEditor, { EDITOR_THEMES } from "./CodeEditor";
 import type { CodeEditorHandle } from "./CodeEditor";
 import MermaidBlock from "./MermaidBlock";
 import type { BrokenLink } from "../api";
@@ -40,6 +40,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function Markdown
   const [saveMsg, setSaveMsg] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
+  const [editorTheme, setEditorTheme] = useState(() => localStorage.getItem("editorTheme") || "one-dark");
   const savedContentRef = useRef(savedContent ?? content);
   const isDirty = content !== savedContentRef.current;
   const codeEditorRef = useRef<CodeEditorHandle>(null);
@@ -51,6 +52,11 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function Markdown
   useEffect(() => {
     savedContentRef.current = savedContent ?? content;
   }, [path]);
+
+  const handleThemeChange = (id: string) => {
+    setEditorTheme(id);
+    localStorage.setItem("editorTheme", id);
+  };
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -136,7 +142,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function Markdown
       </div>
 
       {(project || onApplyTemplate || onUseAsTemplate || onEditTemplate || onViewCompliance || onUseAsFileTemplate || onApplyFileTemplate) && (
-        <FmBar onApplyTemplate={onApplyTemplate} onUseAsTemplate={onUseAsTemplate} onEditTemplate={onEditTemplate} onViewCompliance={onViewCompliance} onUseAsFileTemplate={onUseAsFileTemplate} onApplyFileTemplate={onApplyFileTemplate} project={project} filePath={path} onReport={onReport} onOpenImageBrowser={onOpenImageBrowser} />
+        <FmBar onApplyTemplate={onApplyTemplate} onUseAsTemplate={onUseAsTemplate} onEditTemplate={onEditTemplate} onViewCompliance={onViewCompliance} onUseAsFileTemplate={onUseAsFileTemplate} onApplyFileTemplate={onApplyFileTemplate} project={project} filePath={path} onReport={onReport} onOpenImageBrowser={onOpenImageBrowser} editorTheme={editorTheme} onThemeChange={handleThemeChange} />
       )}
 
       {brokenLinks && brokenLinks.length > 0 && (
@@ -157,7 +163,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function Markdown
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
         {(view === "edit" || view === "split") && (
           <div style={{ flex: view === "split" ? "0 0 559px" : 1, minWidth: 0, overflow: "hidden", borderRight: view === "split" ? "1px solid #333" : "none" }}>
-            <CodeEditor ref={codeEditorRef} value={content} onChange={onContentChange} language="markdown" viMode={viMode} onSave={handleSave} onClose={onClose} />
+            <CodeEditor ref={codeEditorRef} value={content} onChange={onContentChange} language="markdown" viMode={viMode} theme={editorTheme} onSave={handleSave} onClose={onClose} />
           </div>
         )}
         {(view === "preview" || view === "split") && (
@@ -226,7 +232,7 @@ interface StructureData { sections: StructureSection[]; max_depth: number; total
 
 type ActivePanel = "frontmatter" | "template" | "stats" | "issues" | "structure" | null;
 
-function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewCompliance, onUseAsFileTemplate, onApplyFileTemplate, project, filePath, onReport, onOpenImageBrowser }: {
+function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewCompliance, onUseAsFileTemplate, onApplyFileTemplate, project, filePath, onReport, onOpenImageBrowser, editorTheme = "one-dark", onThemeChange }: {
   onApplyTemplate?: () => Promise<void> | void;
   onUseAsTemplate?: () => Promise<void> | void;
   onEditTemplate?: () => void;
@@ -237,8 +243,12 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
   filePath?: string;
   onReport?: () => void;
   onOpenImageBrowser?: () => void;
+  editorTheme?: string;
+  onThemeChange?: (id: string) => void;
 }) {
   const [active, setActive] = useState<ActivePanel>(null);
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
+  const themeMenuRef = useRef<HTMLDivElement>(null);
   const [fmMsg, setFmMsg] = useState("");
   const [stats, setStats] = useState<StatsData | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
@@ -251,6 +261,21 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
   const [structureError, setStructureError] = useState<string | null>(null);
 
   useEffect(() => { setStats(null); setIssues(null); setStructure(null); }, [filePath]);
+
+  useEffect(() => {
+    if (!showThemeMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (themeMenuRef.current && !themeMenuRef.current.contains(e.target as Node))
+        setShowThemeMenu(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showThemeMenu]);
+
+  const handleThemeSelect = (id: string) => {
+    onThemeChange?.(id);
+    setShowThemeMenu(false);
+  };
 
   useEffect(() => {
     if (active === "stats" && project && filePath) {
@@ -428,6 +453,38 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
           </div>
         )}
         <div style={{ flex: 1 }} />
+        <div ref={themeMenuRef} style={{ position: "relative", display: "inline-block", marginRight: 6, marginTop: 1, marginBottom: 1 }}>
+          <button
+            onClick={() => setShowThemeMenu(v => !v)}
+            style={fmBtnStyle}
+            onMouseEnter={fmBtnHover}
+            onMouseLeave={fmBtnLeave}
+            title="Change editor color theme"
+          >Themes</button>
+          {showThemeMenu && (
+            <div style={{
+              position: "absolute", top: "100%", right: 0, marginTop: 4,
+              background: "#1e1e1e", border: "1px solid #444", borderRadius: 4,
+              zIndex: 200, minWidth: 140, boxShadow: "0 2px 8px rgba(0,0,0,0.5)",
+            }}>
+              {EDITOR_THEMES.map(t => t.id === "---"
+                ? <div key="sep" style={{ borderTop: "1px solid #444", margin: "4px 0" }} />
+                : (
+                <div
+                  key={t.id}
+                  onClick={() => handleThemeSelect(t.id)}
+                  style={{
+                    padding: "6px 14px", fontSize: 12, cursor: "pointer",
+                    color: editorTheme === t.id ? "#7ec8f7" : "#ccc",
+                    background: editorTheme === t.id ? "#1a3a5c" : "transparent",
+                  }}
+                  onMouseEnter={e => { if (editorTheme !== t.id) (e.currentTarget as HTMLDivElement).style.background = "#2a2a2a"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = editorTheme === t.id ? "#1a3a5c" : "transparent"; }}
+                >{t.label}</div>
+              ))}
+            </div>
+          )}
+        </div>
         {onOpenImageBrowser && (
           <button
             onClick={onOpenImageBrowser}
