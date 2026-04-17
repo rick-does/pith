@@ -224,7 +224,7 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
                   style={{ position: "absolute", right: "31px", top: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center", width: "14px", cursor: "pointer" }}
                 >
                   {indicatorLevel === "green"
-                    ? <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#3a7d44", flexShrink: 0 }} />
+                    ? <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#3a7d44", flexShrink: 0, marginTop: "2px" }} />
                     : <span style={{ fontSize: "13px", lineHeight: 1, fontWeight: "bold", color: indicatorLevel === "red" ? "#c00" : "#cc8800", userSelect: "none" }}>&#9888;</span>
                   }
                   {indicatorOpen && indicatorPos && (

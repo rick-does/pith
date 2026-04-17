@@ -59,6 +59,12 @@ See `FEATURES.md` for implementation details on any of the above.
 
 ---
 
+## Dev Workflow
+
+Always run frontend with `--watch` (Vite) and backend with `--reload` (uvicorn). Never tell the user to restart the app to see changes — hot reload must be active.
+
+---
+
 ## Rules
 
 - Never add comments or docstrings to code that wasn't changed
