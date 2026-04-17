@@ -60,7 +60,7 @@ No hosted backend. No Lightsail. No ongoing cost. Runs entirely on the user's ma
 - Frontmatter action bar in editor (collapsible pane with Apply template, Use as template, View template, View compliance buttons)
 - Preview pane strips frontmatter (both standard and Jekyll-style)
 - Internal link validation (project-wide scan, per-file broken link panel in editor, re-validates on save)
-- Status indicators on chips: stacked dots (green outline = OK, red filled = broken links, yellow filled = frontmatter mismatch)
+- Status indicators on chips: single icon — green circle (all OK), yellow ⚠ (frontmatter or file template non-compliant), red ⚠ (broken links; red takes priority over yellow); hover indicator to show popup with 3 rows (Frontmatter, Template, Links) each with their own icon; popup uses position:fixed at z-index 1000 to escape overflow clipping
 - Unlinked chip eye icon: hover to reveal all orphan chip status/menus at once
 - Settings flyout in project menu: Labels toggle, show/hide status indicators (persists in localStorage)
 - Filesystem polling (3s interval, detects new/deleted files without browser refresh)

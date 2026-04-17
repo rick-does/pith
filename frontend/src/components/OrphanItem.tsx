@@ -33,6 +33,9 @@ export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSel
   const menuRef = useRef<HTMLDivElement>(null);
   const menuTriggerRef = useRef<HTMLSpanElement>(null);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [indicatorOpen, setIndicatorOpen] = useState(false);
+  const [indicatorPos, setIndicatorPos] = useState<{ bottom: number; centerX: number } | null>(null);
+  const indicatorButtonRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -49,6 +52,11 @@ export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSel
     ? `translate3d(${Math.round(transform.x)}px, ${Math.round(transform.y)}px, 0)`
     : undefined;
 
+  const bc = brokenLinkMap?.[path] ?? 0;
+  const fm = frontmatterIssueMap?.[path] ?? false;
+  const tmpl = templateIssueMap?.[path] ?? false;
+  const indicatorLevel = bc > 0 ? "red" : (fm || tmpl) ? "yellow" : "green";
+
   const mi: CSSProperties = { padding: "7px 14px", fontSize: "13px", cursor: "pointer", color: "#666", whiteSpace: "nowrap" };
 
   return (
@@ -61,7 +69,7 @@ export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSel
           style={{
             position: "relative", display: "inline-flex", alignItems: "stretch",
             width: "2.5in", overflow: "visible",
-            background: isMultiSelected ? "#fff3e0" : (hovered || forceShowIndicators) ? "#fff8f0" : "transparent",
+            background: isMultiSelected ? "#fff3e0" : (hovered || forceShowIndicators || indicatorOpen) ? "#fff8f0" : "transparent",
             boxShadow: isMultiSelected ? "inset 5px 0 0 0 #ff8c00" : "none",
             borderRadius: "4px", cursor: "pointer", userSelect: "none", outline: "none",
           }}
@@ -86,28 +94,43 @@ export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSel
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => { setHovered(false); setPreviewContent(null); setPreviewFixed(null); }}
         >
-          <div style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0, padding: "5px 10px 5px 12px", position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0, padding: `5px ${(isMultiSelected || hovered || forceShowIndicators || indicatorOpen) ? "50px" : "10px"} 5px 12px`, position: "relative" }}>
             <span style={{ fontSize: "15px", fontWeight: 500, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }} title={tooltip}>
               {label}
             </span>
           </div>
-          {showIndicators && (isMultiSelected || hovered || forceShowIndicators) && (() => {
-            const bc = brokenLinkMap?.[path] ?? 0;
-            const fm = frontmatterIssueMap?.[path] ?? false;
-            return (
-              <span style={{ position: "absolute", right: "36px", top: 0, bottom: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "14px", gap: "4px" }}>
-                <span
-                  title={bc > 0 ? `${bc} broken link${bc !== 1 ? "s" : ""}` : "Links OK"}
-                  style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, ...(bc > 0 ? { background: "#c00" } : { border: "1.5px solid #cce5d0" }) }}
-                />
-                <span
-                  title={fm ? "Frontmatter does not match template" : "Frontmatter OK"}
-                  style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, ...(fm ? { background: "#cc8800" } : { border: "1.5px solid #cce5d0" }) }}
-                />
-              </span>
-            );
-          })()}
-          {(isMultiSelected || hovered || forceShowIndicators) && (
+          {showIndicators && (isMultiSelected || hovered || forceShowIndicators || indicatorOpen) && (
+            <span
+              ref={indicatorButtonRef}
+              onMouseEnter={() => { if (indicatorButtonRef.current) { const r = indicatorButtonRef.current.getBoundingClientRect(); setIndicatorPos({ bottom: window.innerHeight - r.top + 8, centerX: r.left + r.width / 2 }); setIndicatorOpen(true); } }}
+              onMouseLeave={() => setIndicatorOpen(false)}
+              style={{ position: "absolute", right: "36px", top: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center", width: "14px", cursor: "pointer" }}
+            >
+              {indicatorLevel === "green"
+                ? <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#3a7d44", flexShrink: 0 }} />
+                : <span style={{ fontSize: "13px", lineHeight: 1, fontWeight: "bold", color: indicatorLevel === "red" ? "#c00" : "#cc8800", userSelect: "none" }}>&#9888;</span>
+              }
+              {indicatorOpen && indicatorPos && (
+                <div style={{ position: "fixed", bottom: indicatorPos.bottom, left: indicatorPos.centerX, transform: "translateX(-50%)", zIndex: 1000, background: "#fff", border: "1px solid #d0e8f7", borderRadius: "8px", boxShadow: "0 4px 16px rgba(0,0,0,0.12)", padding: "6px 10px", minWidth: "170px" }}>
+                  <div style={{ position: "absolute", bottom: -9, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "9px solid transparent", borderRight: "9px solid transparent", borderTop: "9px solid #d0e8f7" }} />
+                  <div style={{ position: "absolute", bottom: -8, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderTop: "8px solid #fff" }} />
+                  <div title={fm ? "Frontmatter is non-compliant" : "Frontmatter OK"} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "3px 0" }}>
+                    {fm ? <span style={{ fontSize: "13px", lineHeight: 1, fontWeight: "bold", color: "#cc8800", userSelect: "none" }}>&#9888;</span> : <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#3a7d44", flexShrink: 0 }} />}
+                    <span style={{ fontSize: "12px", color: "#555" }}>Frontmatter</span>
+                  </div>
+                  <div title={tmpl ? "Template is non-compliant" : "Template OK"} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "3px 0" }}>
+                    {tmpl ? <span style={{ fontSize: "13px", lineHeight: 1, fontWeight: "bold", color: "#cc8800", userSelect: "none" }}>&#9888;</span> : <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#3a7d44", flexShrink: 0 }} />}
+                    <span style={{ fontSize: "12px", color: "#555" }}>Template</span>
+                  </div>
+                  <div title={bc > 0 ? `${bc} broken link${bc !== 1 ? "s" : ""}` : "Links OK"} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "3px 0" }}>
+                    {bc > 0 ? <span style={{ fontSize: "13px", lineHeight: 1, fontWeight: "bold", color: "#c00", userSelect: "none" }}>&#9888;</span> : <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#3a7d44", flexShrink: 0 }} />}
+                    <span style={{ fontSize: "12px", color: "#555" }}>Links</span>
+                  </div>
+                </div>
+              )}
+            </span>
+          )}
+          {(isMultiSelected || hovered || forceShowIndicators || indicatorOpen) && (
             <span
               ref={menuTriggerRef}
               onClick={(e) => { e.stopPropagation(); onAddToSelection(path); setMenuOpen(o => !o); }}

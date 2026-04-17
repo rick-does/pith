@@ -102,6 +102,9 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
   const childInputRef = useRef<HTMLInputElement>(null);
   const menuTriggerRef = useRef<HTMLSpanElement>(null);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [indicatorOpen, setIndicatorOpen] = useState(false);
+  const [indicatorPos, setIndicatorPos] = useState<{ bottom: number; centerX: number } | null>(null);
+  const indicatorButtonRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -125,7 +128,8 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
   const tooltip = titleMode ? node.path : node.title;
   const brokenCount = brokenLinkMap?.[node.path] ?? 0;
   const hasFmIssue = frontmatterIssueMap?.[node.path] ?? false;
-  const hasAnyIssue = brokenCount > 0 || hasFmIssue;
+  const hasTmplIssue = templateIssueMap?.[node.path] ?? false;
+  const indicatorLevel = brokenCount > 0 ? "red" : (hasFmIssue || hasTmplIssue) ? "yellow" : "green";
 
   const dropAction = isOver
     ? dragDeltaX > 30 ? "nest" : dragDeltaX < -30 ? "unnest" : "sibling"
@@ -158,7 +162,7 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
       )}
       <div style={{ display: "flex", alignItems: "stretch", opacity: isDragging ? 0 : 1 }}>
         <ConnectorLines depth={depth} ancestors={ancestors} isLast={isLast} />
-        <div style={{ minWidth: 0, position: "relative", zIndex: menuOpen ? 50 : undefined }}>
+        <div style={{ minWidth: 0, position: "relative", zIndex: menuOpen || indicatorOpen ? 50 : undefined }}>
           <div
             {...attributes} {...listeners}
             style={{
@@ -210,15 +214,34 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
                 </span>
               )}
               {showIndicators && (
-                <span style={{ position: "absolute", right: "31px", top: 0, bottom: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "14px", gap: "4px" }}>
-                  <span
-                    title={brokenCount > 0 ? `${brokenCount} broken link${brokenCount !== 1 ? "s" : ""}` : "Links OK"}
-                    style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, ...(brokenCount > 0 ? { background: "#c00" } : { border: "1.5px solid #cce5d0" }) }}
-                  />
-                  <span
-                    title={hasFmIssue ? "Frontmatter does not match template" : "Frontmatter OK"}
-                    style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, ...(hasFmIssue ? { background: "#cc8800" } : { border: "1.5px solid #cce5d0" }) }}
-                  />
+                <span
+                  ref={indicatorButtonRef}
+                  onMouseEnter={() => { if (indicatorButtonRef.current) { const r = indicatorButtonRef.current.getBoundingClientRect(); setIndicatorPos({ bottom: window.innerHeight - r.top + 8, centerX: r.left + r.width / 2 }); setIndicatorOpen(true); } }}
+                  onMouseLeave={() => setIndicatorOpen(false)}
+                  style={{ position: "absolute", right: "31px", top: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center", width: "14px", cursor: "pointer" }}
+                >
+                  {indicatorLevel === "green"
+                    ? <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#3a7d44", flexShrink: 0 }} />
+                    : <span style={{ fontSize: "13px", lineHeight: 1, fontWeight: "bold", color: indicatorLevel === "red" ? "#c00" : "#cc8800", userSelect: "none" }}>&#9888;</span>
+                  }
+                  {indicatorOpen && indicatorPos && (
+                    <div style={{ position: "fixed", bottom: indicatorPos.bottom, left: indicatorPos.centerX, transform: "translateX(-50%)", zIndex: 1000, background: "#fff", border: "1px solid #d0e8f7", borderRadius: "8px", boxShadow: "0 4px 16px rgba(0,0,0,0.12)", padding: "6px 10px", minWidth: "170px" }}>
+                      <div style={{ position: "absolute", bottom: -9, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "9px solid transparent", borderRight: "9px solid transparent", borderTop: "9px solid #d0e8f7" }} />
+                      <div style={{ position: "absolute", bottom: -8, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderTop: "8px solid #fff" }} />
+                      <div title={hasFmIssue ? "Frontmatter is non-compliant" : "Frontmatter OK"} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "3px 0" }}>
+                        {hasFmIssue ? <span style={{ fontSize: "13px", lineHeight: 1, fontWeight: "bold", color: "#cc8800", userSelect: "none" }}>&#9888;</span> : <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#3a7d44", flexShrink: 0 }} />}
+                        <span style={{ fontSize: "12px", color: "#555" }}>Frontmatter</span>
+                      </div>
+                      <div title={hasTmplIssue ? "Template is non-compliant" : "Template OK"} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "3px 0" }}>
+                        {hasTmplIssue ? <span style={{ fontSize: "13px", lineHeight: 1, fontWeight: "bold", color: "#cc8800", userSelect: "none" }}>&#9888;</span> : <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#3a7d44", flexShrink: 0 }} />}
+                        <span style={{ fontSize: "12px", color: "#555" }}>Template</span>
+                      </div>
+                      <div title={brokenCount > 0 ? `${brokenCount} broken link${brokenCount !== 1 ? "s" : ""}` : "Links OK"} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "3px 0" }}>
+                        {brokenCount > 0 ? <span style={{ fontSize: "13px", lineHeight: 1, fontWeight: "bold", color: "#c00", userSelect: "none" }}>&#9888;</span> : <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#3a7d44", flexShrink: 0 }} />}
+                        <span style={{ fontSize: "12px", color: "#555" }}>Links</span>
+                      </div>
+                    </div>
+                  )}
                 </span>
               )}
               <span
