@@ -398,12 +398,11 @@ def scan_file_template_compliance(project: str) -> list[dict]:
     if not markdowns_dir.exists():
         return []
     non_compliant = []
-    for md_file in sorted(markdowns_dir.rglob("*.md")):
+    for md_file, rel in iter_md_files(markdowns_dir):
         content = md_file.read_text(encoding="utf-8")
         file_headings = {m.group(1).strip() for m in re.finditer(r'^#{2,}\s+(.+)$', content, re.MULTILINE)}
         missing = [h for h in required if h not in file_headings]
         if missing:
-            rel = str(md_file.relative_to(markdowns_dir)).replace("\\", "/")
             non_compliant.append({"path": rel, "missing_headings": missing})
     return non_compliant
 

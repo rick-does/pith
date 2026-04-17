@@ -57,3 +57,5 @@ To stop the server, press `Ctrl+C` in the terminal.
 Both versions open to the **Documentation** project by default. After that, the app remembers the last project you had open. See [Managing Projects](projects.md) for how to create and switch between projects.
 
 PiTH watches the `markdowns/` folder for changes every 3 seconds. If you add, rename, or delete files outside the app, the changes are picked up automatically.
+
+The **?** button in the header opens this documentation in your browser at any time.

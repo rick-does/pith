@@ -16,7 +16,7 @@ Each result shows:
 - **Number of matches** in that file
 - **Matching lines** with the query highlighted in context
 
-Up to 5 matching lines per file and 50 files total are shown.
+Up to 10 matching lines per file and 50 files total are shown.
 
 ## Opening a result
 

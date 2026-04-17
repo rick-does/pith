@@ -45,7 +45,7 @@ Dragging a file within the Unlinked pane, or using the ↑/↓ arrow keys with a
 
 ## Creating a new file
 
-Click **⋮** on the Unlinked chip and choose **＋ New file**. Type a filename and press Enter. The file is created in `markdowns/` and appears in the Unlinked pane, ready to be added to the hierarchy.
+Click **⋮** on the Unlinked chip and choose **＋ New file**. Type a filename and press Enter. The file is created in `markdowns/` and appears in the Unlinked pane, ready to be added to the hierarchy. If the project has a file template set, the new file is pre-populated from it.
 
 You can also add existing markdown files from another directory — see [Adding files from another directory](projects.md#adding-files-from-another-directory).
 

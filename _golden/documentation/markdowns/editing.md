@@ -43,9 +43,9 @@ Vi-specific save commands:
 | `:w` | Save |
 | `:x` | Save and close the editor |
 
-## Frontmatter, Stats, Issues, and Structure
+## Editor tab bar
 
-Below the editor toolbar is a bar with four tabs: **Frontmatter**, **Stats**, **Issues**, and **Structure**, and on the right side an **Images** button and a **Scan Project** button. Click any tab header to expand it; clicking an open tab collapses it. Only one tab can be open at a time. The Stats, Issues, and Structure panels open as floating overlays so they don't push the editor down.
+Below the editor toolbar is a bar with the following tabs: **Frontmatter**, **Template**, **Stats**, **Issues**, and **Structure**, and on the right side an **Images** button and a **Scan Project** button. Click any tab header to expand it; clicking an open tab collapses it. Only one tab can be open at a time. The Stats, Issues, and Structure panels open as floating overlays so they don't push the editor down.
 
 ## Frontmatter
 
@@ -57,6 +57,17 @@ The **Frontmatter** tab shows action buttons for working with the project's fron
 - **View compliance** — opens the compliance report
 
 Frontmatter is edited directly in the text editor. The preview pane strips it from the rendered output. See [Frontmatter](frontmatter.md) for full details.
+
+## Template
+
+The **Template** tab shows action buttons for working with the project's file structure template:
+
+- **Use as template** — saves the current file as the project's file template. The template defines which section headings new files should contain.
+- **Apply template** — appends any headings from the template that are missing from the current file, with empty sections for each.
+
+To manage the file template from the project menu, click **⋮** on the project chip and choose **File Template → View template** (opens the template in the editor as a tab) or **File Template → Compliance** (scans all files and reports which are missing required headings, with an option to apply the template to individual files).
+
+New files are pre-populated from the file template automatically when one is set. See [Building Your Hierarchy](hierarchy.md).
 
 ## Stats
 
@@ -102,7 +113,7 @@ The **Images** button on the right of the tab bar opens the Project images dialo
 From this dialog you can:
 
 - **Browse** — view thumbnails of all images in the project
-- **Insert** — click any thumbnail to insert it at the cursor position in the editor as `![](../images/filename)`
+- **Insert** — click any thumbnail to insert it at the cursor position in the editor as a markdown image link (the path is relative to the file's location in the project)
 - **Add images** — click **Add images** in the dialog header to open a file picker and copy images into the project's `images/` folder
 - **Open folder** — click **Open folder** to open the `images/` directory in your file manager
 - **Delete** — hover over a thumbnail and click **✕** to delete an image (with confirmation)
@@ -122,13 +133,24 @@ The report opens in a full-screen overlay and includes:
 
 Use the **Save as HTML** button to download the report, or **Print / Save as PDF** to send it to a printer or PDF writer.
 
+## Multi-tab editor
+
+Each file you open adds a tab to the vertical strip along the left edge of the editor panel. Click any tab to switch to it. Tabs are color-coded alternating blue and orange.
+
+- A small circle at the bottom of a tab indicates unsaved changes
+- Click the close icon at the top of a tab to close that file without closing the panel
+- When all tabs are closed, the editor panel closes
+- Click the **«** button at the top of the strip to collapse the tab strip; click **»** to expand it again
+
+Tabs and their contents persist across sessions — when you reopen PiTH, your previously open files are restored.
+
 ## Renaming from the editor
 
 Double-click the filename in the editor toolbar to rename the file inline. The file on disk is renamed to match.
 
 ## Closing the editor
 
-Click the **✕** button in the top right corner of the editor panel. See [Keyboard Shortcuts](keyboard-shortcuts.md) for all editor keys.
+Click the **✕** button in the top right corner of the editor panel to close the entire panel. To close a single file without closing the panel, click the close icon at the top of its tab in the vertical strip. See [Keyboard Shortcuts](keyboard-shortcuts.md) for all editor keys.
 
 ## Mermaid diagrams
 

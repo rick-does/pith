@@ -29,7 +29,7 @@ import {
 } from "./api";
 import type { CollectionStructure, FileInfo, FileNode, ProjectInfo } from "./types";
 import type { FrontmatterTemplate, FrontmatterField, ComplianceItem, FileLinkReport, BrokenLink, RootInfo, FileTemplateComplianceItem } from "./api";
-import { insertAsChild, insertAsLastChild, reorder, removeNode } from "./treeHelpers";
+import { insertAsLastChild, reorder } from "./treeHelpers";
 
 const LAST_FILE_KEY = "pith_selected_file";
 const TABS_KEY = (p: string) => `pith_tabs_${p}`;
@@ -952,7 +952,7 @@ export default function App() {
     setCollection({ root: newRoot });
     const o = await fetchOrphans(currentProject);
     setOrphans(o);
-    const initContent = `# ${title}\n`;
+    const initContent = await fetchMarkdown(currentProject, filename);
     if (activeTabIdRef.current) {
       setTabs(prev => prev.map(t => t.id === activeTabIdRef.current ? { ...t, content: editorContentRef.current } : t));
     }
@@ -1263,6 +1263,7 @@ export default function App() {
                     display: "flex", flexDirection: "column",
                     alignItems: "center", justifyContent: "flex-end",
                     paddingTop: 4, paddingBottom: 6,
+                    paddingRight: 1.5,
                   }}
                 >
                   <button
@@ -1281,7 +1282,7 @@ export default function App() {
                   <div style={{ flex: 1 }} />
                   <span style={{
                     writingMode: "vertical-rl" as const,
-                    transform: "rotate(180deg) translateX(-2px)",
+                    transform: "rotate(180deg)",
                     fontSize: 15, fontWeight: 500, lineHeight: 1.2,
                     color: tabStyle.text,
                     overflow: "hidden", whiteSpace: "nowrap",
@@ -1439,6 +1440,7 @@ export default function App() {
         <ImageBrowser
           project={currentProject}
           editorOpen={overlayType === "editor" && selectedPath !== null}
+          selectedPath={selectedPath}
           onInsert={(markdown) => { markdownEditorRef.current?.insertText(markdown); }}
           onClose={() => { setImageBrowserOpen(false); setImageBrowserTriggerAdd(false); }}
           triggerAdd={imageBrowserTriggerAdd}

@@ -11,7 +11,7 @@ from pathlib import Path
 import markdown
 import frontmatter
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .models import CollectionStructure, FileNode
@@ -84,6 +84,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="PiTH", lifespan=lifespan)
+
+
+@app.exception_handler(ValueError)
+async def value_error_handler(request: Request, exc: ValueError):
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
+
 
 # ---------------------------------------------------------------------------
 # Health

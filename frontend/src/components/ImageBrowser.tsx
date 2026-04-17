@@ -5,12 +5,13 @@ import type { ImageInfo } from "../api";
 interface Props {
   project: string;
   editorOpen: boolean;
+  selectedPath: string | null;
   onInsert: (markdown: string) => void;
   onClose: () => void;
   triggerAdd?: boolean;
 }
 
-export default function ImageBrowser({ project, editorOpen, onInsert, onClose, triggerAdd }: Props) {
+export default function ImageBrowser({ project, editorOpen, selectedPath, onInsert, onClose, triggerAdd }: Props) {
   const [images, setImages] = useState<ImageInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +59,9 @@ export default function ImageBrowser({ project, editorOpen, onInsert, onClose, t
   };
 
   const handleInsert = (name: string) => {
-    onInsert(`![](../images/${encodeURIComponent(name)})`);
+    const depth = selectedPath ? selectedPath.split("/").length - 1 : 0;
+    const prefix = "../".repeat(depth + 1);
+    onInsert(`![](${prefix}images/${encodeURIComponent(name)})`);
     onClose();
   };
 

@@ -69,4 +69,4 @@ File chips in the hierarchy show a small dot for frontmatter status:
 
 ## New files
 
-New files are created with a title heading only. To apply the template to a new file, open it and click **Apply template** in the Frontmatter panel. See [Building Your Hierarchy](hierarchy.md) for how to create files.
+New files are pre-populated from the project's file structure template if one is set, or with a title heading only if not. To apply the frontmatter template to a new file, open it and click **Apply template** in the Frontmatter panel. See [Building Your Hierarchy](hierarchy.md) for how to create files and [Template](editing.md#template) for the file structure template.

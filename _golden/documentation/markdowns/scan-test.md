@@ -5,7 +5,7 @@ Required:
 
 # Scan Example
 
-This file is designed to trigger every flag the Scan tab can produce. Open it, then click **Scan** in the editor toolbar to see the results.
+This file is designed to trigger every flag the Scan tab can produce. Open it, then click the **Issues** tab below the editor toolbar to see the results.
 
 # Second H1 Heading
 
