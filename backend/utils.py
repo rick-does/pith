@@ -329,97 +329,127 @@ def find_incoming_links(project: str, target_path: str) -> list[dict]:
     return results
 
 
-def get_template_file(project: str) -> Path:
-    return get_projects_dir() / project / "frontmatter.yaml"
+DEFAULT_TEMPLATE = "---\nTitle: <add title>\n---\n\n# Title\n"
 
 
-def load_template(project: str) -> dict:
-    tf = get_template_file(project)
-    if not tf.exists():
-        return {"fields": []}
-    data = yaml.safe_load(tf.read_text(encoding="utf-8"))
-    return data if data else {"fields": []}
+def get_template_path(project: str) -> Path:
+    return get_projects_dir() / project / "template.md"
 
 
-def save_template(project: str, template: dict) -> None:
-    tf = get_template_file(project)
-    tf.write_text(yaml.dump(template, default_flow_style=False), encoding="utf-8")
+def load_unified_template(project: str) -> str:
+    p = get_template_path(project)
+    return p.read_text(encoding="utf-8") if p.exists() else DEFAULT_TEMPLATE
 
 
-def infer_template_from_file(project: str, rel_path: str) -> dict:
-    """Infer a frontmatter template from an existing file's frontmatter."""
-    fp = safe_path(project, rel_path)
-    content = fp.read_text(encoding="utf-8")
-    meta, _ = parse_frontmatter(content)
-    fields = []
-    for key, value in meta.items():
-        if isinstance(value, bool):
-            fields.append({"key": key, "type": "boolean", "default": value})
-        elif isinstance(value, list):
-            fields.append({"key": key, "type": "list", "default": value})
-        elif isinstance(value, (int, float)):
-            fields.append({"key": key, "type": "string", "default": str(value)})
-        else:
-            fields.append({"key": key, "type": "string", "default": value if value else ""})
-    return {"fields": fields}
+def save_unified_template(project: str, content: str) -> None:
+    get_template_path(project).write_text(content, encoding="utf-8")
 
 
-def get_file_template_path(project: str) -> Path:
-    return get_projects_dir() / project / "file-template.md"
-
-
-def load_file_template(project: str) -> str | None:
-    p = get_file_template_path(project)
-    return p.read_text(encoding="utf-8") if p.exists() else None
-
-
-def save_file_template(project: str, content: str) -> None:
-    get_file_template_path(project).write_text(content, encoding="utf-8")
-
-
-def delete_file_template(project: str) -> None:
-    p = get_file_template_path(project)
+def delete_unified_template(project: str) -> None:
+    p = get_template_path(project)
     if p.exists():
         p.unlink()
 
 
-def get_file_template_headings(content: str) -> list[str]:
-    return [m.group(1).strip() for m in re.finditer(r'^#{2,}\s+(.+)$', content, re.MULTILINE)]
+def extract_for_use_as_template(content: str) -> str:
+    """Strip a file down to its frontmatter block + headings only."""
+    meta, body = parse_frontmatter(content)
+    lines: list[str] = []
+    if meta:
+        lines.append("---")
+        for key, value in meta.items():
+            if isinstance(value, list):
+                lines.append(f"{key}:")
+                for item in value:
+                    lines.append(f"  - {item}")
+            elif isinstance(value, bool):
+                lines.append(f"{key}: {str(value).lower()}")
+            elif value is None:
+                lines.append(f"{key}:")
+            else:
+                lines.append(f"{key}: {value}")
+        lines.append("---")
+        lines.append("")
+    for line in body.split("\n"):
+        if re.match(r"^#{1,}\s+", line):
+            lines.append(line)
+            lines.append("")
+    return "\n".join(lines).strip() + "\n"
 
 
-def scan_file_template_compliance(project: str) -> list[dict]:
-    template_content = load_file_template(project)
-    if not template_content:
+def scan_unified_compliance(project: str) -> list[dict]:
+    """Scan all files against template.md. Returns per-file missing/extra frontmatter keys and missing headings."""
+    template_content = load_unified_template(project)
+    tm_meta, tm_body = parse_frontmatter(template_content)
+    expected_keys = set(tm_meta.keys())
+    required_headings = [m.group(1).strip() for m in re.finditer(r'^#{2,}\s+(.+)$', tm_body, re.MULTILINE)]
+
+    if not expected_keys and not required_headings:
         return []
-    required = get_file_template_headings(template_content)
-    if not required:
+
+    md_dir = get_markdowns_dir(project)
+    if not md_dir.exists():
         return []
-    markdowns_dir = get_projects_dir() / project / "markdowns"
-    if not markdowns_dir.exists():
-        return []
-    non_compliant = []
-    for md_file, rel in iter_md_files(markdowns_dir):
-        content = md_file.read_text(encoding="utf-8")
-        file_headings = {m.group(1).strip() for m in re.finditer(r'^#{2,}\s+(.+)$', content, re.MULTILINE)}
-        missing = [h for h in required if h not in file_headings]
-        if missing:
-            non_compliant.append({"path": rel, "missing_headings": missing})
-    return non_compliant
+
+    results = []
+    for fp, rel in iter_md_files(md_dir):
+        content = fp.read_text(encoding="utf-8")
+        meta, body = parse_frontmatter(content)
+        file_keys = set(meta.keys())
+        missing_keys = sorted(expected_keys - file_keys)
+        extra_keys = sorted(file_keys - expected_keys) if expected_keys else []
+        file_headings = {m.group(1).strip() for m in re.finditer(r'^#{2,}\s+(.+)$', body, re.MULTILINE)}
+        missing_headings = [h for h in required_headings if h not in file_headings]
+        if missing_keys or extra_keys or missing_headings:
+            results.append({
+                "path": rel,
+                "title": extract_title(content) or fp.stem,
+                "missing_keys": missing_keys,
+                "extra_keys": extra_keys,
+                "missing_headings": missing_headings,
+            })
+    results.sort(key=lambda r: len(r["missing_keys"]) + len(r["extra_keys"]) + len(r["missing_headings"]), reverse=True)
+    return results
 
 
-def apply_file_template(project: str, rel_path: str) -> str:
+def apply_unified_template(project: str, rel_path: str) -> str:
+    """Add missing frontmatter keys and append missing headings from template.md."""
     fp = safe_path(project, rel_path)
-    template_content = load_file_template(project)
-    if not template_content:
-        return fp.read_text(encoding="utf-8")
     content = fp.read_text(encoding="utf-8")
-    template_heading_lines = re.findall(r'^#{2,}\s+.+$', template_content, re.MULTILINE)
-    file_headings = {m.group(1).strip() for m in re.finditer(r'^#{2,}\s+(.+)$', content, re.MULTILINE)}
-    missing = [h for h in template_heading_lines if re.match(r'^#{2,}\s+(.+)$', h).group(1).strip() not in file_headings]
+    template_content = load_unified_template(project)
+    tm_meta, tm_body = parse_frontmatter(template_content)
+
+    meta, _ = parse_frontmatter(content)
+    changed = False
+    for key, default_val in tm_meta.items():
+        if key not in meta:
+            meta[key] = default_val
+            changed = True
+    if changed:
+        content = set_frontmatter(content, meta)
+
+    _, body = parse_frontmatter(content)
+    file_headings = {m.group(1).strip() for m in re.finditer(r'^#{2,}\s+(.+)$', body, re.MULTILINE)}
+    template_heading_lines = re.findall(r'^#{2,}\s+.+$', tm_body, re.MULTILINE)
+    missing = [h for h in template_heading_lines
+               if re.match(r'^#{2,}\s+(.+)$', h).group(1).strip() not in file_headings]
     if missing:
         content = content.rstrip() + "\n\n" + "\n\n".join(missing) + "\n"
-        fp.write_text(content, encoding="utf-8")
+
+    fp.write_text(content, encoding="utf-8")
     return content
+
+
+def batch_apply_unified_template(project: str, files: list[str]) -> list[str]:
+    """Apply unified template to a list of files. Returns paths that were updated."""
+    updated = []
+    for rel_path in files:
+        try:
+            apply_unified_template(project, rel_path)
+            updated.append(rel_path)
+        except Exception:
+            pass
+    return updated
 
 
 def parse_frontmatter(content: str) -> tuple[dict, str]:
@@ -489,91 +519,3 @@ def set_frontmatter(content: str, metadata: dict) -> str:
     return f"---\n{yaml_str}\n---\n{body}"
 
 
-def scan_compliance(project: str, template: dict) -> list[dict]:
-    """Scan all files against the template. Returns per-file compliance reports."""
-    fields = template.get("fields", [])
-    if not fields:
-        return []
-    expected_keys = {f["key"] for f in fields}
-    md_dir = get_markdowns_dir(project)
-    if not md_dir.exists():
-        return []
-
-    results = []
-    for fp, rel in iter_md_files(md_dir):
-        try:
-            content = fp.read_text(encoding="utf-8")
-        except Exception:
-            continue
-        meta, _ = parse_frontmatter(content)
-        file_keys = set(meta.keys())
-        missing = sorted(expected_keys - file_keys)
-        extra = sorted(file_keys - expected_keys)
-        if missing or extra:
-            results.append({
-                "path": rel,
-                "title": extract_title(content) or fp.stem,
-                "missing": missing,
-                "extra": extra,
-            })
-    results.sort(key=lambda r: len(r["missing"]) + len(r["extra"]), reverse=True)
-    return results
-
-
-def batch_update_frontmatter(project: str, template: dict, add_defaults: bool = True, strip_extra: bool = False, only_files: list[str] | None = None) -> list[str]:
-    """Apply template to files: add missing keys with defaults, optionally strip extra keys.
-    If only_files is provided, only update those specific files."""
-    fields = template.get("fields", [])
-    if not fields:
-        return []
-    field_map = {f["key"]: f for f in fields}
-    expected_keys = set(field_map.keys())
-    md_dir = get_markdowns_dir(project)
-    if not md_dir.exists():
-        return []
-
-    updated = []
-    for fp, rel in iter_md_files(md_dir):
-        if only_files is not None and rel not in only_files:
-            continue
-        try:
-            content = fp.read_text(encoding="utf-8")
-        except Exception:
-            continue
-        meta, _ = parse_frontmatter(content)
-        changed = False
-
-        if add_defaults:
-            for key in (f["key"] for f in fields):
-                if key not in meta:
-                    f = field_map[key]
-                    default = f.get("default")
-                    if f["type"] == "list" and default is None:
-                        default = []
-                    elif f["type"] == "boolean" and default is None:
-                        default = False
-                    elif default is None:
-                        default = ""
-                    meta[key] = default
-                    changed = True
-
-        if strip_extra:
-            for key in list(meta.keys()):
-                if key not in expected_keys:
-                    del meta[key]
-                    changed = True
-
-        if changed:
-            # Rebuild in template order: template keys first, then any extras
-            ordered = {}
-            for f in fields:
-                if f["key"] in meta:
-                    ordered[f["key"]] = meta[f["key"]]
-            for key in meta:
-                if key not in ordered:
-                    ordered[key] = meta[key]
-            new_content = set_frontmatter(content, ordered)
-            fp.write_text(new_content, encoding="utf-8")
-            updated.append(rel)
-
-    return updated

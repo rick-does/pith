@@ -20,8 +20,6 @@ export interface ProjectChipProps {
   onExport: (format: "mkdocs" | "docusaurus") => void;
   onEditTemplate: () => void;
   onCheckCompliance: () => void;
-  onViewFileTemplate: () => void;
-  onCheckFileTemplateCompliance: () => void;
   onRestoreStructure: () => void;
   onRestoreAll: () => void;
   onValidateLinks: () => void;
@@ -45,7 +43,7 @@ export interface ProjectChipProps {
   onOpenImagesFolder: () => void;
 }
 
-export default function ProjectChip({ currentProject, currentProjectTitle, projects, titleMode, setTitleMode, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onCreateFile, onAddFileFromMd, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onViewFileTemplate, onCheckFileTemplateCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, isDocumentation, showIndicators, onToggleIndicators, roots, currentRoot, onSwitchRoot, onAddRoot, onRemoveRoot, onBrowseImages, onAddImages, onOpenImagesFolder }: ProjectChipProps) {
+export default function ProjectChip({ currentProject, currentProjectTitle, projects, titleMode, setTitleMode, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onCreateFile, onAddFileFromMd, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, isDocumentation, showIndicators, onToggleIndicators, roots, currentRoot, onSwitchRoot, onAddRoot, onRemoveRoot, onBrowseImages, onAddImages, onOpenImagesFolder }: ProjectChipProps) {
 
 
 
@@ -55,8 +53,7 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
   const [rootsSubmenuOpen, setRootsSubmenuOpen] = useState(false);
   const [importSubmenuOpen, setImportSubmenuOpen] = useState(false);
   const [exportSubmenuOpen, setExportSubmenuOpen] = useState(false);
-  const [frontmatterSubmenuOpen, setFrontmatterSubmenuOpen] = useState(false);
-  const [fileTemplateSubmenuOpen, setFileTemplateSubmenuOpen] = useState(false);
+  const [templateSubmenuOpen, setTemplateSubmenuOpen] = useState(false);
   const [restoreSubmenuOpen, setRestoreSubmenuOpen] = useState(false);
   const [fileSubmenuOpen, setFileSubmenuOpen] = useState(false);
   const [imagesSubmenuOpen, setImagesSubmenuOpen] = useState(false);
@@ -309,47 +306,23 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
 
               <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />
 
-              {/* Frontmatter flyout */}
+              {/* Template flyout */}
               <div
                 style={{ ...menuItem, justifyContent: "space-between", position: "relative" }}
-                onMouseEnter={() => setFrontmatterSubmenuOpen(true)}
-                onMouseLeave={() => setFrontmatterSubmenuOpen(false)}
+                onMouseEnter={() => setTemplateSubmenuOpen(true)}
+                onMouseLeave={() => setTemplateSubmenuOpen(false)}
               >
-                <span>Frontmatter</span>
+                <span>Template</span>
                 <span style={flyoutArrow}>&#9656;</span>
-                {frontmatterSubmenuOpen && (
+                {templateSubmenuOpen && (
                   <div style={submenuStyle}>
                     <div style={{ ...menuItem }}
-                      onClick={() => { onEditTemplate(); setMenuOpen(false); setFrontmatterSubmenuOpen(false); }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                    >Template</div>
-                    <div style={{ ...menuItem }}
-                      onClick={() => { onCheckCompliance(); setMenuOpen(false); setFrontmatterSubmenuOpen(false); }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                    >Compliance</div>
-                  </div>
-                )}
-              </div>
-
-              {/* File Template flyout */}
-              <div
-                style={{ ...menuItem, justifyContent: "space-between", position: "relative" }}
-                onMouseEnter={() => setFileTemplateSubmenuOpen(true)}
-                onMouseLeave={() => setFileTemplateSubmenuOpen(false)}
-              >
-                <span>File Template</span>
-                <span style={flyoutArrow}>&#9656;</span>
-                {fileTemplateSubmenuOpen && (
-                  <div style={submenuStyle}>
-                    <div style={{ ...menuItem }}
-                      onClick={() => { onViewFileTemplate(); setMenuOpen(false); setFileTemplateSubmenuOpen(false); }}
+                      onClick={() => { onEditTemplate(); setMenuOpen(false); setTemplateSubmenuOpen(false); }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
                     >View template</div>
                     <div style={{ ...menuItem }}
-                      onClick={() => { onCheckFileTemplateCompliance(); setMenuOpen(false); setFileTemplateSubmenuOpen(false); }}
+                      onClick={() => { onCheckCompliance(); setMenuOpen(false); setTemplateSubmenuOpen(false); }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
                     >Compliance</div>

@@ -45,29 +45,18 @@ Vi-specific save commands:
 
 ## Editor tab bar
 
-Below the editor toolbar is a bar with the following tabs: **Frontmatter**, **Template**, **Stats**, **Issues**, and **Structure**, and on the right side a **Themes** button, an **Images** button, and a **Scan Project** button. Click any tab header to expand it; clicking an open tab collapses it. Only one tab can be open at a time. The Stats, Issues, and Structure panels open as floating overlays so they don't push the editor down.
-
-## Frontmatter
-
-The **Frontmatter** tab shows action buttons for working with the project's frontmatter template:
-
-- **Apply template** — adds missing template keys (with defaults) and removes extra keys from this file
-- **Use as template** — sets this file's frontmatter as the project template
-- **View template** — opens the template editor
-- **View compliance** — opens the compliance report
-
-Frontmatter is edited directly in the text editor. The preview pane strips it from the rendered output. See [Frontmatter](frontmatter.md) for full details.
+Below the editor toolbar is a bar with the following tabs: **Template**, **Stats**, **Issues**, and **Structure**, and on the right side a **Themes** button, an **Images** button, and a **Scan Project** button. Click any tab header to expand it; clicking an open tab collapses it. Only one tab can be open at a time. The Stats, Issues, and Structure panels open as floating overlays so they don't push the editor down.
 
 ## Template
 
-The **Template** tab shows action buttons for working with the project's file structure template:
+The **Template** tab shows action buttons for working with the project template:
 
-- **Use as template** — saves the current file as the project's file template. The template defines which section headings new files should contain.
-- **Apply template** — appends any headings from the template that are missing from the current file, with empty sections for each.
+- **Apply template** — adds any missing frontmatter keys and any missing headings to this file, based on the project template
+- **Use as template** — extracts the current file's frontmatter block and heading structure and saves it as the project template
+- **View template** — opens the project template in a markdown editor modal
+- **View compliance** — opens the compliance report showing which files are missing required keys or headings
 
-To manage the file template from the project menu, click **⋮** on the project chip and choose **File Template → View template** (opens the template in the editor as a tab) or **File Template → Compliance** (scans all files and reports which are missing required headings, with an option to apply the template to individual files).
-
-New files are pre-populated from the file template automatically when one is set. See [Building Your Hierarchy](hierarchy.md).
+Frontmatter is edited directly in the text editor. The preview pane strips it from the rendered output. See [Frontmatter and Templates](frontmatter.md) for full details.
 
 ## Stats
 

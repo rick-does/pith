@@ -182,7 +182,7 @@ export default function OrphanPane({
           <div style={{ width: "100px", flexShrink: 0, position: "relative" }}>
             <div style={{ position: "absolute", top: 200, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
               <button
-                ref={arrowBtnRef}
+                ref={arrowBtnRef as React.RefObject<HTMLButtonElement>}
                 onClick={() => { if (selectedOrphans.size > 0) onAddOrphansToCollection([...selectedOrphans]); }}
                 title={selectedOrphans.size > 0 ? `Add ${selectedOrphans.size} to hierarchy` : "Select files to add"}
                 style={{
@@ -202,7 +202,7 @@ export default function OrphanPane({
               </button>
             </div>
           </div>
-          <div ref={orphanSectionRef} style={{ width: "360px", overflowY: "auto", minHeight: 0, padding: "6px 8px 8px 8px", position: "relative", userSelect: "none" }}>
+          <div ref={orphanSectionRef as React.RefObject<HTMLDivElement>} style={{ width: "360px", overflowY: "auto", minHeight: 0, padding: "6px 8px 8px 8px", position: "relative", userSelect: "none" }}>
             {!hasOrphans && !creatingFile && (
               <div style={{ color: "#aaa", fontSize: "12px", padding: "8px 4px" }}>No unlinked files. Use &#65291; New file to add one.</div>
             )}

@@ -9,75 +9,35 @@ import ExportModal from "./components/ExportModal";
 import SearchPanel from "./components/SearchPanel";
 import TemplateEditor from "./components/TemplateEditor";
 import ComplianceReport from "./components/ComplianceReport";
-import FileTemplateComplianceReport from "./components/FileTemplateComplianceReport";
 import LinkReport from "./components/LinkReport";
 import {
   listProjects, createProject, archiveProject, renameProject,
   fetchProjectMd, saveProjectMd,
   fetchCollection, saveCollection, fetchMarkdown, saveMarkdown, fetchCollectionYaml,
   fetchOrphans, createFile, deleteFile, archiveFile, renameFile,
-  fetchTemplate, saveTemplate as apiSaveTemplate, fetchFileFrontmatter,
+  fetchTemplate, saveTemplate, deleteTemplate,
+  fetchTemplateCompliance, applyTemplate, batchApplyTemplate, useFileAsTemplate,
   restoreDocStructure, restoreDocAll,
   validateProjectLinks, validateFileLinks,
-  fetchCompliance, batchUpdateFrontmatter, inferTemplateFromFile,
   importFromFormat, exportToFormat,
   importMarkdowns, importFiles, browseDirs, browseStartDir,
   flattenHierarchy, restoreHierarchy, checkHierarchyBackup,
   fetchConfig, fetchRoots, addRoot, removeRoot, switchRoot, setLastProject,
   uploadImages, openImagesFolder,
-  fetchFileTemplate, saveFileTemplate, fetchFileTemplateCompliance, applyFileTemplate,
 } from "./api";
 import type { CollectionStructure, FileInfo, FileNode, ProjectInfo } from "./types";
-import type { FrontmatterTemplate, FrontmatterField, ComplianceItem, FileLinkReport, BrokenLink, RootInfo, FileTemplateComplianceItem } from "./api";
+import type { TemplateComplianceItem, FileLinkReport, BrokenLink, RootInfo } from "./api";
 import { insertAsLastChild, reorder } from "./treeHelpers";
 
 const LAST_FILE_KEY = "pith_selected_file";
 const TABS_KEY = (p: string) => `pith_tabs_${p}`;
 const ACTIVE_TAB_KEY = (p: string) => `pith_active_tab_${p}`;
 
-function parseFrontmatterClient(content: string): Record<string, any> {
-  const lines = content.split("\n");
-  let yamlLines: string[] = [];
-
-  if (lines[0]?.trim() === "---") {
-    // Standard format
-    for (let i = 1; i < lines.length; i++) {
-      if (lines[i].trim() === "---") { yamlLines = lines.slice(1, i); break; }
-    }
-  } else if (lines[0] && /^\w[\w\s]*:/.test(lines[0])) {
-    // Jekyll-style: key: value lines terminated by ---
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i].trim() === "---") { yamlLines = lines.slice(0, i); break; }
-    }
-  }
-
-  if (yamlLines.length === 0) return {};
-
-  const meta: Record<string, any> = {};
-  for (const line of yamlLines) {
-    const match = line.match(/^([\w][\w\s]*?)\s*:\s*(.*)$/);
-    if (match) {
-      const [, key, raw] = match;
-      const val = raw.trim();
-      if (val.startsWith("[") && val.endsWith("]")) {
-        meta[key.trim()] = val.slice(1, -1).split(",").map(s => s.trim()).filter(Boolean);
-      } else if (val === "true") {
-        meta[key.trim()] = true;
-      } else if (val === "false") {
-        meta[key.trim()] = false;
-      } else {
-        meta[key.trim()] = val;
-      }
-    }
-  }
-  return meta;
-}
-
-type OverlayType = "editor" | "yaml" | "project-md" | "file-template" | null;
+type OverlayType = "editor" | "yaml" | "project-md" | null;
 
 interface EditorTab {
   id: string;
-  type: "editor" | "file-template";
+  type: "editor";
   path: string;
   content: string;
   savedContent: string;
@@ -113,7 +73,6 @@ export default function App() {
   const [savedContent, setSavedContent] = useState("");
   const [yamlContent, setYamlContent] = useState("");
   const [projectMdContent, setProjectMdContent] = useState("");
-  const [fileTemplateContent, setFileTemplateContent] = useState("");
   const [viMode, setViMode] = useState(true);
   const [overlayType, setOverlayType] = useState<OverlayType>(null);
   const [loading, setLoading] = useState(true);
@@ -123,17 +82,13 @@ export default function App() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [imageBrowserOpen, setImageBrowserOpen] = useState(false);
   const [imageBrowserTriggerAdd, setImageBrowserTriggerAdd] = useState(false);
-  const [template, setTemplate] = useState<FrontmatterTemplate>({ fields: [] });
-  const [fileFrontmatter, setFileFrontmatter] = useState<Record<string, any>>({});
+  const [templateContent, setTemplateContent] = useState("");
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
-  const [complianceItems, setComplianceItems] = useState<ComplianceItem[] | null>(null);
-  const [fileTemplateComplianceItems, setFileTemplateComplianceItems] = useState<FileTemplateComplianceItem[] | null>(null);
+  const [complianceItems, setComplianceItems] = useState<TemplateComplianceItem[] | null>(null);
   const [linkReport, setLinkReport] = useState<FileLinkReport[] | null>(null);
   const [fileBrokenLinks, setFileBrokenLinks] = useState<BrokenLink[]>([]);
   const [brokenLinkMap, setBrokenLinkMap] = useState<Record<string, number>>({});
-  const [frontmatterIssueMap, setFrontmatterIssueMap] = useState<Record<string, boolean>>({});
   const [templateIssueMap, setTemplateIssueMap] = useState<Record<string, boolean>>({});
-  const [fileTemplateHeadings, setFileTemplateHeadings] = useState<string[]>([]);
   const [showIndicators, setShowIndicators] = useState(() => localStorage.getItem("pith_indicators") !== "false");
   const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
   const [reportPreview, setReportPreview] = useState<string | null>(null);
@@ -174,13 +129,11 @@ export default function App() {
   const folderBrowserScrollRef = useRef<HTMLDivElement>(null);
   const tabsRef = useRef(tabs);
   const activeTabIdRef = useRef(activeTabId);
-  const fileTemplateContentRef = useRef(fileTemplateContent);
   const tabsRestoredRef = useRef(false);
   useEffect(() => { editorContentRef.current = editorContent; }, [editorContent]);
   useEffect(() => { savedContentRef.current = savedContent; }, [savedContent]);
   useEffect(() => { tabsRef.current = tabs; }, [tabs]);
   useEffect(() => { activeTabIdRef.current = activeTabId; }, [activeTabId]);
-  useEffect(() => { fileTemplateContentRef.current = fileTemplateContent; }, [fileTemplateContent]);
 
   useEffect(() => {
     if (!currentProject || loading || !tabsRestoredRef.current) return;
@@ -191,9 +144,7 @@ export default function App() {
 
   const handleCloseOverlay = useCallback(() => {
     if (activeTabIdRef.current) {
-      const activeTab = tabsRef.current.find(t => t.id === activeTabIdRef.current);
-      const liveContent = activeTab?.type === "file-template" ? fileTemplateContentRef.current : editorContentRef.current;
-      setTabs(prev => prev.map(t => t.id === activeTabIdRef.current ? { ...t, content: liveContent } : t));
+      setTabs(prev => prev.map(t => t.id === activeTabIdRef.current ? { ...t, content: editorContentRef.current } : t));
     }
     setOverlayType(null);
     localStorage.removeItem(LAST_FILE_KEY);
@@ -201,24 +152,16 @@ export default function App() {
 
   const handleSwitchTab = useCallback((id: string) => {
     if (activeTabIdRef.current) {
-      const cur = tabsRef.current.find(t => t.id === activeTabIdRef.current);
-      const liveContent = cur?.type === "file-template" ? fileTemplateContentRef.current : editorContentRef.current;
-      setTabs(prev => prev.map(t => t.id === activeTabIdRef.current ? { ...t, content: liveContent } : t));
+      setTabs(prev => prev.map(t => t.id === activeTabIdRef.current ? { ...t, content: editorContentRef.current } : t));
     }
     const tab = tabsRef.current.find(t => t.id === id);
     if (!tab) return;
     setActiveTabId(id);
-    if (tab.type === "file-template") {
-      setFileTemplateContent(tab.content);
-      setOverlayType("file-template");
-    } else {
-      setSelectedPath(tab.path);
-      setEditorContent(tab.content);
-      setSavedContent(tab.savedContent);
-      setFileFrontmatter(tab.frontmatter);
-      setFileBrokenLinks(tab.brokenLinks);
-      setOverlayType("editor");
-    }
+    setSelectedPath(tab.path);
+    setEditorContent(tab.content);
+    setSavedContent(tab.savedContent);
+    setFileBrokenLinks(tab.brokenLinks);
+    setOverlayType("editor");
   }, []);
 
   const handleCloseTab = useCallback((id: string) => {
@@ -227,7 +170,7 @@ export default function App() {
     const tab = allTabs.find(t => t.id === id);
     if (!tab) return;
     const isDirty = id === currentActiveId
-      ? (tab.type === "file-template" ? fileTemplateContentRef.current !== tab.savedContent : editorContentRef.current !== savedContentRef.current)
+      ? editorContentRef.current !== savedContentRef.current
       : tab.content !== tab.savedContent;
     if (isDirty && !window.confirm(`"${tab.path}" has unsaved changes.\n\nClose without saving?`)) return;
     const next = allTabs.filter(t => t.id !== id);
@@ -241,17 +184,11 @@ export default function App() {
         const idx = allTabs.findIndex(t => t.id === id);
         const newActive = next[Math.max(0, idx - 1)];
         setActiveTabId(newActive.id);
-        if (newActive.type === "file-template") {
-          setFileTemplateContent(newActive.content);
-          setOverlayType("file-template");
-        } else {
-          setSelectedPath(newActive.path);
-          setEditorContent(newActive.content);
-          setSavedContent(newActive.savedContent);
-          setFileFrontmatter(newActive.frontmatter);
-          setFileBrokenLinks(newActive.brokenLinks);
-          setOverlayType("editor");
-        }
+        setSelectedPath(newActive.path);
+        setEditorContent(newActive.content);
+        setSavedContent(newActive.savedContent);
+        setFileBrokenLinks(newActive.brokenLinks);
+        setOverlayType("editor");
       }
     }
   }, []);
@@ -278,18 +215,9 @@ export default function App() {
     } catch {}
   }, []);
 
-  const refreshFrontmatterIssues = useCallback(async (project: string) => {
+  const refreshTemplateIssues = useCallback(async (project: string) => {
     try {
-      const items = await fetchCompliance(project);
-      const map: Record<string, boolean> = {};
-      for (const item of items) map[item.path] = true;
-      setFrontmatterIssueMap(map);
-    } catch {}
-  }, []);
-
-  const refreshFileTemplateIssues = useCallback(async (project: string) => {
-    try {
-      const items = await fetchFileTemplateCompliance(project);
+      const items = await fetchTemplateCompliance(project);
       const map: Record<string, boolean> = {};
       for (const item of items) map[item.path] = true;
       setTemplateIssueMap(map);
@@ -298,26 +226,20 @@ export default function App() {
 
   const loadCollection = useCallback(async (project: string) => {
     try {
-      const [c, o, t, ft] = await Promise.all([
+      const [c, o, t] = await Promise.all([
         fetchCollection(project),
         fetchOrphans(project),
         fetchTemplate(project),
-        fetchFileTemplate(project),
       ]);
       setCollection(c);
       setOrphans(o);
-      setTemplate(t);
-      const headings = ft.content
-        ? [...ft.content.matchAll(/^#{2,}\s+(.+)$/mg)].map(m => m[1].trim())
-        : [];
-      setFileTemplateHeadings(headings);
+      setTemplateContent(t.content);
       refreshBrokenLinks(project);
-      refreshFrontmatterIssues(project);
-      refreshFileTemplateIssues(project);
+      refreshTemplateIssues(project);
     } catch {
       setError("Failed to load collection");
     }
-  }, [refreshBrokenLinks, refreshFrontmatterIssues, refreshFileTemplateIssues]);
+  }, [refreshBrokenLinks, refreshTemplateIssues]);
 
   useEffect(() => {
     (async () => {
@@ -356,15 +278,10 @@ export default function App() {
           const activeTab = parsedTabs.find(t => t.id === storedActiveId) ?? parsedTabs[0];
           setTabs(parsedTabs);
           setActiveTabId(activeTab.id);
-          if (activeTab.type === "file-template") {
-            setFileTemplateContent(activeTab.content);
-          } else {
-            setSelectedPath(activeTab.path);
-            setEditorContent(activeTab.content);
-            setSavedContent(activeTab.savedContent);
-            setFileFrontmatter(activeTab.frontmatter);
-            setFileBrokenLinks(activeTab.brokenLinks);
-          }
+          setSelectedPath(activeTab.path);
+          setEditorContent(activeTab.content);
+          setSavedContent(activeTab.savedContent);
+          setFileBrokenLinks(activeTab.brokenLinks);
           if (storedOverlay) setOverlayType(storedOverlay as OverlayType);
           tabsRestoredRef.current = true;
           return;
@@ -438,9 +355,7 @@ export default function App() {
   const handleSelect = useCallback(async (path: string) => {
     if (!currentProject) return;
     if (activeTabIdRef.current) {
-      const cur = tabsRef.current.find(t => t.id === activeTabIdRef.current);
-      const liveContent = cur?.type === "file-template" ? fileTemplateContentRef.current : editorContentRef.current;
-      setTabs(prev => prev.map(t => t.id === activeTabIdRef.current ? { ...t, content: liveContent } : t));
+      setTabs(prev => prev.map(t => t.id === activeTabIdRef.current ? { ...t, content: editorContentRef.current } : t));
     }
     const existing = tabsRef.current.find(t => t.path === path);
     if (existing) {
@@ -448,15 +363,13 @@ export default function App() {
       setSelectedPath(path);
       setEditorContent(existing.content);
       setSavedContent(existing.savedContent);
-      setFileFrontmatter(existing.frontmatter);
       setFileBrokenLinks(existing.brokenLinks);
       setOverlayType("editor");
       localStorage.setItem(LAST_FILE_KEY, path);
       return;
     }
-    const [text, fm, broken] = await Promise.all([
+    const [text, broken] = await Promise.all([
       fetchMarkdown(currentProject, path).catch(() => "# Error loading file"),
-      fetchFileFrontmatter(currentProject, path).catch(() => ({ frontmatter: {} })),
       validateFileLinks(currentProject, path).catch(() => []),
     ]);
     const newTab: EditorTab = {
@@ -466,7 +379,7 @@ export default function App() {
       content: text,
       savedContent: text,
       title: getTitleForPath(path, collection, orphans),
-      frontmatter: fm.frontmatter ?? {},
+      frontmatter: {},
       brokenLinks: broken,
     };
     setTabs(prev => [...prev, newTab]);
@@ -474,7 +387,6 @@ export default function App() {
     setSelectedPath(path);
     setEditorContent(text);
     setSavedContent(text);
-    setFileFrontmatter(fm.frontmatter ?? {});
     setFileBrokenLinks(broken);
     setOverlayType("editor");
     localStorage.setItem(LAST_FILE_KEY, path);
@@ -498,82 +410,22 @@ export default function App() {
     setOverlayType("project-md");
   }, [currentProject]);
 
-  const handleOpenFileTemplate = useCallback(async () => {
-    if (!currentProject) return;
-    if (activeTabIdRef.current) {
-      const cur = tabsRef.current.find(t => t.id === activeTabIdRef.current);
-      const liveContent = cur?.type === "file-template" ? fileTemplateContentRef.current : editorContentRef.current;
-      setTabs(prev => prev.map(t => t.id === activeTabIdRef.current ? { ...t, content: liveContent } : t));
-    }
-    const existing = tabsRef.current.find(t => t.type === "file-template");
-    if (existing) {
-      setActiveTabId(existing.id);
-      setFileTemplateContent(existing.content);
-      setOverlayType("file-template");
-      return;
-    }
-    const ft = await fetchFileTemplate(currentProject);
-    const content = ft.content ?? "# Template\n";
-    const newTab: EditorTab = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      type: "file-template",
-      path: "file-template.md",
-      content, savedContent: content,
-      title: "File Template", frontmatter: {}, brokenLinks: [],
-    };
-    setTabs(prev => [...prev, newTab]);
-    setActiveTabId(newTab.id);
-    setFileTemplateContent(content);
-    setOverlayType("file-template");
-  }, [currentProject]);
-
   const handleYamlSaved = useCallback(() => {
     if (currentProject) loadCollection(currentProject);
   }, [currentProject, loadCollection]);
 
-  const handleFrontmatterChange = useCallback((key: string, value: any) => {
-    const newMeta = { ...fileFrontmatter, [key]: value };
-    setFileFrontmatter(newMeta);
-    // Rebuild content with updated frontmatter (always standard --- format)
-    const lines = editorContentRef.current.split("\n");
-    let bodyStart = 0;
-    if (lines[0]?.trim() === "---") {
-      for (let i = 1; i < lines.length; i++) {
-        if (lines[i].trim() === "---") { bodyStart = i + 1; break; }
-      }
-    } else if (lines[0] && /^\w[\w\s]*:/.test(lines[0])) {
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].trim() === "---") { bodyStart = i + 1; break; }
-      }
-    }
-    const body = lines.slice(bodyStart).join("\n");
-    const yamlLines = Object.entries(newMeta).map(([k, v]) => {
-      if (Array.isArray(v)) return `${k}: [${v.join(", ")}]`;
-      if (typeof v === "boolean") return `${k}: ${v}`;
-      return `${k}: ${v}`;
-    });
-    const newContent = `---\n${yamlLines.join("\n")}\n---\n${body}`;
-    setEditorContent(newContent);
-  }, [fileFrontmatter]);
-
-  const handleSaveTemplate = useCallback(async (t: FrontmatterTemplate) => {
+  const handleSaveTemplate = useCallback(async (content: string) => {
     if (!currentProject) return;
-    await apiSaveTemplate(currentProject, t);
-    setTemplate(t);
+    await saveTemplate(currentProject, content);
+    setTemplateContent(content);
     setShowTemplateEditor(false);
-    await refreshFrontmatterIssues(currentProject);
-  }, [currentProject, refreshFrontmatterIssues]);
+    await refreshTemplateIssues(currentProject);
+  }, [currentProject, refreshTemplateIssues]);
 
   const handleShowCompliance = useCallback(async () => {
     if (!currentProject) return;
-    const items = await fetchCompliance(currentProject);
+    const items = await fetchTemplateCompliance(currentProject);
     setComplianceItems(items);
-  }, [currentProject]);
-
-  const handleShowFileTemplateCompliance = useCallback(async () => {
-    if (!currentProject) return;
-    const items = await fetchFileTemplateCompliance(currentProject);
-    setFileTemplateComplianceItems(items);
   }, [currentProject]);
 
   const handleToggleIndicators = useCallback(() => {
@@ -779,33 +631,16 @@ export default function App() {
 
   const handleUseAsTemplate = useCallback(async () => {
     if (!currentProject || !selectedPath) return;
-    const t = await inferTemplateFromFile(currentProject, selectedPath);
-    setTemplate(t);
-    await apiSaveTemplate(currentProject, t);
-    await refreshFrontmatterIssues(currentProject);
-  }, [currentProject, selectedPath, refreshFrontmatterIssues]);
+    const { content } = await useFileAsTemplate(currentProject, selectedPath);
+    setTemplateContent(content);
+    await refreshTemplateIssues(currentProject);
+  }, [currentProject, selectedPath, refreshTemplateIssues]);
 
   const handleApplyTemplate = useCallback(async () => {
     if (!currentProject || !selectedPath) return;
-    await batchUpdateFrontmatter(currentProject, true, true, [selectedPath]);
-    const text = await fetchMarkdown(currentProject, selectedPath);
-    setEditorContent(text);
-    setSavedContent(text);
-  }, [currentProject, selectedPath]);
-
-  const handleUseAsFileTemplate = useCallback(async () => {
-    if (!currentProject || !editorContent) return;
-    await saveFileTemplate(currentProject, editorContent);
-    const headings = [...editorContent.matchAll(/^#{2,}\s+(.+)$/mg)].map(m => m[1].trim());
-    setFileTemplateHeadings(headings);
-    await refreshFileTemplateIssues(currentProject);
-  }, [currentProject, editorContent, refreshFileTemplateIssues]);
-
-  const handleApplyFileTemplate = useCallback(async () => {
-    if (!currentProject || !selectedPath) return;
-    const result = await applyFileTemplate(currentProject, selectedPath);
-    setEditorContent(result.content);
-    setSavedContent(result.content);
+    const { content } = await applyTemplate(currentProject, selectedPath);
+    setEditorContent(content);
+    setSavedContent(content);
     setTemplateIssueMap(prev => {
       const next = { ...prev };
       delete next[selectedPath];
@@ -813,9 +648,9 @@ export default function App() {
     });
   }, [currentProject, selectedPath]);
 
-  const handleBatchUpdate = useCallback(async (addDefaults: boolean, stripExtra: boolean, files: string[]) => {
+  const handleBatchApply = useCallback(async (files: string[]) => {
     if (!currentProject) return;
-    await batchUpdateFrontmatter(currentProject, addDefaults, stripExtra, files);
+    await batchApplyTemplate(currentProject, files);
     setComplianceItems(null);
     await loadCollection(currentProject);
   }, [currentProject, loadCollection]);
@@ -823,10 +658,6 @@ export default function App() {
   const handleFileSaved = useCallback((path: string, content: string) => {
     setSavedContent(content);
     savedContentRef.current = content;
-    // Re-parse frontmatter from saved content (standard or Jekyll-style)
-    const meta = parseFrontmatterClient(content);
-    setFileFrontmatter(meta);
-    // Re-validate links after save
     if (currentProject) {
       validateFileLinks(currentProject, path).then(broken => {
         setFileBrokenLinks(broken);
@@ -837,29 +668,7 @@ export default function App() {
           return next;
         });
       }).catch(() => {});
-    }
-    // Check frontmatter compliance after save
-    if (template.fields.length > 0) {
-      const expectedKeys = new Set(template.fields.map(f => f.key));
-      const fileKeys = new Set(Object.keys(meta));
-      const hasMissing = [...expectedKeys].some(k => !fileKeys.has(k));
-      const hasExtra = [...fileKeys].some(k => !expectedKeys.has(k));
-      setFrontmatterIssueMap(prev => {
-        const next = { ...prev };
-        if (hasMissing || hasExtra) next[path] = true;
-        else delete next[path];
-        return next;
-      });
-    }
-    if (fileTemplateHeadings.length > 0) {
-      const fileHeadings = new Set([...content.matchAll(/^#{2,}\s+(.+)$/mg)].map(m => m[1].trim()));
-      const hasMissing = fileTemplateHeadings.some(h => !fileHeadings.has(h));
-      setTemplateIssueMap(prev => {
-        const next = { ...prev };
-        if (hasMissing) next[path] = true;
-        else delete next[path];
-        return next;
-      });
+      refreshTemplateIssues(currentProject);
     }
     if (activeTabIdRef.current) {
       const h1Candidate = content.match(/^#\s+(.+)$/m)?.[1]?.trim();
@@ -872,7 +681,7 @@ export default function App() {
     const updateTitle = (nodes: FileNode[]): FileNode[] =>
       nodes.map(n => n.path === path ? { ...n, title: h1 } : { ...n, children: updateTitle(n.children ?? []) });
     setCollection(prev => ({ root: updateTitle(prev.root) }));
-  }, [currentProject, fileTemplateHeadings]);
+  }, [currentProject, refreshTemplateIssues]);
 
   const handleCollectionChange = useCallback(async (c: CollectionStructure) => {
     if (!currentProject) return;
@@ -929,7 +738,6 @@ export default function App() {
           setSelectedPath(newActive.path);
           setEditorContent(newActive.content);
           setSavedContent(newActive.savedContent);
-          setFileFrontmatter(newActive.frontmatter);
           setFileBrokenLinks(newActive.brokenLinks);
           setOverlayType("editor");
         }
@@ -1136,8 +944,6 @@ export default function App() {
           onExport={(fmt) => setExportModal({ format: fmt })}
           onEditTemplate={() => setShowTemplateEditor(true)}
           onCheckCompliance={handleShowCompliance}
-          onViewFileTemplate={handleOpenFileTemplate}
-          onCheckFileTemplateCompliance={handleShowFileTemplateCompliance}
           onRestoreStructure={handleRestoreStructure}
           onRestoreAll={handleRestoreAll}
           onValidateLinks={handleShowLinkReport}
@@ -1157,7 +963,7 @@ export default function App() {
             await loadCollection(currentProject);
           }}
           brokenLinkMap={brokenLinkMap}
-          frontmatterIssueMap={frontmatterIssueMap}
+          frontmatterIssueMap={{}}
           templateIssueMap={templateIssueMap}
           showIndicators={showIndicators}
           onToggleIndicators={handleToggleIndicators}
@@ -1195,7 +1001,7 @@ export default function App() {
               onClick={() => {
                 const activeTab = tabs.find(t => t.id === activeTabId);
                 if (!activeTab) return;
-                setOverlayType(activeTab.type === "file-template" ? "file-template" : "editor");
+                setOverlayType("editor");
               }}
               title="Open editor"
               style={{
@@ -1238,9 +1044,7 @@ export default function App() {
               const tabStyle = TAB_STYLES[i % TAB_STYLES.length];
               const isActive = tab.id === activeTabId;
               const isDirty = tab.id === activeTabId
-                ? (tab.type === "file-template"
-                    ? fileTemplateContent !== (tabs.find(t => t.id === activeTabId)?.savedContent ?? fileTemplateContent)
-                    : editorContent !== savedContent)
+                ? editorContent !== savedContent
                 : tab.content !== tab.savedContent;
               const label = titleMode ? tab.title : tab.path.replace(/\.md$/, "");
               return (
@@ -1331,8 +1135,6 @@ export default function App() {
               onApplyTemplate={handleApplyTemplate}
               onEditTemplate={() => setShowTemplateEditor(true)}
               onViewCompliance={handleShowCompliance}
-              onUseAsFileTemplate={handleUseAsFileTemplate}
-              onApplyFileTemplate={handleApplyFileTemplate}
               onClose={handleCloseOverlay}
               onReport={handleReport}
               onOpenImageBrowser={() => { setImageBrowserTriggerAdd(false); setImageBrowserOpen(true); }}
@@ -1375,27 +1177,6 @@ export default function App() {
                   alert(e.message ?? "Failed to rename project");
                 }
               }}
-            />
-          )}
-          {overlayType === "file-template" && currentProject && (
-            <MarkdownEditor
-              key={`file-template-${currentProject}`}
-              path="file-template.md"
-              content={fileTemplateContent}
-              savedContent={tabs.find(t => t.id === activeTabId && t.type === "file-template")?.savedContent ?? fileTemplateContent}
-              onContentChange={setFileTemplateContent}
-              viMode={viMode}
-              onViModeChange={setViMode}
-              onSave={async (_path, content) => {
-                await saveFileTemplate(currentProject, content);
-                const headings = [...content.matchAll(/^#{2,}\s+(.+)$/mg)].map(m => m[1].trim());
-                setFileTemplateHeadings(headings);
-                await refreshFileTemplateIssues(currentProject);
-                if (activeTabIdRef.current) {
-                  setTabs(prev => prev.map(t => t.id === activeTabIdRef.current ? { ...t, content, savedContent: content } : t));
-                }
-              }}
-              onClose={handleCloseOverlay}
             />
           )}
         </div>
@@ -1457,7 +1238,7 @@ export default function App() {
 
       {showTemplateEditor && (
         <TemplateEditor
-          template={template}
+          content={templateContent}
           onSave={handleSaveTemplate}
           onClose={() => setShowTemplateEditor(false)}
           onViewCompliance={handleShowCompliance}
@@ -1467,15 +1248,8 @@ export default function App() {
       {complianceItems !== null && (
         <ComplianceReport
           items={complianceItems}
-          onBatchUpdate={handleBatchUpdate}
+          onBatchApply={handleBatchApply}
           onClose={() => setComplianceItems(null)}
-        />
-      )}
-
-      {fileTemplateComplianceItems !== null && (
-        <FileTemplateComplianceReport
-          items={fileTemplateComplianceItems}
-          onClose={() => setFileTemplateComplianceItems(null)}
         />
       )}
 

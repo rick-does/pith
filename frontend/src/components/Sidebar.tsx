@@ -83,8 +83,6 @@ interface SidebarProps {
   onExport: (format: "mkdocs" | "docusaurus") => void;
   onEditTemplate: () => void;
   onCheckCompliance: () => void;
-  onViewFileTemplate: () => void;
-  onCheckFileTemplateCompliance: () => void;
   onRestoreStructure: () => void;
   onRestoreAll: () => void;
   onValidateLinks: () => void;
@@ -112,7 +110,7 @@ interface SidebarProps {
   onTitleModeChange: (mode: boolean) => void;
 }
 
-export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onAddFileFromMd, onDeleteFile, onRenameFile, onCreateChildFile, onCopyToChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onRefresh, onImport, onExport, onEditTemplate, onCheckCompliance, onViewFileTemplate, onCheckFileTemplateCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, brokenLinkMap, frontmatterIssueMap, templateIssueMap, showIndicators, onToggleIndicators, roots, currentRoot, onSwitchRoot, onAddRoot, onRemoveRoot, onBrowseImages, onAddImages, onOpenImagesFolder, titleMode, onTitleModeChange }: SidebarProps) {
+export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onAddFileFromMd, onDeleteFile, onRenameFile, onCreateChildFile, onCopyToChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onRefresh, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, brokenLinkMap, frontmatterIssueMap, templateIssueMap, showIndicators, onToggleIndicators, roots, currentRoot, onSwitchRoot, onAddRoot, onRemoveRoot, onBrowseImages, onAddImages, onOpenImagesFolder, titleMode, onTitleModeChange }: SidebarProps) {
   const [orphanSort, setOrphanSort] = useState<"recent" | "alpha" | "custom">("recent");
   const [orphanOrder, setOrphanOrder] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(flatIds(collection.root)));
@@ -551,8 +549,6 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
                   onExport={onExport}
                   onEditTemplate={onEditTemplate}
                   onCheckCompliance={onCheckCompliance}
-                  onViewFileTemplate={onViewFileTemplate}
-                  onCheckFileTemplateCompliance={onCheckFileTemplateCompliance}
                   onRestoreStructure={onRestoreStructure}
                   onRestoreAll={onRestoreAll}
                   onValidateLinks={onValidateLinks}

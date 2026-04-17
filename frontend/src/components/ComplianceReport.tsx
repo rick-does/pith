@@ -1,15 +1,13 @@
 import { useState } from "react";
-import type { ComplianceItem } from "../api";
+import type { TemplateComplianceItem } from "../api";
 
 interface Props {
-  items: ComplianceItem[];
-  onBatchUpdate: (addDefaults: boolean, stripExtra: boolean, files: string[]) => void;
+  items: TemplateComplianceItem[];
+  onBatchApply: (files: string[]) => void;
   onClose: () => void;
 }
 
-export default function ComplianceReport({ items, onBatchUpdate, onClose }: Props) {
-  const [addDefaults, setAddDefaults] = useState(true);
-  const [stripExtra, setStripExtra] = useState(true);
+export default function ComplianceReport({ items, onBatchApply, onClose }: Props) {
   const [selected, setSelected] = useState<Set<string>>(() => new Set(items.map(i => i.path)));
 
   const toggleFile = (path: string) => {
@@ -22,22 +20,16 @@ export default function ComplianceReport({ items, onBatchUpdate, onClose }: Prop
   };
 
   const toggleAll = () => {
-    if (selected.size === items.length) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(items.map(i => i.path)));
-    }
+    setSelected(selected.size === items.length ? new Set() : new Set(items.map(i => i.path)));
   };
 
-  const totalMissing = items.reduce((s, i) => s + i.missing.length, 0);
-  const totalExtra = items.reduce((s, i) => s + i.extra.length, 0);
   const selectedCount = selected.size;
 
   return (
     <div style={backdrop} onClick={onClose}>
       <div style={modal} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <h3 style={{ margin: 0 }}>Frontmatter Compliance</h3>
+          <h3 style={{ margin: 0 }}>Template Compliance</h3>
           <button onClick={onClose} style={closeBtnStyle}>&#10005;</button>
         </div>
 
@@ -47,30 +39,21 @@ export default function ComplianceReport({ items, onBatchUpdate, onClose }: Prop
           <>
             <p style={{ fontSize: 13, color: "#666", marginBottom: 12 }}>
               {items.length} file{items.length !== 1 ? "s" : ""} out of compliance.
-              {totalMissing > 0 && ` ${totalMissing} missing key${totalMissing !== 1 ? "s" : ""}.`}
-              {totalExtra > 0 && ` ${totalExtra} extra key${totalExtra !== 1 ? "s" : ""}.`}
             </p>
 
             <div style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
               <label style={{ fontSize: 12, color: "#1a6fa8", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-                <input
-                  type="checkbox"
-                  checked={selected.size === items.length}
-                  onChange={toggleAll}
-                />
+                <input type="checkbox" checked={selected.size === items.length} onChange={toggleAll} />
                 {selected.size === items.length ? "Deselect all" : "Select all"}
               </label>
               <span style={{ fontSize: 12, color: "#888" }}>({selectedCount} selected)</span>
             </div>
 
-            <div style={{ maxHeight: 350, overflowY: "auto", marginBottom: 16 }}>
+            <div style={{ maxHeight: 380, overflowY: "auto", marginBottom: 16 }}>
               {items.map((item) => (
                 <div
                   key={item.path}
-                  style={{
-                    padding: "8px 0", borderBottom: "1px solid #eee",
-                    opacity: selected.has(item.path) ? 1 : 0.5,
-                  }}
+                  style={{ padding: "8px 0", borderBottom: "1px solid #eee", opacity: selected.has(item.path) ? 1 : 0.5 }}
                 >
                   <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer" }}>
                     <input
@@ -82,18 +65,19 @@ export default function ComplianceReport({ items, onBatchUpdate, onClose }: Prop
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 13, color: "#1a1a1a" }}>{item.title}</div>
                       <div style={{ fontSize: 12, color: "#888" }}>{item.path}</div>
-                      {item.missing.length > 0 && (
+                      {item.missing_keys.length > 0 && (
                         <div style={{ fontSize: 12, color: "#c00", marginTop: 2 }}>
-                          Missing: {item.missing.map(k => (
-                            <span key={k} style={tagStyle}>{k}</span>
-                          ))}
+                          Missing keys: {item.missing_keys.map(k => <span key={k} style={redTag}>{k}</span>)}
                         </div>
                       )}
-                      {item.extra.length > 0 && (
+                      {item.extra_keys.length > 0 && (
                         <div style={{ fontSize: 12, color: "#996600", marginTop: 2 }}>
-                          Extra: {item.extra.map(k => (
-                            <span key={k} style={{ ...tagStyle, background: "#fff3e0", color: "#996600" }}>{k}</span>
-                          ))}
+                          Extra keys: {item.extra_keys.map(k => <span key={k} style={yellowTag}>{k}</span>)}
+                        </div>
+                      )}
+                      {item.missing_headings.length > 0 && (
+                        <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>
+                          Missing headings: {item.missing_headings.map(h => <span key={h} style={grayTag}>{h}</span>)}
                         </div>
                       )}
                     </div>
@@ -102,30 +86,18 @@ export default function ComplianceReport({ items, onBatchUpdate, onClose }: Prop
               ))}
             </div>
 
-            <div style={{ background: "#f8f8f8", padding: 12, borderRadius: 6, marginBottom: 12 }}>
-              <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 8 }}>Batch update options</div>
-              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer", marginBottom: 4 }}>
-                <input type="checkbox" checked={addDefaults} onChange={(e) => setAddDefaults(e.target.checked)} />
-                Add missing keys with default values
-              </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
-                <input type="checkbox" checked={stripExtra} onChange={(e) => setStripExtra(e.target.checked)} />
-                Remove extra keys not in template
-              </label>
+            <div style={{ fontSize: 12, color: "#666", marginBottom: 12 }}>
+              Apply template adds missing frontmatter keys and appends missing headings.
             </div>
 
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button onClick={onClose} style={{ ...actionBtn, background: "#eee", color: "#333" }}>Close</button>
               <button
-                onClick={() => onBatchUpdate(addDefaults, stripExtra, [...selected])}
+                onClick={() => onBatchApply([...selected])}
                 disabled={selectedCount === 0}
-                style={{
-                  ...actionBtn,
-                  opacity: selectedCount === 0 ? 0.5 : 1,
-                  cursor: selectedCount === 0 ? "default" : "pointer",
-                }}
+                style={{ ...actionBtn, opacity: selectedCount === 0 ? 0.5 : 1, cursor: selectedCount === 0 ? "default" : "pointer" }}
               >
-                Update {selectedCount} file{selectedCount !== 1 ? "s" : ""}
+                Apply to {selectedCount} file{selectedCount !== 1 ? "s" : ""}
               </button>
             </div>
           </>
@@ -143,9 +115,17 @@ const modal: React.CSSProperties = {
   background: "#fff", borderRadius: 8, padding: 24, minWidth: 480, maxWidth: 600,
   boxShadow: "0 4px 24px rgba(0,0,0,.2)", maxHeight: "80vh", display: "flex", flexDirection: "column",
 };
-const tagStyle: React.CSSProperties = {
+const redTag: React.CSSProperties = {
   display: "inline-block", padding: "1px 6px", borderRadius: 3,
   background: "#fde8e8", color: "#c00", fontSize: 11, marginLeft: 4,
+};
+const yellowTag: React.CSSProperties = {
+  display: "inline-block", padding: "1px 6px", borderRadius: 3,
+  background: "#fff3e0", color: "#996600", fontSize: 11, marginLeft: 4,
+};
+const grayTag: React.CSSProperties = {
+  display: "inline-block", padding: "1px 6px", borderRadius: 3,
+  background: "#f0f0f0", color: "#555", fontSize: 11, marginLeft: 4,
 };
 const actionBtn: React.CSSProperties = {
   background: "#1a6fa8", color: "#fff", border: "none", borderRadius: 4,

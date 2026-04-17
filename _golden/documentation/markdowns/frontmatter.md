@@ -1,71 +1,59 @@
-# Frontmatter
+# Frontmatter and Templates
 
 PiTH supports YAML frontmatter in markdown files — both the standard format (with opening and closing `---` delimiters) and Jekyll-style (no opening `---`, just key-value lines terminated by `---`).
 
 Frontmatter is automatically stripped from the rendered preview so it doesn't appear in the output.
 
-## The Frontmatter panel
+## The project template
 
-When editing a file, a collapsible **Frontmatter** section appears below the editor toolbar. Click the header to expand or collapse it. The panel contains action buttons for working with the project template. Frontmatter itself is edited directly in the text editor.
+Each project has a single template file (`template.md`) that defines two things:
 
-## Frontmatter templates
+1. **Frontmatter schema** — the YAML keys all project files should have
+2. **Required headings** — the section headings all project files should have
 
-A template defines the expected frontmatter keys for a project — their names, types, and default values. This ensures consistency across all files.
+The default template is:
 
-### Creating a template from an existing file
+```
+---
+Title: <add title>
+---
 
-The easiest way to set up a template:
+# Title
+```
 
-1. Open a file that already has the frontmatter structure you want
-2. Expand the Frontmatter panel in the editor
-3. Click **Use as template**
+New files created in the project are pre-populated from this template, with the title heading automatically set to the filename.
 
-The file's frontmatter keys, types, and values become the project template.
+## Managing the template
 
-### Applying the template to the current file
+### From the Template tab (editor)
 
-Click **Apply template** in the Frontmatter panel. This adds any missing template keys (with their default values) and removes any keys not in the template, for the current file only.
+While editing a file, open the **Template** tab in the editor sub-bar. From there:
 
-### Editing the template manually
+- **Apply template** — adds missing frontmatter keys and missing headings to the current file
+- **Use as template** — extracts the current file's frontmatter block and headings and saves them as the project template
+- **View template** — opens the template in a markdown editor modal
+- **View compliance** — opens the compliance report
 
-Click **View template** in the Frontmatter panel, or click **⋮** on the project chip and choose **Frontmatter → Template**. In the template editor you can:
+### From the project menu
 
-- Add, remove, or reorder fields
-- Set the key name, type (string, list, enum, boolean, date), and default value
-- For enum types, define the allowed options
+Click **⋮** on the project chip and choose **Template → View template** or **Template → Compliance**.
 
-### Supported types
+### Editing the template directly
 
-| Type | Default |
-|------|---------|
-| string | Empty string |
-| list | Empty list |
-| enum | First defined option |
-| boolean | false |
-| date | Empty string |
+The template is a plain markdown file. Open it via **View template** and edit the frontmatter block and/or add heading lines. Save to update the project template. The frontmatter keys and headings you define become the compliance requirements for all project files.
 
 ## Compliance
 
-Click **View compliance** in the Frontmatter panel, or click **⋮** on the project chip and choose **Frontmatter → Compliance**, to scan all files against the current template. The report shows files with:
+The compliance report scans all files in the project against the current template and shows:
 
-- **Missing keys** — keys in the template that a file doesn't have
-- **Extra keys** — keys in a file that aren't in the template
+- **Missing keys** — frontmatter keys in the template that a file is missing
+- **Extra keys** — frontmatter keys in a file that aren't in the template
+- **Missing headings** — headings required by the template that a file doesn't have
 
-### Selective batch update
-
-Each file in the compliance report has a checkbox. Select the files you want to update, then choose:
-
-- **Add missing keys with default values** — fills in template keys that the file is missing
-- **Remove extra keys not in template** — strips keys that aren't in the template (checked by default)
-
-Click **Update** to apply changes to the selected files. Key order follows the template.
+Select the files you want to fix and click **Apply to N files**. Applying adds missing frontmatter keys and appends missing heading sections.
 
 ## Status indicators
 
-Frontmatter compliance is one of three checks reflected in the status indicator on each file chip. If a file's frontmatter is non-compliant, the chip shows a yellow ⚠. Hover the indicator to see a popup with three rows — **Frontmatter**, **Template**, and **Links** — each showing a green circle (passing) or warning icon (failing).
+Template compliance is reflected in the status indicator on each file chip. If a file is out of compliance, the chip shows a yellow ⚠. Hover the indicator to see a popup with the compliance details and link check results.
 
-A red ⚠ on the chip means the file has broken links, which takes priority over the yellow frontmatter warning. See [Link Validation](link-validation.md) for details on the full indicator scheme.
-
-## New files
-
-New files are pre-populated from the project's file structure template if one is set, or with a title heading only if not. To apply the frontmatter template to a new file, open it and click **Apply template** in the Frontmatter panel. See [Building Your Hierarchy](hierarchy.md) for how to create files and [Template](editing.md#template) for the file structure template.
+A red ⚠ on the chip means the file has broken links, which takes priority over the yellow compliance warning. See [Link Validation](link-validation.md) for details.

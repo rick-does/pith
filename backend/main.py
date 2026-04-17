@@ -18,8 +18,6 @@ from .models import CollectionStructure, FileNode
 from .utils import (
     archive_file,
     archive_project,
-    batch_update_frontmatter,
-    infer_template_from_file,
     create_project,
     delete_project,
     import_markdowns,
@@ -35,18 +33,17 @@ from .utils import (
     get_projects_dir,
     list_projects,
     load_collection,
-    load_template,
-    load_file_template,
-    save_file_template,
-    delete_file_template,
-    scan_file_template_compliance,
-    apply_file_template,
+    load_unified_template,
+    save_unified_template,
+    delete_unified_template,
+    extract_for_use_as_template,
+    scan_unified_compliance,
+    apply_unified_template,
+    batch_apply_unified_template,
     parse_frontmatter,
     rename_file,
     safe_path,
     save_collection,
-    save_template,
-    scan_compliance,
     iter_md_files,
     validate_file_links,
     validate_project_links,
@@ -515,35 +512,71 @@ async def api_search(project: str, q: str = ""):
     return results[:50]
 
 # ---------------------------------------------------------------------------
-# Frontmatter template
+# Unified template
 # ---------------------------------------------------------------------------
 
-@app.get("/api/projects/{project}/frontmatter-template")
+@app.get("/api/projects/{project}/template")
 async def api_get_template(project: str):
     if not (get_projects_dir() / project).exists():
         raise HTTPException(404, "Project not found")
-    return load_template(project)
+    return {"content": load_unified_template(project)}
 
 
-@app.put("/api/projects/{project}/frontmatter-template")
+@app.put("/api/projects/{project}/template")
 async def api_save_template(project: str, request: Request):
     if not (get_projects_dir() / project).exists():
         raise HTTPException(404, "Project not found")
     data = await request.json()
-    save_template(project, data)
+    save_unified_template(project, data["content"])
     return {"status": "saved"}
 
 
-@app.post("/api/projects/{project}/frontmatter-template/from-file/{file_path:path}")
-async def api_infer_template(project: str, file_path: str):
+@app.delete("/api/projects/{project}/template")
+async def api_delete_template(project: str):
+    if not (get_projects_dir() / project).exists():
+        raise HTTPException(404, "Project not found")
+    delete_unified_template(project)
+    return {"status": "deleted"}
+
+
+@app.get("/api/projects/{project}/template/compliance")
+async def api_template_compliance(project: str):
+    if not (get_projects_dir() / project).exists():
+        raise HTTPException(404, "Project not found")
+    return scan_unified_compliance(project)
+
+
+@app.post("/api/projects/{project}/template/apply/{file_path:path}")
+async def api_apply_template(project: str, file_path: str):
     if not (get_projects_dir() / project).exists():
         raise HTTPException(404, "Project not found")
     fp = safe_path(project, file_path)
     if not fp.exists():
         raise HTTPException(404, "File not found")
-    template = infer_template_from_file(project, file_path)
-    save_template(project, template)
-    return template
+    content = apply_unified_template(project, file_path)
+    return {"content": content}
+
+
+@app.post("/api/projects/{project}/template/batch-apply")
+async def api_batch_apply_template(project: str, request: Request):
+    if not (get_projects_dir() / project).exists():
+        raise HTTPException(404, "Project not found")
+    data = await request.json()
+    updated = batch_apply_unified_template(project, data.get("files", []))
+    return {"updated": updated, "count": len(updated)}
+
+
+@app.post("/api/projects/{project}/template/from-file/{file_path:path}")
+async def api_template_from_file(project: str, file_path: str):
+    if not (get_projects_dir() / project).exists():
+        raise HTTPException(404, "Project not found")
+    fp = safe_path(project, file_path)
+    if not fp.exists():
+        raise HTTPException(404, "File not found")
+    content = fp.read_text(encoding="utf-8")
+    extracted = extract_for_use_as_template(content)
+    save_unified_template(project, extracted)
+    return {"content": extracted}
 
 
 @app.get("/api/projects/{project}/frontmatter/{file_path:path}")
@@ -554,74 +587,6 @@ async def api_get_file_frontmatter(project: str, file_path: str):
     content = fp.read_text(encoding="utf-8")
     meta, _ = parse_frontmatter(content)
     return {"path": file_path, "frontmatter": meta}
-
-
-@app.get("/api/projects/{project}/frontmatter-compliance")
-async def api_compliance(project: str):
-    if not (get_projects_dir() / project).exists():
-        raise HTTPException(404, "Project not found")
-    template = load_template(project)
-    return scan_compliance(project, template)
-
-
-@app.post("/api/projects/{project}/frontmatter-batch-update")
-async def api_batch_update(project: str, request: Request):
-    if not (get_projects_dir() / project).exists():
-        raise HTTPException(404, "Project not found")
-    data = await request.json()
-    template = load_template(project)
-    updated = batch_update_frontmatter(
-        project, template,
-        add_defaults=data.get("add_defaults", True),
-        strip_extra=data.get("strip_extra", False),
-        only_files=data.get("files"),
-    )
-    return {"updated": updated, "count": len(updated)}
-
-
-# File template
-# ---------------------------------------------------------------------------
-
-@app.get("/api/projects/{project}/file-template")
-async def api_get_file_template(project: str):
-    if not (get_projects_dir() / project).exists():
-        raise HTTPException(404, "Project not found")
-    return {"content": load_file_template(project)}
-
-
-@app.put("/api/projects/{project}/file-template")
-async def api_save_file_template(project: str, request: Request):
-    if not (get_projects_dir() / project).exists():
-        raise HTTPException(404, "Project not found")
-    data = await request.json()
-    save_file_template(project, data["content"])
-    return {"status": "saved"}
-
-
-@app.delete("/api/projects/{project}/file-template")
-async def api_delete_file_template(project: str):
-    if not (get_projects_dir() / project).exists():
-        raise HTTPException(404, "Project not found")
-    delete_file_template(project)
-    return {"status": "deleted"}
-
-
-@app.get("/api/projects/{project}/file-template/compliance")
-async def api_file_template_compliance(project: str):
-    if not (get_projects_dir() / project).exists():
-        raise HTTPException(404, "Project not found")
-    return scan_file_template_compliance(project)
-
-
-@app.post("/api/projects/{project}/file-template/apply/{file_path:path}")
-async def api_apply_file_template(project: str, file_path: str):
-    if not (get_projects_dir() / project).exists():
-        raise HTTPException(404, "Project not found")
-    fp = safe_path(project, file_path)
-    if not fp.exists():
-        raise HTTPException(404, "File not found")
-    content = apply_file_template(project, file_path)
-    return {"content": content}
 
 
 @app.post("/api/projects/documentation/restore-structure")
@@ -723,13 +688,10 @@ async def api_create_markdown(project: str, file_path: str):
         raise HTTPException(409, "File already exists")
     fp.parent.mkdir(parents=True, exist_ok=True)
     title = Path(file_path).stem.replace("-", " ").replace("_", " ").title()
-    tmpl = load_file_template(project)
-    if tmpl:
-        content = re.sub(r'^#\s+.+$', f'# {title}', tmpl, count=1, flags=re.MULTILINE)
-        if not re.search(r'^#\s+', content, re.MULTILINE):
-            content = f"# {title}\n{content}"
-    else:
-        content = f"# {title}\n"
+    tmpl = load_unified_template(project)
+    content = re.sub(r'^#\s+.+$', f'# {title}', tmpl, count=1, flags=re.MULTILINE)
+    if not re.search(r'^#\s+', content, re.MULTILINE):
+        content = f"# {title}\n{content}"
     fp.write_text(content, encoding="utf-8")
     return {"path": file_path, "status": "created"}
 
