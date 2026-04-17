@@ -43,7 +43,7 @@ See `FEATURES.md` for implementation details on any of the above.
 - Backend overwrites runtime copy from golden on first launch and Restore Docs (unconditional)
 
 **Open items:**
-- Tab alignment: minor glyph offset in vertical tabs; `translateX(-2px)` compensator in place, may need tuning.
+- Cross-platform testing + pywebview testing in progress (next session).
 
 **Analysis (pith only, no pith-cli dependency):** Uses `textstat` + `markdown`. No spaCy anywhere in pith.
 
