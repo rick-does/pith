@@ -42,6 +42,20 @@ export async function fetchConfig(): Promise<{ roots: RootInfo[]; active_root: s
   return r.json();
 }
 
+export async function fetchPrefs(): Promise<Record<string, unknown>> {
+  const r = await fetch(`${BASE}/prefs`);
+  if (!r.ok) return {};
+  return r.json();
+}
+
+export async function savePrefs(prefs: Record<string, unknown>): Promise<void> {
+  await fetch(`${BASE}/prefs`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(prefs),
+  });
+}
+
 export async function fetchRoots(): Promise<RootInfo[]> {
   const r = await fetch(`${BASE}/roots`);
   if (!r.ok) throw new Error("Failed to fetch roots");
@@ -285,28 +299,32 @@ export async function fetchTemplateCompliance(project: string): Promise<Template
   return r.json();
 }
 
-export async function applyTemplate(project: string, path: string, removeExtra = false): Promise<{ content: string }> {
+export async function applyTemplate(project: string, path: string, removeExtra = false, applyFm = true, appendBody = true): Promise<{ content: string }> {
   const r = await fetch(`${BASE}/projects/${project}/template/apply/${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ remove_extra: removeExtra }),
+    body: JSON.stringify({ remove_extra: removeExtra, apply_fm: applyFm, append_body: appendBody }),
   });
   if (!r.ok) throw new Error("Failed to apply template");
   return r.json();
 }
 
-export async function batchApplyTemplate(project: string, files: string[], removeExtra = false): Promise<{ updated: string[]; count: number }> {
+export async function batchApplyTemplate(project: string, files: string[], removeExtra = false, applyFm = true, appendBody = true): Promise<{ updated: string[]; count: number }> {
   const r = await fetch(`${BASE}/projects/${project}/template/batch-apply`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ files, remove_extra: removeExtra }),
+    body: JSON.stringify({ files, remove_extra: removeExtra, apply_fm: applyFm, append_body: appendBody }),
   });
   if (!r.ok) throw new Error("Batch apply failed");
   return r.json();
 }
 
-export async function useFileAsTemplate(project: string, path: string): Promise<{ content: string }> {
-  const r = await fetch(`${BASE}/projects/${project}/template/from-file/${path}`, { method: "POST" });
+export async function useFileAsTemplate(project: string, path: string, content?: string): Promise<{ content: string }> {
+  const r = await fetch(`${BASE}/projects/${project}/template/from-file/${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(content !== undefined ? { content } : {}),
+  });
   if (!r.ok) throw new Error("Failed to save as template");
   return r.json();
 }

@@ -24,6 +24,7 @@ import {
   flattenHierarchy, restoreHierarchy, checkHierarchyBackup,
   fetchConfig, fetchRoots, addRoot, removeRoot, switchRoot, setLastProject,
   uploadImages, openImagesFolder,
+  fetchPrefs, savePrefs,
 } from "./api";
 import type { CollectionStructure, FileInfo, FileNode, ProjectInfo } from "./types";
 import type { TemplateComplianceItem, FileLinkReport, BrokenLink, RootInfo } from "./api";
@@ -85,6 +86,11 @@ export default function App() {
   const [templateContent, setTemplateContent] = useState("");
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
   const [complianceItems, setComplianceItems] = useState<TemplateComplianceItem[] | null>(null);
+  const [templatePrefs, setTemplatePrefs] = useState({ applyFm: true, removeExtra: true, appendBody: false });
+  const handlePrefsChange = useCallback((prefs: typeof templatePrefs) => {
+    setTemplatePrefs(prefs);
+    savePrefs({ apply_fm: prefs.applyFm, remove_extra: prefs.removeExtra, append_body: prefs.appendBody });
+  }, []);
   const [linkReport, setLinkReport] = useState<FileLinkReport[] | null>(null);
   const [fileBrokenLinks, setFileBrokenLinks] = useState<BrokenLink[]>([]);
   const [brokenLinkMap, setBrokenLinkMap] = useState<Record<string, number>>({});
@@ -250,7 +256,14 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        const [cfg, ps] = await Promise.all([fetchConfig(), listProjects()]);
+        const [cfg, ps, prefs] = await Promise.all([fetchConfig(), listProjects(), fetchPrefs()]);
+        if (prefs && typeof prefs === "object") {
+          setTemplatePrefs(prev => ({
+            applyFm: "apply_fm" in prefs ? Boolean(prefs.apply_fm) : prev.applyFm,
+            removeExtra: "remove_extra" in prefs ? Boolean(prefs.remove_extra) : prev.removeExtra,
+            appendBody: "append_body" in prefs ? Boolean(prefs.append_body) : prev.appendBody,
+          }));
+        }
         const rootList = cfg.roots.map((r: RootInfo) => ({ ...r, active: r.path === cfg.active_root }));
         setRoots(rootList);
         setCurrentRoot(cfg.active_root);
@@ -637,26 +650,39 @@ export default function App() {
 
   const handleUseAsTemplate = useCallback(async () => {
     if (!currentProject || !selectedPath) return;
-    const { content } = await useFileAsTemplate(currentProject, selectedPath);
+    const { content } = await useFileAsTemplate(currentProject, selectedPath, editorContent);
     setTemplateContent(content);
     await refreshTemplateIssues(currentProject);
-  }, [currentProject, selectedPath, refreshTemplateIssues]);
+  }, [currentProject, selectedPath, editorContent, refreshTemplateIssues]);
 
-  const handleApplyTemplate = useCallback(async () => {
+  const handleApplyTemplate = useCallback(async (removeExtra = false, applyFm = true, appendBody = true) => {
     if (!currentProject || !selectedPath) return;
-    const { content } = await applyTemplate(currentProject, selectedPath);
+    const { content } = await applyTemplate(currentProject, selectedPath, removeExtra, applyFm, appendBody);
     setEditorContent(content);
-    setSavedContent(content);
     setFrontmatterIssueMap(prev => { const next = { ...prev }; delete next[selectedPath]; return next; });
     setTemplateIssueMap(prev => { const next = { ...prev }; delete next[selectedPath]; return next; });
   }, [currentProject, selectedPath]);
 
-  const handleBatchApply = useCallback(async (files: string[], removeExtra: boolean) => {
+  const handleBatchApply = useCallback(async (files: string[], removeExtra: boolean, applyFm = true, appendBody = true) => {
     if (!currentProject) return;
-    await batchApplyTemplate(currentProject, files, removeExtra);
+    await batchApplyTemplate(currentProject, files, removeExtra, applyFm, appendBody);
     setComplianceItems(null);
-    await loadCollection(currentProject);
-  }, [currentProject, loadCollection]);
+    await Promise.all([loadCollection(currentProject), refreshTemplateIssues(currentProject), refreshBrokenLinks(currentProject)]);
+    const fileSet = new Set(files);
+    const openAffected = tabs.filter(t => t.type === "editor" && fileSet.has(t.path));
+    if (openAffected.length > 0) {
+      const updates = await Promise.all(
+        openAffected.map(t => fetchMarkdown(currentProject, t.path).then(text => ({ path: t.path, text })))
+      );
+      const updateMap = new Map(updates.map(u => [u.path, u.text]));
+      setTabs(prev => prev.map(t => updateMap.has(t.path) ? { ...t, content: updateMap.get(t.path)!, savedContent: updateMap.get(t.path)! } : t));
+      if (selectedPath && updateMap.has(selectedPath)) {
+        const text = updateMap.get(selectedPath)!;
+        setEditorContent(text);
+        setSavedContent(text);
+      }
+    }
+  }, [currentProject, loadCollection, refreshTemplateIssues, refreshBrokenLinks, selectedPath, tabs]);
 
   const handleFileSaved = useCallback((path: string, content: string) => {
     setSavedContent(content);
@@ -1245,6 +1271,9 @@ export default function App() {
           onSave={handleSaveTemplate}
           onClose={() => setShowTemplateEditor(false)}
           onViewCompliance={handleShowCompliance}
+          onApply={selectedPath ? (removeExtra, applyFm, appendBody) => handleApplyTemplate(removeExtra, applyFm, appendBody) : undefined}
+          prefs={templatePrefs}
+          onPrefsChange={handlePrefsChange}
         />
       )}
 
@@ -1253,6 +1282,9 @@ export default function App() {
           items={complianceItems}
           onBatchApply={handleBatchApply}
           onClose={() => setComplianceItems(null)}
+          onViewTemplate={() => { setComplianceItems(null); setShowTemplateEditor(true); }}
+          prefs={templatePrefs}
+          onPrefsChange={handlePrefsChange}
         />
       )}
 

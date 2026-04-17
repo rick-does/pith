@@ -51,12 +51,12 @@ Below the editor toolbar is a bar with the following tabs: **Template**, **Stats
 
 The **Template** tab shows action buttons for working with the project template:
 
-- **Apply template** — adds any missing frontmatter keys and any missing headings to this file, based on the project template
-- **Use as template** — extracts the current file's frontmatter block and heading structure and saves it as the project template
-- **View template** — opens the project template in a markdown editor modal
-- **View compliance** — opens the compliance report showing which files are missing required keys or headings
+- **Apply template** — applies the template to this file using the currently configured options
+- **Use as template** — copies this file's full content to `template.md`, replacing the previous template
+- **View template** — opens the project template in an editor modal, where you can edit the template, configure apply options, and click **Apply to open file** to apply directly to the file you have open
+- **View compliance** — opens the compliance report showing which files are out of compliance given the current apply options
 
-Frontmatter is edited directly in the text editor. The preview pane strips it from the rendered output. See [Frontmatter and Templates](frontmatter.md) for full details.
+Frontmatter is edited directly in the text editor. The preview pane strips it from the rendered output. See [Frontmatter and Templates](frontmatter.md) for full details on apply options, compliance, and how the template system works.
 
 ## Stats
 

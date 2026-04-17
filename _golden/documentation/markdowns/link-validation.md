@@ -12,7 +12,7 @@ Every file chip in the hierarchy shows a single status indicator to the left of 
 | Yellow ⚠ | Style issue — frontmatter or file template is non-compliant (no broken links) |
 | Red ⚠ | Broken links found (takes priority over yellow) |
 
-Hover over the indicator to see a popup with three rows — **Frontmatter**, **Template**, and **Links** — each showing its own green circle or warning icon. This lets you see at a glance which checks are passing and which are not.
+Hover over the indicator to see a popup with three rows — **Frontmatter**, **Structure**, and **Links** — each showing its own green circle or warning icon. Frontmatter checks key compliance; Structure checks required headings from the template. This lets you see at a glance which checks are passing and which are not.
 
 In the Unlinked pane, the indicator appears when you hover over a chip, select it, or hover over the **eye icon** on the Unlinked header to reveal all at once.
 

@@ -115,6 +115,21 @@ async def get_config():
     return cfg
 
 
+@app.get("/api/prefs")
+async def get_prefs():
+    cfg = load_config()
+    return cfg.get("prefs", {})
+
+
+@app.put("/api/prefs")
+async def put_prefs(request: Request):
+    data = await request.json()
+    cfg = load_config()
+    cfg.setdefault("prefs", {}).update(data)
+    save_config(cfg)
+    return cfg["prefs"]
+
+
 @app.get("/api/roots")
 async def get_roots():
     cfg = load_config()
@@ -556,9 +571,14 @@ async def api_apply_template(project: str, file_path: str, request: Request):
     try:
         data = await request.json()
         remove_extra = bool(data.get("remove_extra", False))
+        apply_fm = bool(data.get("apply_fm", True))
+        append_body = bool(data.get("append_body", True))
     except Exception:
         remove_extra = False
-    content = apply_unified_template(project, file_path, remove_extra=remove_extra)
+        apply_fm = True
+        append_body = True
+    content = apply_unified_template(project, file_path, remove_extra=remove_extra,
+                                     apply_fm=apply_fm, append_body=append_body)
     return {"content": content}
 
 
@@ -568,21 +588,29 @@ async def api_batch_apply_template(project: str, request: Request):
         raise HTTPException(404, "Project not found")
     data = await request.json()
     remove_extra = bool(data.get("remove_extra", False))
-    updated = batch_apply_unified_template(project, data.get("files", []), remove_extra=remove_extra)
+    apply_fm = bool(data.get("apply_fm", True))
+    append_body = bool(data.get("append_body", True))
+    updated = batch_apply_unified_template(project, data.get("files", []), remove_extra=remove_extra,
+                                           apply_fm=apply_fm, append_body=append_body)
     return {"updated": updated, "count": len(updated)}
 
 
 @app.post("/api/projects/{project}/template/from-file/{file_path:path}")
-async def api_template_from_file(project: str, file_path: str):
+async def api_template_from_file(project: str, file_path: str, request: Request):
     if not (get_projects_dir() / project).exists():
         raise HTTPException(404, "Project not found")
-    fp = safe_path(project, file_path)
-    if not fp.exists():
-        raise HTTPException(404, "File not found")
-    content = fp.read_text(encoding="utf-8")
-    extracted = extract_for_use_as_template(content)
-    save_unified_template(project, extracted)
-    return {"content": extracted}
+    try:
+        data = await request.json()
+        content = data.get("content") if isinstance(data, dict) else None
+    except Exception:
+        content = None
+    if content is None:
+        fp = safe_path(project, file_path)
+        if not fp.exists():
+            raise HTTPException(404, "File not found")
+        content = fp.read_text(encoding="utf-8")
+    save_unified_template(project, content)
+    return {"content": content}
 
 
 @app.get("/api/projects/{project}/frontmatter/{file_path:path}")

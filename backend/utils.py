@@ -352,28 +352,31 @@ def delete_unified_template(project: str) -> None:
 
 
 def extract_for_use_as_template(content: str) -> str:
-    """Strip a file down to its frontmatter block + headings only."""
+    """Extract file as a template: FM keys with empty values, h1 normalized, h2+ with body text."""
     meta, body = parse_frontmatter(content)
     lines: list[str] = []
     if meta:
         lines.append("---")
-        for key, value in meta.items():
-            if isinstance(value, list):
-                lines.append(f"{key}:")
-                for item in value:
-                    lines.append(f"  - {item}")
-            elif isinstance(value, bool):
-                lines.append(f"{key}: {str(value).lower()}")
-            elif value is None:
-                lines.append(f"{key}:")
-            else:
-                lines.append(f"{key}: {value}")
+        for key in meta.keys():
+            lines.append(f"{key}:")
         lines.append("---")
         lines.append("")
-    for line in body.split("\n"):
-        if re.match(r"^#{1,}\s+", line):
-            lines.append(line)
-            lines.append("")
+    parts = re.split(r'(^#{1,}\s+.+$)', body, flags=re.MULTILINE)
+    i = 1
+    while i < len(parts):
+        heading = parts[i].strip()
+        section_body = parts[i + 1].strip() if i + 1 < len(parts) else ""
+        m = re.match(r'^(#+)\s+', heading)
+        if m:
+            if len(m.group(1)) == 1:
+                lines.append("# Title")
+            else:
+                lines.append(heading)
+                if section_body:
+                    lines.append("")
+                    lines.append(section_body)
+        lines.append("")
+        i += 2
     return "\n".join(lines).strip() + "\n"
 
 
@@ -415,63 +418,66 @@ def scan_unified_compliance(project: str) -> list[dict]:
 def _extract_template_sections(template_body: str) -> dict:
     """Return {heading_title: full_section_text} for each h2+ heading in template body."""
     sections = {}
+    # Split on h2+ headings; capturing group means parts alternates [pre, heading, body, heading, body, ...]
     parts = re.split(r'(^#{2,}\s+.+$)', template_body, flags=re.MULTILINE)
-    i = 0
+    # parts[0] is pre-heading text; headings start at index 1 and step by 2
+    i = 1
     while i < len(parts):
-        m = re.match(r'^(#{2,}\s+(.+))$', parts[i].strip())
-        if m:
-            title = m.group(2).strip()
-            heading_line = m.group(1)
-            body_part = parts[i + 1].strip() if i + 1 < len(parts) else ""
-            sections[title] = (heading_line + "\n\n" + body_part).strip() + "\n" if body_part else heading_line + "\n"
+        heading_line = parts[i].strip()
+        m = re.match(r'^#{2,}\s+(.+)$', heading_line)
+        if not m:
             i += 2
+            continue
+        title = m.group(1).strip()
+        body_part = parts[i + 1].strip() if i + 1 < len(parts) else ""
+        if body_part:
+            sections[title] = heading_line + "\n\n" + body_part + "\n"
         else:
-            i += 1
+            sections[title] = heading_line + "\n"
+        i += 2
     return sections
 
 
-def apply_unified_template(project: str, rel_path: str, remove_extra: bool = False) -> str:
-    """Add missing frontmatter keys, optionally remove extra keys, and append missing sections."""
+def apply_unified_template(project: str, rel_path: str, remove_extra: bool = False,
+                           apply_fm: bool = True, append_body: bool = True) -> str:
     fp = safe_path(project, rel_path)
     content = fp.read_text(encoding="utf-8")
     template_content = load_unified_template(project)
     tm_meta, tm_body = parse_frontmatter(template_content)
 
-    meta, _ = parse_frontmatter(content)
-    changed = False
-    for key, default_val in tm_meta.items():
-        if key not in meta:
-            meta[key] = default_val
-            changed = True
-    if remove_extra and tm_meta:
-        for k in [k for k in list(meta.keys()) if k not in tm_meta]:
-            del meta[k]
-            changed = True
-    if changed:
-        content = set_frontmatter(content, meta)
+    original = content
 
-    _, body = parse_frontmatter(content)
-    file_headings = {m.group(1).strip() for m in re.finditer(r'^#{2,}\s+(.+)$', body, re.MULTILINE)}
-    template_sections = _extract_template_sections(tm_body)
-    template_heading_order = [m.group(1).strip() for m in re.finditer(r'^#{2,}\s+(.+)$', tm_body, re.MULTILINE)]
-    missing_sections = [
-        template_sections.get(h, h)
-        for h in template_heading_order
-        if h not in file_headings
-    ]
-    if missing_sections:
-        content = content.rstrip() + "\n\n" + "\n\n".join(s.strip() for s in missing_sections) + "\n"
+    if apply_fm:
+        meta, _ = parse_frontmatter(content)
+        changed = False
+        for key, default_val in tm_meta.items():
+            if key not in meta:
+                meta[key] = default_val
+                changed = True
+        if remove_extra and tm_meta:
+            for k in [k for k in list(meta.keys()) if k not in tm_meta]:
+                del meta[k]
+                changed = True
+        if changed:
+            content = set_frontmatter(content, meta)
 
-    fp.write_text(content, encoding="utf-8")
+    if append_body:
+        body_to_append = re.sub(r'^#[^#][^\n]*\n?', '', tm_body.lstrip('\n'), count=1).strip()
+        if body_to_append:
+            content = content.rstrip() + "\n\n---\n\n*Template content begins here*\n\n" + body_to_append + "\n"
+
+    if content != original:
+        fp.write_text(content, encoding="utf-8")
     return content
 
 
-def batch_apply_unified_template(project: str, files: list[str], remove_extra: bool = False) -> list[str]:
-    """Apply unified template to a list of files. Returns paths that were updated."""
+def batch_apply_unified_template(project: str, files: list[str], remove_extra: bool = False,
+                                 apply_fm: bool = True, append_body: bool = True) -> list[str]:
     updated = []
     for rel_path in files:
         try:
-            apply_unified_template(project, rel_path, remove_extra=remove_extra)
+            apply_unified_template(project, rel_path, remove_extra=remove_extra,
+                                   apply_fm=apply_fm, append_body=append_body)
             updated.append(rel_path)
         except Exception:
             pass

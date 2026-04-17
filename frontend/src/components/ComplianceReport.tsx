@@ -1,15 +1,35 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { TemplateComplianceItem } from "../api";
+
+export interface TemplatePrefs {
+  applyFm: boolean;
+  removeExtra: boolean;
+  appendBody: boolean;
+}
 
 interface Props {
   items: TemplateComplianceItem[];
-  onBatchApply: (files: string[], removeExtra: boolean) => void;
+  onBatchApply: (files: string[], removeExtra: boolean, applyFm: boolean, appendBody: boolean) => void;
   onClose: () => void;
+  onViewTemplate?: () => void;
+  prefs: TemplatePrefs;
+  onPrefsChange: (prefs: TemplatePrefs) => void;
 }
 
-export default function ComplianceReport({ items, onBatchApply, onClose }: Props) {
-  const [selected, setSelected] = useState<Set<string>>(() => new Set(items.map(i => i.path)));
-  const [removeExtra, setRemoveExtra] = useState(false);
+export default function ComplianceReport({ items, onBatchApply, onClose, onViewTemplate, prefs, onPrefsChange }: Props) {
+  const set = (patch: Partial<TemplatePrefs>) => onPrefsChange({ ...prefs, ...patch });
+
+  const visibleItems = items.filter(item => {
+    const hasFm = prefs.applyFm && (item.missing_keys.length > 0 || (prefs.removeExtra && item.extra_keys.length > 0));
+    const hasBody = prefs.appendBody && item.missing_headings.length > 0;
+    return hasFm || hasBody;
+  });
+
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(visibleItems.map(i => i.path)));
+
+  useEffect(() => {
+    setSelected(new Set(visibleItems.map(i => i.path)));
+  }, [prefs.applyFm, prefs.removeExtra, prefs.appendBody]);
 
   const toggleFile = (path: string) => {
     setSelected(prev => {
@@ -21,7 +41,7 @@ export default function ComplianceReport({ items, onBatchApply, onClose }: Props
   };
 
   const toggleAll = () => {
-    setSelected(selected.size === items.length ? new Set() : new Set(items.map(i => i.path)));
+    setSelected(selected.size === visibleItems.length ? new Set() : new Set(visibleItems.map(i => i.path)));
   };
 
   const selectedCount = selected.size;
@@ -34,24 +54,25 @@ export default function ComplianceReport({ items, onBatchApply, onClose }: Props
           <button onClick={onClose} style={closeBtnStyle}>&#10005;</button>
         </div>
 
-        {items.length === 0 ? (
-          <p style={{ color: "#3a7d44", fontSize: 14 }}>All files match the template.</p>
-        ) : (
-          <>
-            <p style={{ fontSize: 13, color: "#666", marginBottom: 12 }}>
-              {items.length} file{items.length !== 1 ? "s" : ""} out of compliance.
-            </p>
+        <>
+          {visibleItems.length === 0 ? (
+            <p style={{ color: "#3a7d44", fontSize: 14, marginBottom: 16 }}>All files conform to the selected checks.</p>
+          ) : (
+            <>
+              <p style={{ fontSize: 13, color: "#666", marginBottom: 12 }}>
+                {visibleItems.length} file{visibleItems.length !== 1 ? "s" : ""} out of compliance.
+              </p>
 
-            <div style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
-              <label style={{ fontSize: 12, color: "#1a6fa8", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-                <input type="checkbox" checked={selected.size === items.length} onChange={toggleAll} />
-                {selected.size === items.length ? "Deselect all" : "Select all"}
-              </label>
-              <span style={{ fontSize: 12, color: "#888" }}>({selectedCount} selected)</span>
-            </div>
+              <div style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+                <label style={{ fontSize: 12, color: "#1a6fa8", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                  <input type="checkbox" checked={selected.size === visibleItems.length} onChange={toggleAll} />
+                  {selected.size === visibleItems.length ? "Deselect all" : "Select all"}
+                </label>
+                <span style={{ fontSize: 12, color: "#888" }}>({selectedCount} selected)</span>
+              </div>
 
-            <div style={{ maxHeight: 380, overflowY: "auto", marginBottom: 16 }}>
-              {items.map((item) => (
+              <div style={{ maxHeight: 380, overflowY: "auto", marginBottom: 16 }}>
+                {visibleItems.map((item) => (
                 <div
                   key={item.path}
                   style={{ padding: "8px 0", borderBottom: "1px solid #eee", opacity: selected.has(item.path) ? 1 : 0.5 }}
@@ -66,17 +87,17 @@ export default function ComplianceReport({ items, onBatchApply, onClose }: Props
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 13, color: "#1a1a1a" }}>{item.title}</div>
                       <div style={{ fontSize: 12, color: "#888" }}>{item.path}</div>
-                      {item.missing_keys.length > 0 && (
+                      {prefs.applyFm && item.missing_keys.length > 0 && (
                         <div style={{ fontSize: 12, color: "#c00", marginTop: 2 }}>
                           Missing keys: {item.missing_keys.map(k => <span key={k} style={redTag}>{k}</span>)}
                         </div>
                       )}
-                      {item.extra_keys.length > 0 && (
+                      {prefs.applyFm && prefs.removeExtra && item.extra_keys.length > 0 && (
                         <div style={{ fontSize: 12, color: "#996600", marginTop: 2 }}>
                           Extra keys: {item.extra_keys.map(k => <span key={k} style={yellowTag}>{k}</span>)}
                         </div>
                       )}
-                      {item.missing_headings.length > 0 && (
+                      {prefs.appendBody && item.missing_headings.length > 0 && (
                         <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>
                           Missing headings: {item.missing_headings.map(h => <span key={h} style={grayTag}>{h}</span>)}
                         </div>
@@ -84,30 +105,43 @@ export default function ComplianceReport({ items, onBatchApply, onClose }: Props
                     </div>
                   </label>
                 </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </>
+          )}
 
-            <div style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>
-              Apply template adds missing frontmatter keys, missing headings, and any boilerplate content.
-            </div>
+          <hr style={{ border: "none", borderTop: "2px solid #ddd", margin: "12px 0" }} />
 
-            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#555", marginBottom: 12, cursor: "pointer" }}>
-              <input type="checkbox" checked={removeExtra} onChange={e => setRemoveExtra(e.target.checked)} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#555", cursor: "pointer" }}>
+              <input type="checkbox" checked={prefs.applyFm} onChange={e => set({ applyFm: e.target.checked })} />
+              Update frontmatter
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#888", cursor: "pointer", marginLeft: 16 }}>
+              <input type="checkbox" checked={prefs.removeExtra} onChange={e => set({ removeExtra: e.target.checked })} disabled={!prefs.applyFm} />
               Remove extra frontmatter keys not in template
             </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#555", cursor: "pointer" }}>
+              <input type="checkbox" checked={prefs.appendBody} onChange={e => set({ appendBody: e.target.checked })} />
+              Append template body
+            </label>
+          </div>
 
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button onClick={onClose} style={{ ...actionBtn, background: "#eee", color: "#333" }}>Close</button>
-              <button
-                onClick={() => onBatchApply([...selected], removeExtra)}
-                disabled={selectedCount === 0}
-                style={{ ...actionBtn, opacity: selectedCount === 0 ? 0.5 : 1, cursor: selectedCount === 0 ? "default" : "pointer" }}
-              >
-                Apply to {selectedCount} file{selectedCount !== 1 ? "s" : ""}
-              </button>
-            </div>
-          </>
-        )}
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {onViewTemplate && (
+              <button onClick={onViewTemplate} style={actionBtn}>View template</button>
+            )}
+            <div style={{ flex: 1 }} />
+            <button onClick={onClose} style={{ ...actionBtn, background: "#eee", color: "#333" }}>Close</button>
+            <button
+              onClick={() => onBatchApply([...selected], prefs.removeExtra, prefs.applyFm, prefs.appendBody)}
+              disabled={selectedCount === 0}
+              style={{ ...actionBtn, opacity: selectedCount === 0 ? 0.5 : 1, cursor: selectedCount === 0 ? "default" : "pointer" }}
+            >
+              Apply to {selectedCount} file{selectedCount !== 1 ? "s" : ""}
+            </button>
+          </div>
+        </>
       </div>
     </div>
   );

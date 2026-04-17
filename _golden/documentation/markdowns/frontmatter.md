@@ -6,10 +6,11 @@ Frontmatter is automatically stripped from the rendered preview so it doesn't ap
 
 ## The project template
 
-Each project has a single template file (`template.md`) that defines two things:
+Each project has a single template file (`template.md`) that defines:
 
 1. **Frontmatter schema** — the YAML keys all project files should have
-2. **Required headings** — the section headings all project files should have
+2. **Required headings** — the section headings (h2+) all project files should have
+3. **Body content** — any boilerplate text to optionally append to files
 
 The default template is:
 
@@ -29,8 +30,8 @@ New files created in the project are pre-populated from this template, with the 
 
 While editing a file, open the **Template** tab in the editor sub-bar. From there:
 
-- **Apply template** — adds missing frontmatter keys and missing headings to the current file
-- **Use as template** — extracts the current file's frontmatter block and headings and saves them as the project template
+- **Apply template** — applies the template to the current file using the options you've configured (see [Applying the template](#applying-the-template))
+- **Use as template** — copies the current file's full content to `template.md`, replacing the previous template
 - **View template** — opens the template in a markdown editor modal
 - **View compliance** — opens the compliance report
 
@@ -40,17 +41,33 @@ Click **⋮** on the project chip and choose **Template → View template** or *
 
 ### Editing the template directly
 
-The template is a plain markdown file. Open it via **View template** and edit the frontmatter block and/or add heading lines. Save to update the project template. The frontmatter keys and headings you define become the compliance requirements for all project files.
+The template is a plain markdown file. Open it via **View template** and edit it directly. Save to update the project template. The frontmatter keys and h2+ headings you define become the compliance requirements for all project files. Any body content below the h1 heading can be optionally appended to files when applying.
+
+## Applying the template
+
+When you apply the template — either to the open file or in bulk from the compliance dialog — three options control what happens:
+
+| Option | Default | Effect |
+|--------|---------|--------|
+| **Update frontmatter** | On | Adds any frontmatter keys that are in the template but missing from the file. Existing values are never overwritten. |
+| **Remove extra frontmatter keys not in template** | On | Removes frontmatter keys from the file that aren't in the template. Disabled when Update frontmatter is off. |
+| **Append template body** | Off | Appends the template body (everything after the h1, if any) to the end of the file, preceded by a horizontal rule and a *Template content begins here* marker. |
+
+These settings are shared between the template editor and the compliance dialog and persist across sessions.
 
 ## Compliance
 
-The compliance report scans all files in the project against the current template and shows:
+The compliance report scans all project files against the template and shows any that are out of compliance. What counts as non-compliant depends on the apply options currently active:
 
-- **Missing keys** — frontmatter keys in the template that a file is missing
-- **Extra keys** — frontmatter keys in a file that aren't in the template
-- **Missing headings** — headings required by the template that a file doesn't have
+- **Update frontmatter on** — files with missing frontmatter keys are flagged
+- **Remove extra keys on** — files with extra frontmatter keys are also flagged
+- **Append template body on** — files with missing required headings are flagged
 
-Select the files you want to fix and click **Apply to N files**. Applying adds missing frontmatter keys and appends missing heading sections.
+Files with no visible issues given the current options are hidden from the list.
+
+All files shown in the list are automatically selected when the dialog opens. You can deselect individual files or use the **Select all** checkbox to toggle the selection. Click **Apply to N files** to apply. The same apply options control what gets changed.
+
+The **View template** button (bottom-left of the dialog) closes the compliance dialog and opens the template editor.
 
 ## Status indicators
 

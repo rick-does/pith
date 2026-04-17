@@ -1,15 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CodeEditor from "./CodeEditor";
+
+interface TemplatePrefs {
+  applyFm: boolean;
+  removeExtra: boolean;
+  appendBody: boolean;
+}
 
 interface Props {
   content: string;
   onSave: (content: string) => void;
   onClose: () => void;
   onViewCompliance?: () => void;
+  onApply?: (removeExtra: boolean, applyFm: boolean, appendBody: boolean) => void;
+  prefs: TemplatePrefs;
+  onPrefsChange: (prefs: TemplatePrefs) => void;
 }
 
-export default function TemplateEditor({ content, onSave, onClose, onViewCompliance }: Props) {
+export default function TemplateEditor({ content, onSave, onClose, onViewCompliance, onApply, prefs, onPrefsChange }: Props) {
   const [value, setValue] = useState(content);
+
+  useEffect(() => { setValue(content); }, [content]);
+
+  const set = (patch: Partial<TemplatePrefs>) => onPrefsChange({ ...prefs, ...patch });
 
   return (
     <div style={backdrop} onClick={onClose}>
@@ -24,12 +37,34 @@ export default function TemplateEditor({ content, onSave, onClose, onViewComplia
         <div style={{ flex: 1, border: "1px solid #ccc", borderRadius: 4, overflow: "hidden", minHeight: 300 }}>
           <CodeEditor value={value} onChange={setValue} language="markdown" viMode={false} theme="github-light" />
         </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 16, alignItems: "center" }}>
+        {onApply && (
+          <>
+          <hr style={{ border: "none", borderTop: "2px solid #ddd", margin: "12px 0 8px" }} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#555", cursor: "pointer" }}>
+              <input type="checkbox" checked={prefs.applyFm} onChange={e => set({ applyFm: e.target.checked })} />
+              Update frontmatter
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#888", cursor: "pointer", marginLeft: 16 }}>
+              <input type="checkbox" checked={prefs.removeExtra} onChange={e => set({ removeExtra: e.target.checked })} disabled={!prefs.applyFm} />
+              Remove extra frontmatter keys not in template
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#555", cursor: "pointer" }}>
+              <input type="checkbox" checked={prefs.appendBody} onChange={e => set({ appendBody: e.target.checked })} />
+              Append template body
+            </label>
+          </div>
+          </>
+        )}
+        <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center" }}>
           {onViewCompliance && (
             <button onClick={onViewCompliance} style={actionBtn}>View compliance</button>
           )}
           <div style={{ flex: 1 }} />
-          <button onClick={onClose} style={{ ...actionBtn, background: "#eee", color: "#333" }}>Cancel</button>
+          <button onClick={onClose} style={{ ...actionBtn, background: "#eee", color: "#333" }}>Close</button>
+          {onApply && (
+            <button onClick={() => { onApply(prefs.removeExtra, prefs.applyFm, prefs.appendBody); onClose(); }} style={actionBtn}>Apply to open file</button>
+          )}
           <button onClick={() => onSave(value)} style={actionBtn}>Save template</button>
         </div>
       </div>
