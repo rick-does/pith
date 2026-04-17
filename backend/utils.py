@@ -397,7 +397,7 @@ def scan_unified_compliance(project: str) -> list[dict]:
         meta, body = parse_frontmatter(content)
         file_keys = set(meta.keys())
         missing_keys = sorted(expected_keys - file_keys)
-        extra_keys = sorted(file_keys - expected_keys) if expected_keys else []
+        extra_keys = sorted(file_keys - expected_keys) if expected_keys else sorted(file_keys)
         file_headings = {m.group(1).strip() for m in re.finditer(r'^#{2,}\s+(.+)$', body, re.MULTILINE)}
         missing_headings = [h for h in required_headings if h not in file_headings]
         if missing_keys or extra_keys or missing_headings:
@@ -412,8 +412,26 @@ def scan_unified_compliance(project: str) -> list[dict]:
     return results
 
 
-def apply_unified_template(project: str, rel_path: str) -> str:
-    """Add missing frontmatter keys and append missing headings from template.md."""
+def _extract_template_sections(template_body: str) -> dict:
+    """Return {heading_title: full_section_text} for each h2+ heading in template body."""
+    sections = {}
+    parts = re.split(r'(^#{2,}\s+.+$)', template_body, flags=re.MULTILINE)
+    i = 0
+    while i < len(parts):
+        m = re.match(r'^(#{2,}\s+(.+))$', parts[i].strip())
+        if m:
+            title = m.group(2).strip()
+            heading_line = m.group(1)
+            body_part = parts[i + 1].strip() if i + 1 < len(parts) else ""
+            sections[title] = (heading_line + "\n\n" + body_part).strip() + "\n" if body_part else heading_line + "\n"
+            i += 2
+        else:
+            i += 1
+    return sections
+
+
+def apply_unified_template(project: str, rel_path: str, remove_extra: bool = False) -> str:
+    """Add missing frontmatter keys, optionally remove extra keys, and append missing sections."""
     fp = safe_path(project, rel_path)
     content = fp.read_text(encoding="utf-8")
     template_content = load_unified_template(project)
@@ -425,27 +443,35 @@ def apply_unified_template(project: str, rel_path: str) -> str:
         if key not in meta:
             meta[key] = default_val
             changed = True
+    if remove_extra and tm_meta:
+        for k in [k for k in list(meta.keys()) if k not in tm_meta]:
+            del meta[k]
+            changed = True
     if changed:
         content = set_frontmatter(content, meta)
 
     _, body = parse_frontmatter(content)
     file_headings = {m.group(1).strip() for m in re.finditer(r'^#{2,}\s+(.+)$', body, re.MULTILINE)}
-    template_heading_lines = re.findall(r'^#{2,}\s+.+$', tm_body, re.MULTILINE)
-    missing = [h for h in template_heading_lines
-               if re.match(r'^#{2,}\s+(.+)$', h).group(1).strip() not in file_headings]
-    if missing:
-        content = content.rstrip() + "\n\n" + "\n\n".join(missing) + "\n"
+    template_sections = _extract_template_sections(tm_body)
+    template_heading_order = [m.group(1).strip() for m in re.finditer(r'^#{2,}\s+(.+)$', tm_body, re.MULTILINE)]
+    missing_sections = [
+        template_sections.get(h, h)
+        for h in template_heading_order
+        if h not in file_headings
+    ]
+    if missing_sections:
+        content = content.rstrip() + "\n\n" + "\n\n".join(s.strip() for s in missing_sections) + "\n"
 
     fp.write_text(content, encoding="utf-8")
     return content
 
 
-def batch_apply_unified_template(project: str, files: list[str]) -> list[str]:
+def batch_apply_unified_template(project: str, files: list[str], remove_extra: bool = False) -> list[str]:
     """Apply unified template to a list of files. Returns paths that were updated."""
     updated = []
     for rel_path in files:
         try:
-            apply_unified_template(project, rel_path)
+            apply_unified_template(project, rel_path, remove_extra=remove_extra)
             updated.append(rel_path)
         except Exception:
             pass

@@ -3,12 +3,13 @@ import type { TemplateComplianceItem } from "../api";
 
 interface Props {
   items: TemplateComplianceItem[];
-  onBatchApply: (files: string[]) => void;
+  onBatchApply: (files: string[], removeExtra: boolean) => void;
   onClose: () => void;
 }
 
 export default function ComplianceReport({ items, onBatchApply, onClose }: Props) {
   const [selected, setSelected] = useState<Set<string>>(() => new Set(items.map(i => i.path)));
+  const [removeExtra, setRemoveExtra] = useState(false);
 
   const toggleFile = (path: string) => {
     setSelected(prev => {
@@ -86,14 +87,19 @@ export default function ComplianceReport({ items, onBatchApply, onClose }: Props
               ))}
             </div>
 
-            <div style={{ fontSize: 12, color: "#666", marginBottom: 12 }}>
-              Apply template adds missing frontmatter keys and appends missing headings.
+            <div style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>
+              Apply template adds missing frontmatter keys, missing headings, and any boilerplate content.
             </div>
+
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#555", marginBottom: 12, cursor: "pointer" }}>
+              <input type="checkbox" checked={removeExtra} onChange={e => setRemoveExtra(e.target.checked)} />
+              Remove extra frontmatter keys not in template
+            </label>
 
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button onClick={onClose} style={{ ...actionBtn, background: "#eee", color: "#333" }}>Close</button>
               <button
-                onClick={() => onBatchApply([...selected])}
+                onClick={() => onBatchApply([...selected], removeExtra)}
                 disabled={selectedCount === 0}
                 style={{ ...actionBtn, opacity: selectedCount === 0 ? 0.5 : 1, cursor: selectedCount === 0 ? "default" : "pointer" }}
               >

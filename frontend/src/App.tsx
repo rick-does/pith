@@ -651,9 +651,9 @@ export default function App() {
     setTemplateIssueMap(prev => { const next = { ...prev }; delete next[selectedPath]; return next; });
   }, [currentProject, selectedPath]);
 
-  const handleBatchApply = useCallback(async (files: string[]) => {
+  const handleBatchApply = useCallback(async (files: string[], removeExtra: boolean) => {
     if (!currentProject) return;
-    await batchApplyTemplate(currentProject, files);
+    await batchApplyTemplate(currentProject, files, removeExtra);
     setComplianceItems(null);
     await loadCollection(currentProject);
   }, [currentProject, loadCollection]);

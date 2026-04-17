@@ -285,17 +285,21 @@ export async function fetchTemplateCompliance(project: string): Promise<Template
   return r.json();
 }
 
-export async function applyTemplate(project: string, path: string): Promise<{ content: string }> {
-  const r = await fetch(`${BASE}/projects/${project}/template/apply/${path}`, { method: "POST" });
+export async function applyTemplate(project: string, path: string, removeExtra = false): Promise<{ content: string }> {
+  const r = await fetch(`${BASE}/projects/${project}/template/apply/${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ remove_extra: removeExtra }),
+  });
   if (!r.ok) throw new Error("Failed to apply template");
   return r.json();
 }
 
-export async function batchApplyTemplate(project: string, files: string[]): Promise<{ updated: string[]; count: number }> {
+export async function batchApplyTemplate(project: string, files: string[], removeExtra = false): Promise<{ updated: string[]; count: number }> {
   const r = await fetch(`${BASE}/projects/${project}/template/batch-apply`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ files }),
+    body: JSON.stringify({ files, remove_extra: removeExtra }),
   });
   if (!r.ok) throw new Error("Batch apply failed");
   return r.json();

@@ -547,13 +547,18 @@ async def api_template_compliance(project: str):
 
 
 @app.post("/api/projects/{project}/template/apply/{file_path:path}")
-async def api_apply_template(project: str, file_path: str):
+async def api_apply_template(project: str, file_path: str, request: Request):
     if not (get_projects_dir() / project).exists():
         raise HTTPException(404, "Project not found")
     fp = safe_path(project, file_path)
     if not fp.exists():
         raise HTTPException(404, "File not found")
-    content = apply_unified_template(project, file_path)
+    try:
+        data = await request.json()
+        remove_extra = bool(data.get("remove_extra", False))
+    except Exception:
+        remove_extra = False
+    content = apply_unified_template(project, file_path, remove_extra=remove_extra)
     return {"content": content}
 
 
@@ -562,7 +567,8 @@ async def api_batch_apply_template(project: str, request: Request):
     if not (get_projects_dir() / project).exists():
         raise HTTPException(404, "Project not found")
     data = await request.json()
-    updated = batch_apply_unified_template(project, data.get("files", []))
+    remove_extra = bool(data.get("remove_extra", False))
+    updated = batch_apply_unified_template(project, data.get("files", []), remove_extra=remove_extra)
     return {"updated": updated, "count": len(updated)}
 
 
