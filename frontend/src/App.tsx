@@ -88,6 +88,7 @@ export default function App() {
   const [linkReport, setLinkReport] = useState<FileLinkReport[] | null>(null);
   const [fileBrokenLinks, setFileBrokenLinks] = useState<BrokenLink[]>([]);
   const [brokenLinkMap, setBrokenLinkMap] = useState<Record<string, number>>({});
+  const [frontmatterIssueMap, setFrontmatterIssueMap] = useState<Record<string, boolean>>({});
   const [templateIssueMap, setTemplateIssueMap] = useState<Record<string, boolean>>({});
   const [showIndicators, setShowIndicators] = useState(() => localStorage.getItem("pith_indicators") !== "false");
   const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
@@ -218,9 +219,14 @@ export default function App() {
   const refreshTemplateIssues = useCallback(async (project: string) => {
     try {
       const items = await fetchTemplateCompliance(project);
-      const map: Record<string, boolean> = {};
-      for (const item of items) map[item.path] = true;
-      setTemplateIssueMap(map);
+      const fmMap: Record<string, boolean> = {};
+      const headingMap: Record<string, boolean> = {};
+      for (const item of items) {
+        if (item.missing_keys.length > 0 || item.extra_keys.length > 0) fmMap[item.path] = true;
+        if (item.missing_headings.length > 0) headingMap[item.path] = true;
+      }
+      setFrontmatterIssueMap(fmMap);
+      setTemplateIssueMap(headingMap);
     } catch {}
   }, []);
 
@@ -641,11 +647,8 @@ export default function App() {
     const { content } = await applyTemplate(currentProject, selectedPath);
     setEditorContent(content);
     setSavedContent(content);
-    setTemplateIssueMap(prev => {
-      const next = { ...prev };
-      delete next[selectedPath];
-      return next;
-    });
+    setFrontmatterIssueMap(prev => { const next = { ...prev }; delete next[selectedPath]; return next; });
+    setTemplateIssueMap(prev => { const next = { ...prev }; delete next[selectedPath]; return next; });
   }, [currentProject, selectedPath]);
 
   const handleBatchApply = useCallback(async (files: string[]) => {
@@ -963,7 +966,7 @@ export default function App() {
             await loadCollection(currentProject);
           }}
           brokenLinkMap={brokenLinkMap}
-          frontmatterIssueMap={{}}
+          frontmatterIssueMap={frontmatterIssueMap}
           templateIssueMap={templateIssueMap}
           showIndicators={showIndicators}
           onToggleIndicators={handleToggleIndicators}

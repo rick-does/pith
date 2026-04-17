@@ -26,7 +26,7 @@ export default function TemplateEditor({ content, onSave, onClose, onViewComplia
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 16, alignItems: "center" }}>
           {onViewCompliance && (
-            <button onClick={onViewCompliance} style={{ ...actionBtn, background: "#eee", color: "#333" }}>View compliance</button>
+            <button onClick={onViewCompliance} style={actionBtn}>View compliance</button>
           )}
           <div style={{ flex: 1 }} />
           <button onClick={onClose} style={{ ...actionBtn, background: "#eee", color: "#333" }}>Cancel</button>
