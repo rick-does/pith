@@ -63,13 +63,14 @@ On Windows and Mac, `pith` opens a desktop window. On Linux, it starts a server 
 
 ### Linux / remote access
 
-On a remote Linux server, start with `pith --server` and forward the port:
+Start pith on the server first, then open the tunnel:
 
 ```
+ssh user@host "nohup pith > ~/.pith/pith.log 2>&1 &"
 ssh -L 5000:localhost:5000 user@host
 ```
 
-Then open `http://localhost:5000` in your local browser.
+Then open `http://localhost:5000` in your local browser. If you use an SSH config alias (e.g. `Host myserver`), substitute that for `user@host` in both commands.
 
 ## Standalone download
 
