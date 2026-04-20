@@ -3,6 +3,7 @@
 [![CI](https://github.com/rick-does/pith/actions/workflows/ci.yml/badge.svg)](https://github.com/rick-does/pith/actions/workflows/ci.yml)
 [![Build Standalone](https://github.com/rick-does/pith/actions/workflows/standalone.yml/badge.svg)](https://github.com/rick-does/pith/actions/workflows/standalone.yml)
 [![Docs](https://github.com/rick-does/pith/actions/workflows/docs.yml/badge.svg)](https://github.com/rick-does/pith/actions/workflows/docs.yml)
+[![PyPI](https://img.shields.io/pypi/v/pith)](https://pypi.org/project/pith/)
 [![Release](https://img.shields.io/github/v/release/rick-does/pith)](https://github.com/rick-does/pith/releases/latest)
 
 A visual markdown workspace for people who work with large collections of `.md` files.
@@ -39,11 +40,39 @@ If you've ever maintained a documentation site and found yourself hand-editing a
 ### Local and private
 
 - Runs entirely on your machine — no cloud, no accounts, no ongoing cost
-- Standalone executable for Windows, Mac, and Linux
+- Projects stored in `~/.pith/projects/` — separate from the app, never overwritten on upgrade
+- Available as a PyPI package or standalone executable
 
-## Download
+## Install
 
-Download the latest standalone app from the [Releases page](https://github.com/rick-does/pith/releases) — no Python or Node.js required.
+**Requires Python 3.10+.**
+
+```
+pip install pith
+pith
+```
+
+On Windows and Mac, `pith` opens a desktop window. On Linux, it starts a server and prints the URL. On WSL, it opens your Windows browser automatically.
+
+### Flags
+
+| Flag | Effect |
+|------|--------|
+| `--server` | Force headless mode on any platform — starts the server and opens a browser tab |
+
+### Linux / remote access
+
+On a remote Linux server, start with `pith --server` and forward the port:
+
+```
+ssh -L 5000:localhost:5000 user@host
+```
+
+Then open `http://localhost:5000` in your local browser.
+
+## Standalone download
+
+No Python required. Download the latest build from the [Releases page](https://github.com/rick-does/pith/releases).
 
 | Platform | File |
 |----------|------|
@@ -51,13 +80,11 @@ Download the latest standalone app from the [Releases page](https://github.com/r
 | Mac | `pith-macOS.zip` |
 | Linux | `pith-Linux.zip` |
 
-Unzip to get a `pith/` folder, then run the executable for your platform:
+Unzip and run the executable:
 
 - **Windows:** Double-click `pith.exe`
-- **Mac:** Double-click `pith` (right-click → Open the first time to bypass the unsigned app warning)
-- **Linux:** Run `./pith` from a terminal — the server starts and prints a URL to open in your browser
-
-Your projects are stored in a `projects/` folder created automatically inside the app directory.
+- **Mac:** Right-click → Open the first time to bypass the unsigned app warning
+- **Linux:** Run `./pith` from a terminal
 
 ## Documentation
 
