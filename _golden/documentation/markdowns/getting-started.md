@@ -1,32 +1,41 @@
 # Getting Started
 
-PiTH comes in two versions: a **standalone app** (recommended for most users) and a **web app** (for developers who want to run from source).
+PiTH is available three ways: as a **pip package** (recommended), a **standalone app** (no Python required), or run from source.
+
+## pip install (recommended)
+
+Requires Python 3.10+.
+
+```
+pip install pith-md
+pith
+```
+
+**Windows and Mac:** PiTH opens in its own desktop window.
+
+**WSL:** PiTH starts the server and opens your Windows browser automatically.
+
+**Linux:** PiTH starts the server and prints the URL. Open it in your browser. To connect from a remote machine, use an SSH tunnel:
+
+```
+ssh -L 5000:localhost:5000 user@host "/path/to/pith"
+```
+
+Then open `http://localhost:5000` in your local browser. Close the terminal to stop PiTH.
+
+To use a different port: `pith --port 8080`
 
 ## Standalone app
 
-No installation required. Everything is bundled in the download.
-
-### 1. Download
-
-Go to the [Releases page](https://github.com/rick-does/pith/releases) and download the zip for your platform:
-
-- `pith-Windows.zip` — Windows
-- `pith-Linux.zip` — Linux
-- `pith-macOS.zip` — Mac
-
-### 2. Unzip and run
-
-Unzip to wherever you want to keep the app and your files. This creates a `pith/` folder. Open it and run the executable for your platform:
+No Python required. Download the latest build from the [Releases page](https://github.com/rick-does/pith/releases) and unzip it.
 
 **Windows:** Double-click `pith.exe`. The app opens in its own window.
 
-**Mac:** Double-click `pith`. The app opens in its own window. The first time, right-click and choose **Open** to bypass the unsigned app warning.
+**Mac:** Double-click `pith`. Right-click → **Open** the first time to bypass the unsigned app warning.
 
 **Linux:** Run `./pith` from a terminal. The server starts and prints a URL — open it in your browser. Press `Ctrl+C` to stop.
 
-Your projects are stored in a `projects/` folder created automatically inside the app directory. You can add additional project roots from the project menu to store projects anywhere on your machine.
-
-## Web app (run from source)
+## Run from source
 
 Requires [Python 3.12+](https://www.python.org/downloads) and [Node.js LTS](https://nodejs.org).
 
@@ -46,15 +55,13 @@ cd pith
 ./start.sh
 ```
 
-On first run the script installs all dependencies and builds the frontend — this takes a minute or two. Subsequent runs start immediately.
-
-Once running, open your browser and go to `http://localhost:8002`.
-
-To stop the server, press `Ctrl+C` in the terminal.
+On first run the script installs all dependencies and builds the frontend — this takes a minute or two. Subsequent runs start immediately. Open your browser at `http://localhost:8002`.
 
 ## First use
 
-Both versions open to the **Documentation** project by default. After that, the app remembers the last project you had open. See [Managing Projects](projects.md) for how to create and switch between projects.
+PiTH opens to the **Documentation** project by default. After that, it remembers the last project you had open. See [Managing Projects](projects.md) for how to create and switch between projects.
+
+Your projects are stored in `~/.pith/projects/` by default. You can add additional project roots from the project menu to store projects anywhere on your machine.
 
 PiTH watches the `markdowns/` folder for changes every 3 seconds. If you add, rename, or delete files outside the app, the changes are picked up automatically.
 

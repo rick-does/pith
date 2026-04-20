@@ -3,7 +3,7 @@
 [![CI](https://github.com/rick-does/pith/actions/workflows/ci.yml/badge.svg)](https://github.com/rick-does/pith/actions/workflows/ci.yml)
 [![Build Standalone](https://github.com/rick-does/pith/actions/workflows/standalone.yml/badge.svg)](https://github.com/rick-does/pith/actions/workflows/standalone.yml)
 [![Docs](https://github.com/rick-does/pith/actions/workflows/docs.yml/badge.svg)](https://github.com/rick-does/pith/actions/workflows/docs.yml)
-[![PyPI](https://img.shields.io/pypi/v/pith)](https://pypi.org/project/pith/)
+[![PyPI](https://img.shields.io/pypi/v/pith-md)](https://pypi.org/project/pith-md/)
 [![Release](https://img.shields.io/github/v/release/rick-does/pith)](https://github.com/rick-does/pith/releases/latest)
 
 A visual markdown workspace for people who work with large collections of `.md` files.
@@ -48,7 +48,7 @@ If you've ever maintained a documentation site and found yourself hand-editing a
 **Requires Python 3.10+.**
 
 ```
-pip install pith
+pip install pith-md
 pith
 ```
 
@@ -63,14 +63,13 @@ On Windows and Mac, `pith` opens a desktop window. On Linux, it starts a server 
 
 ### Linux / remote access
 
-Start pith on the server first, then open the tunnel:
-
 ```
-ssh user@host "nohup pith > ~/.pith/pith.log 2>&1 &"
-ssh -L 5000:localhost:5000 user@host
+ssh -L 5000:localhost:5000 user@host "/path/to/pith"
 ```
 
-Then open `http://localhost:5000` in your local browser. If you use an SSH config alias (e.g. `Host myserver`), substitute that for `user@host` in both commands.
+Then open `http://localhost:5000` in your local browser. Close the terminal to stop PiTH. If you use an SSH config alias (e.g. `Host myserver`), substitute that for `user@host`.
+
+To find the pith path on the remote: `which pith`
 
 ## Standalone download
 
