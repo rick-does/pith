@@ -1131,7 +1131,8 @@ async def api_report_html(project: str):
 # SPA fallback — serve built frontend
 # ---------------------------------------------------------------------------
 
-FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"
+_pkg_ui = Path(__file__).parent / "ui"
+FRONTEND_DIST = _pkg_ui if _pkg_ui.exists() else Path(__file__).parent.parent / "frontend" / "dist"
 
 if FRONTEND_DIST.exists():
     app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST / "assets")), name="assets")

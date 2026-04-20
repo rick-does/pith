@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 from .models import FileNode, CollectionStructure
 from .config import get_active_projects_dir
 
-GOLDEN_DIR = Path("_golden")
+_pkg_golden = Path(__file__).parent / "golden"
+GOLDEN_DIR = _pkg_golden if _pkg_golden.exists() else Path(__file__).parent.parent / "_golden"
 
 
 def get_projects_dir() -> Path:

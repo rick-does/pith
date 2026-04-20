@@ -9,6 +9,8 @@ build/
 venv/
 node_modules/
 frontend/dist/
+backend/ui/
+backend/golden/
 standalone/
 *.exe
 *.bak

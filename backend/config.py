@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 CONFIG_DIR = Path.home() / ".pith"
 CONFIG_FILE = CONFIG_DIR / "config.json"
-DEFAULT_ROOT_PATH = str(Path("projects").resolve())
+DEFAULT_ROOT_PATH = str(Path.home() / ".pith" / "projects")
 
 
 def _default_config() -> dict:

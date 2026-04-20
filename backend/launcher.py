@@ -1,25 +1,24 @@
 from __future__ import annotations
 
-import os
+import subprocess
 import sys
 import threading
+import time
+import webbrowser
 from pathlib import Path
 
 
-def _get_base_dir() -> Path:
-    if getattr(sys, "frozen", False):
-        return Path(sys._MEIPASS)
-    return Path(__file__).parent.parent
+def _is_wsl() -> bool:
+    try:
+        return b"microsoft" in Path("/proc/version").read_bytes().lower()
+    except OSError:
+        return False
 
 
 def _kill_existing(port: int) -> None:
-    """Kill any process currently listening on the given port."""
-    import subprocess
-    import time
     try:
         if sys.platform == "win32":
-            # Collect all PIDs holding this port
-            pids = set()
+            pids: set[int] = set()
             result = subprocess.run(
                 ["netstat", "-ano"],
                 capture_output=True, text=True, timeout=5,
@@ -31,7 +30,6 @@ def _kill_existing(port: int) -> None:
                         pids.add(int(parts[-1]))
                     except ValueError:
                         pass
-            # Kill each, then verify the port is free
             for pid in pids:
                 if pid > 0:
                     subprocess.run(["taskkill", "/F", "/PID", str(pid)],
@@ -39,15 +37,14 @@ def _kill_existing(port: int) -> None:
                     subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)],
                                    capture_output=True, timeout=5)
             if pids:
-                # Wait for port to actually free up
                 for _ in range(10):
                     time.sleep(0.5)
                     check = subprocess.run(
                         ["netstat", "-ano"],
                         capture_output=True, text=True, timeout=5,
                     )
-                    if not any(f":{port}" in l and "LISTENING" in l
-                               for l in check.stdout.splitlines()):
+                    if not any(f":{port}" in ln and "LISTENING" in ln
+                               for ln in check.stdout.splitlines()):
                         break
         else:
             result = subprocess.run(
@@ -67,39 +64,38 @@ def _kill_existing(port: int) -> None:
 
 
 def main():
-    base = _get_base_dir()
-    os.chdir(str(base))
-
-    frozen = getattr(sys, "frozen", False)
-    port = 8003 if frozen else 8002
+    port = 5000
     _kill_existing(port)
-    headless = "--server" in sys.argv or "--no-window" in sys.argv
 
-    if frozen:
-        projects_dir = base / "projects"
-        if not projects_dir.exists():
-            bundled = base / "projects" / "documentation"
-            if bundled.exists():
-                import shutil
-                dest = Path.cwd() / "projects" / "documentation"
-                if not dest.exists():
-                    dest.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copytree(str(bundled), str(dest))
+    headless = "--server" in sys.argv
+    wsl = _is_wsl()
+    pure_linux = sys.platform == "linux" and not wsl
+    use_webview = not headless and sys.platform in ("win32", "darwin")
+
+    host = "0.0.0.0" if pure_linux else "127.0.0.1"
+    url = f"http://127.0.0.1:{port}"
 
     def start_server():
         import uvicorn
-        uvicorn.run("backend.main:app", host="0.0.0.0", port=port, log_level="warning")
+        uvicorn.run("backend.main:app", host=host, port=port, log_level="warning")
 
-    if headless or sys.platform == "linux":
-        print(f"PiTH server running at http://127.0.0.1:{port}")
-        start_server()
-    else:
+    if use_webview:
         server_thread = threading.Thread(target=start_server, daemon=True)
         server_thread.start()
-
         import webview
-        webview.create_window("PiTH", f"http://127.0.0.1:{port}", width=1400, height=900)
+        webview.create_window("PiTH", url, width=1400, height=900)
         webview.start()
+    else:
+        print(f"PiTH running at {url}")
+        if pure_linux:
+            print(f"Remote access: ssh -L {port}:localhost:{port} <user>@<host>")
+        server_thread = threading.Thread(target=start_server, daemon=True)
+        server_thread.start()
+        if wsl:
+            subprocess.Popen(["cmd.exe", "/c", "start", url])
+        elif not pure_linux:
+            threading.Timer(1.5, webbrowser.open, [url]).start()
+        server_thread.join()
 
 
 if __name__ == "__main__":

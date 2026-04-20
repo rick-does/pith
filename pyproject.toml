@@ -1,11 +1,11 @@
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.backends._legacy:_Backend"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "pith"
 version = "0.1.0"
-description = "Visual markdown hierarchy editor with prose analysis CLI"
+description = "Visual markdown workspace — hierarchy editor, prose analysis, live preview"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
@@ -17,7 +17,7 @@ dependencies = [
     "python-frontmatter>=1.1.0",
     "python-multipart>=0.0.9",
     "aiofiles>=24.1.0",
-    "pywebview>=5.0",
+    "pywebview>=5.1",
     "textstat>=0.7.0",
 ]
 
@@ -26,3 +26,6 @@ pith = "backend.launcher:main"
 
 [tool.setuptools.packages.find]
 include = ["backend*"]
+
+[tool.setuptools.package-data]
+backend = ["ui/**/*", "golden/**/*"]
