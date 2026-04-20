@@ -1,6 +1,6 @@
 # Frontmatter and Templates
 
-PiTH supports YAML frontmatter in markdown files — both the standard format (with opening and closing `---` delimiters) and Jekyll-style (no opening `---`, just key-value lines terminated by `---`).
+PiTH supports YAML frontmatter in markdown files (with opening and closing `---` delimiters).
 
 Frontmatter is automatically stripped from the rendered preview so it doesn't appear in the output.
 
@@ -63,14 +63,14 @@ The compliance report scans all project files against the template and shows any
 - **Remove extra keys on** — files with extra frontmatter keys are also flagged
 - **Append template body on** — files with missing required headings are flagged
 
-Files with no visible issues given the current options are hidden from the list.
+Files with no visible issues given the current options are not in the list.
 
-All files shown in the list are automatically selected when the dialog opens. You can deselect individual files or use the **Select all** checkbox to toggle the selection. Click **Apply to N files** to apply. The same apply options control what gets changed.
+All files in the list are automatically selected when the dialog opens. You can deselect individual files or use the **Select all** checkbox to toggle the selection. Click **Apply to N files** to apply. The same apply options control what gets changed.
 
 The **View template** button (bottom-left of the dialog) closes the compliance dialog and opens the template editor.
 
 ## Status indicators
 
-Template compliance is reflected in the status indicator on each file chip. If a file is out of compliance, the chip shows a yellow ⚠. Hover the indicator to see a popup with three rows — **Frontmatter**, **Structure**, and **Links** — each showing its own status. Frontmatter checks key compliance; Structure checks required headings from the template.
+Template compliance is reflected in the status indicator on each file chip. If a file is out of compliance, the chip shows a yellow ⚠. Click the indicator to see a popup with three rows — **Frontmatter**, **Structure**, and **Links** — each showing its own status. Frontmatter checks key compliance; Structure checks required headings from the template.
 
 A red ⚠ on the chip means the file has broken links, which takes priority over the yellow compliance warning. See [Link Validation](link-validation.md) for details.

@@ -479,6 +479,15 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
             )}
           </div>
         )}
+        {onReport && project && (
+          <button
+            onClick={onReport}
+            style={{ ...fmBtnStyle, marginLeft: 6, marginTop: 1, marginBottom: 1 }}
+            onMouseEnter={fmBtnHover}
+            onMouseLeave={fmBtnLeave}
+            title="Scan all project files for stats, issues, and structure"
+          >Scan Project</button>
+        )}
         <div style={{ flex: 1 }} />
         <div ref={themeMenuRef} style={{ position: "relative", display: "inline-block", marginRight: 6, marginTop: 1, marginBottom: 1 }}>
           <button
@@ -520,15 +529,6 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
             onMouseLeave={fmBtnLeave}
             title="Browse and insert images"
           >Images</button>
-        )}
-        {onReport && project && (
-          <button
-            onClick={onReport}
-            style={{ ...fmBtnStyle, marginRight: 10, marginTop: 1, marginBottom: 1 }}
-            onMouseEnter={fmBtnHover}
-            onMouseLeave={fmBtnLeave}
-            title="Scan all project files"
-          >Scan Project</button>
         )}
       </div>
 

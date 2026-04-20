@@ -41,6 +41,13 @@ export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSel
   const cancelHide = () => { if (indicatorHideTimer.current) { clearTimeout(indicatorHideTimer.current); indicatorHideTimer.current = null; } };
 
   useEffect(() => {
+    if (!indicatorOpen) return;
+    const handler = (e: MouseEvent) => { if (!indicatorButtonRef.current?.contains(e.target as Node)) setIndicatorOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [indicatorOpen]);
+
+  useEffect(() => {
     if (!menuOpen) return;
     const handler = (e: MouseEvent) => {
       const t = e.target as Node;
@@ -105,8 +112,7 @@ export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSel
           {showIndicators && (isMultiSelected || hovered || forceShowIndicators || indicatorOpen) && (
             <span
               ref={indicatorButtonRef}
-              onMouseEnter={() => { cancelHide(); if (indicatorButtonRef.current) { const r = indicatorButtonRef.current.getBoundingClientRect(); setIndicatorPos({ bottom: window.innerHeight - r.top + 8, centerX: r.left + r.width / 2 }); setIndicatorOpen(true); } }}
-              onMouseLeave={scheduleHide}
+              onClick={(e) => { e.stopPropagation(); if (indicatorButtonRef.current) { const r = indicatorButtonRef.current.getBoundingClientRect(); setIndicatorPos({ bottom: window.innerHeight - r.top + 8, centerX: r.left + r.width / 2 }); setIndicatorOpen(o => !o); } }}
               style={{ position: "absolute", right: "36px", top: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center", width: "14px", cursor: "pointer" }}
             >
               {indicatorLevel === "green"
@@ -114,7 +120,7 @@ export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSel
                 : <span style={{ fontSize: "13px", lineHeight: 1, fontWeight: "bold", color: indicatorLevel === "red" ? "#c00" : "#cc8800", userSelect: "none" }}>&#9888;</span>
               }
               {indicatorOpen && indicatorPos && (
-                <div onMouseEnter={cancelHide} onMouseLeave={scheduleHide} style={{ position: "fixed", bottom: indicatorPos.bottom, left: indicatorPos.centerX, transform: "translateX(-50%)", zIndex: 1000, background: "#fff", border: "1px solid #d0e8f7", borderRadius: "8px", boxShadow: "0 4px 16px rgba(0,0,0,0.12)", padding: "6px 10px", minWidth: "170px" }}>
+                <div style={{ position: "fixed", bottom: indicatorPos.bottom, left: indicatorPos.centerX, transform: "translateX(-50%)", zIndex: 1000, background: "#fff", border: "1px solid #d0e8f7", borderRadius: "8px", boxShadow: "0 4px 16px rgba(0,0,0,0.12)", padding: "6px 10px", minWidth: "170px" }}>
                   <div style={{ position: "absolute", bottom: -9, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "9px solid transparent", borderRight: "9px solid transparent", borderTop: "9px solid #d0e8f7" }} />
                   <div style={{ position: "absolute", bottom: -8, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderTop: "8px solid #fff" }} />
                   <div title={fm ? "Frontmatter is non-compliant" : "Frontmatter OK"} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "3px 0" }}>

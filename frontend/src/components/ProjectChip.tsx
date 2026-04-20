@@ -441,7 +441,7 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                     </div>
                     <div
                       style={{ ...menuItem }}
-                      onClick={() => { onToggleIndicators(); }}
+                      onClick={() => { onToggleIndicators(); setMenuOpen(false); }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
                     >

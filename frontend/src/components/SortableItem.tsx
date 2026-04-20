@@ -96,6 +96,7 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [previewContent, setPreviewContent] = useState<string | null>(null);
+  const [previewPos, setPreviewPos] = useState<{ top: number; left: number } | null>(null);
   const [addingChild, setAddingChild] = useState(false);
   const [childName, setChildName] = useState("");
   const [childError, setChildError] = useState("");
@@ -108,6 +109,13 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
   const indicatorHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scheduleHide = () => { indicatorHideTimer.current = setTimeout(() => setIndicatorOpen(false), 150); };
   const cancelHide = () => { if (indicatorHideTimer.current) { clearTimeout(indicatorHideTimer.current); indicatorHideTimer.current = null; } };
+
+  useEffect(() => {
+    if (!indicatorOpen) return;
+    const handler = (e: MouseEvent) => { if (!indicatorButtonRef.current?.contains(e.target as Node)) setIndicatorOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [indicatorOpen]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -179,7 +187,7 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
               outlineOffset: "1px",
             }}
             onClick={(e) => {
-              if (e.altKey) { fetchMarkdown(currentProject, node.path).then(setPreviewContent).catch(() => {}); return; }
+              if (e.altKey) { const r = e.currentTarget.getBoundingClientRect(); setPreviewPos({ top: r.top, left: r.right + 12 }); fetchMarkdown(currentProject, node.path).then(setPreviewContent).catch(() => {}); return; }
               if (clickTimerRef.current) {
                 clearTimeout(clickTimerRef.current);
                 clickTimerRef.current = null;
@@ -219,8 +227,7 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
               {showIndicators && (
                 <span
                   ref={indicatorButtonRef}
-                  onMouseEnter={() => { cancelHide(); if (indicatorButtonRef.current) { const r = indicatorButtonRef.current.getBoundingClientRect(); setIndicatorPos({ bottom: window.innerHeight - r.top + 8, centerX: r.left + r.width / 2 }); setIndicatorOpen(true); } }}
-                  onMouseLeave={scheduleHide}
+                  onClick={(e) => { e.stopPropagation(); if (indicatorButtonRef.current) { const r = indicatorButtonRef.current.getBoundingClientRect(); setIndicatorPos({ bottom: window.innerHeight - r.top + 8, centerX: r.left + r.width / 2 }); setIndicatorOpen(o => !o); } }}
                   style={{ position: "absolute", right: "31px", top: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center", width: "14px", cursor: "pointer" }}
                 >
                   {indicatorLevel === "green"
@@ -228,7 +235,7 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
                     : <span style={{ fontSize: "13px", lineHeight: 1, fontWeight: "bold", color: indicatorLevel === "red" ? "#c00" : "#cc8800", userSelect: "none" }}>&#9888;</span>
                   }
                   {indicatorOpen && indicatorPos && (
-                    <div onMouseEnter={cancelHide} onMouseLeave={scheduleHide} style={{ position: "fixed", bottom: indicatorPos.bottom, left: indicatorPos.centerX, transform: "translateX(-50%)", zIndex: 1000, background: "#fff", border: "1px solid #d0e8f7", borderRadius: "8px", boxShadow: "0 4px 16px rgba(0,0,0,0.12)", padding: "6px 10px", minWidth: "170px" }}>
+                    <div style={{ position: "fixed", bottom: indicatorPos.bottom, left: indicatorPos.centerX, transform: "translateX(-50%)", zIndex: 1000, background: "#fff", border: "1px solid #d0e8f7", borderRadius: "8px", boxShadow: "0 4px 16px rgba(0,0,0,0.12)", padding: "6px 10px", minWidth: "170px" }}>
                       <div style={{ position: "absolute", bottom: -9, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "9px solid transparent", borderRight: "9px solid transparent", borderTop: "9px solid #d0e8f7" }} />
                       <div style={{ position: "absolute", bottom: -8, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderTop: "8px solid #fff" }} />
                       <div title={hasFmIssue ? "Frontmatter is non-compliant" : "Frontmatter OK"} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "3px 0" }}>
@@ -266,10 +273,10 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
             </div>
           </div>
 
-          {previewContent && !isDragging && !renaming && (
+          {previewContent && previewPos && !isDragging && !renaming && (
             <div style={{
-              position: "absolute", left: "calc(2.5in + 12px)", top: 0,
-              zIndex: 200, width: "260px", pointerEvents: "none",
+              position: "fixed", top: previewPos.top, left: previewPos.left,
+              zIndex: 1000, width: "260px", pointerEvents: "none",
               background: "#fff", border: "1px solid #d0e8f7",
               borderRadius: "8px", boxShadow: "0 4px 16px rgba(0,0,0,0.13)",
               padding: "8px 10px",

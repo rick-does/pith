@@ -16,7 +16,7 @@ A project root is a directory that PiTH treats exactly like the default `project
 4. Choose **Use existing directory** or **Create new directory**
 5. Browse to the location and click **Add Root**
 
-The new root becomes active immediately. A `.pith-project-root` file is written to the directory so PiTH can identify it later.
+The new root becomes active immediately, and adds a `.pith-project-root` file to mark the directory as a PiTH project root directory. The file contains the name and description you add when you create the project root. 
 
 ### Switching roots
 
@@ -30,7 +30,7 @@ PiTH remembers the last project you had open in each root and returns to it when
 
 Click the trash icon next to any non-default root in the **Project roots** list. This only removes it from the list — the directory and all its projects remain on disk. You can re-add it at any time.
 
-The default root (the built-in `projects/` folder) cannot be removed.
+You cannot remove the default root (the built-in `projects/` folder) from the UI.
 
 ## The project chip
 
@@ -42,7 +42,7 @@ The orange chip at the top of the hierarchy pane is the project chip. It shows t
 2. Click **Projects → New project**
 3. Enter a project title and directory name, then click **Create**
 
-The directory name is derived automatically from the title (lowercased, spaces become hyphens). You can edit it independently. The display title comes from the `# H1` heading in the project notes file.
+The directory name derives automatically from the title (lowercased, spaces become hyphens). You can edit it independently. The display title comes from the `# H1` heading in the project notes file.
 
 ## Creating a project from existing markdowns
 
@@ -61,7 +61,7 @@ All `.md` files in the selected directory are copied into the new project's `mar
 To add individual markdown files to an existing project:
 
 1. Click **⋮** on the project chip
-2. Click **File → Add File from Markdown**
+2. Click **File → Add Files from Markdown**
 3. Browse to the directory containing the files
 4. Select or deselect files (all are selected by default)
 5. Click **Add**
@@ -76,7 +76,7 @@ Files are copied into the project. If a file with the same name already exists, 
 
 ## Renaming a project
 
-Double-click the project chip to open the project notes editor. Double-click the directory name in the editor toolbar to rename it. The directory on disk and the `.pith-project` title are both updated.
+Double-click the project chip to open the project notes editor. Double-click the directory name in the editor toolbar to rename it. The directory on disk and the `.pith-project` title both update.
 
 ## Project notes
 
@@ -103,7 +103,7 @@ The bundled Documentation project includes a golden copy of its original structu
 - **Structure only** — restores the hierarchy (`tree.yaml`) to its original order without changing any file content
 - **Structure & content** — restores both the hierarchy and all markdown files to their original state
 
-This option only appears when the Documentation project is selected. Other projects do not have a golden copy.
+This option only appears when the Documentation project is active. Other projects do not have a golden copy.
 
 ## Settings
 

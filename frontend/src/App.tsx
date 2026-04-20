@@ -45,11 +45,12 @@ interface EditorTab {
   title: string;
   frontmatter: Record<string, any>;
   brokenLinks: BrokenLink[];
+  colorIndex: number;
 }
 
 const TAB_STYLES = [
-  { bg: "#e8f4fd", text: "#555", border: "#1a6fa8", indicator: "#ff8c00" },
   { bg: "#fff3e0", text: "#555", border: "#ff8c00", indicator: "#1a6fa8" },
+  { bg: "#e8f4fd", text: "#555", border: "#1a6fa8", indicator: "#ff8c00" },
 ];
 
 function getTitleForPath(path: string, col: CollectionStructure, orph: FileInfo[]): string {
@@ -127,6 +128,7 @@ export default function App() {
   const [tabs, setTabs] = useState<EditorTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [titleMode, setTitleMode] = useState(() => localStorage.getItem("pith_title_mode") !== "false");
+  const [tabContextMenu, setTabContextMenu] = useState<{ tabId: string; x: number; y: number } | null>(null);
 
   const editorContentRef = useRef(editorContent);
   const savedContentRef = useRef(savedContent);
@@ -141,6 +143,12 @@ export default function App() {
   useEffect(() => { savedContentRef.current = savedContent; }, [savedContent]);
   useEffect(() => { tabsRef.current = tabs; }, [tabs]);
   useEffect(() => { activeTabIdRef.current = activeTabId; }, [activeTabId]);
+  useEffect(() => {
+    if (!tabContextMenu) return;
+    const handler = () => setTabContextMenu(null);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [tabContextMenu]);
 
   useEffect(() => {
     if (!currentProject || loading || !tabsRestoredRef.current) return;
@@ -293,7 +301,7 @@ export default function App() {
       const stored = localStorage.getItem(TABS_KEY(currentProject));
       if (stored) {
         hadStoredTabs = true;
-        const parsedTabs: EditorTab[] = JSON.parse(stored);
+        const parsedTabs: EditorTab[] = JSON.parse(stored).map((t: any, i: number) => ({ ...t, colorIndex: typeof t.colorIndex === "number" ? t.colorIndex : i % 2 }));
         if (parsedTabs.length > 0) {
           const storedActiveId = localStorage.getItem(ACTIVE_TAB_KEY(currentProject));
           const storedOverlay = localStorage.getItem(TABS_KEY(currentProject) + "_overlay") ?? "";
@@ -410,6 +418,7 @@ export default function App() {
       title: getTitleForPath(path, collection, orphans),
       frontmatter: {},
       brokenLinks: broken,
+      colorIndex: tabsRef.current.length === 0 ? 0 : (tabsRef.current[tabsRef.current.length - 1].colorIndex === 0 ? 1 : 0),
     };
     setTabs(prev => [...prev, newTab]);
     setActiveTabId(newTab.id);
@@ -464,6 +473,7 @@ export default function App() {
       return next;
     });
   }, []);
+
 
   const handleShowLinkReport = useCallback(async () => {
     if (!currentProject) return;
@@ -749,7 +759,7 @@ export default function App() {
     }
     const newTab: EditorTab = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      type: "editor" as const, path: filename, content: initContent, savedContent: initContent, title, frontmatter: {}, brokenLinks: [],
+      type: "editor" as const, path: filename, content: initContent, savedContent: initContent, title, frontmatter: {}, brokenLinks: [], colorIndex: tabsRef.current.length === 0 ? 0 : (tabsRef.current[tabsRef.current.length - 1].colorIndex === 0 ? 1 : 0),
     };
     setTabs(prev => [...prev, newTab]);
     setActiveTabId(newTab.id);
@@ -805,7 +815,7 @@ export default function App() {
     }
     const newTab: EditorTab = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      type: "editor" as const, path: filename, content: initContent, savedContent: initContent, title, frontmatter: {}, brokenLinks: [],
+      type: "editor" as const, path: filename, content: initContent, savedContent: initContent, title, frontmatter: {}, brokenLinks: [], colorIndex: tabsRef.current.length === 0 ? 0 : (tabsRef.current[tabsRef.current.length - 1].colorIndex === 0 ? 1 : 0),
     };
     setTabs(prev => [...prev, newTab]);
     setActiveTabId(newTab.id);
@@ -846,7 +856,7 @@ export default function App() {
     }
     const newTab: EditorTab = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      type: "editor" as const, path: newFilename, content: newContent, savedContent: newContent, title, frontmatter: {}, brokenLinks: [],
+      type: "editor" as const, path: newFilename, content: newContent, savedContent: newContent, title, frontmatter: {}, brokenLinks: [], colorIndex: tabsRef.current.length === 0 ? 0 : (tabsRef.current[tabsRef.current.length - 1].colorIndex === 0 ? 1 : 0),
     };
     setTabs(prev => [...prev, newTab]);
     setActiveTabId(newTab.id);
@@ -1096,8 +1106,8 @@ export default function App() {
             display: "flex", flexDirection: "column",
             gap: 10,
           }}>
-            {tabs.map((tab, i) => {
-              const tabStyle = TAB_STYLES[i % TAB_STYLES.length];
+            {tabs.map((tab) => {
+              const tabStyle = TAB_STYLES[tab.colorIndex % TAB_STYLES.length];
               const isActive = tab.id === activeTabId;
               const isDirty = tab.id === activeTabId
                 ? editorContent !== savedContent
@@ -1109,6 +1119,7 @@ export default function App() {
                   title={label}
                   className="editor-tab"
                   onClick={() => handleSwitchTab(tab.id)}
+                  onContextMenu={(e) => { e.preventDefault(); setTabContextMenu({ tabId: tab.id, x: e.clientX, y: e.clientY }); }}
                   style={{
                     width: isActive ? 35 : 32, minHeight: 120,
                     marginLeft: isActive ? -3 : 0,
@@ -1159,7 +1170,7 @@ export default function App() {
                       borderRadius: "50%",
                       background: isDirty ? tabStyle.indicator : "transparent",
                       flexShrink: 0,
-                      transform: "translateX(2px)",
+                      transform: "translateX(4px)",
                     }}
                   />
                 </div>
@@ -1239,6 +1250,25 @@ export default function App() {
           )}
         </div>
       </div>
+
+      {tabContextMenu && (() => {
+        const ctxTab = tabs.find(t => t.id === tabContextMenu.tabId);
+        if (!ctxTab) return null;
+        const nextLabel = ctxTab.colorIndex === 0 ? "blue" : "orange";
+        return (
+          <div
+            onMouseDown={e => e.stopPropagation()}
+            style={{ position: "fixed", top: tabContextMenu.y, left: tabContextMenu.x, zIndex: 1000, background: "#fff", border: "1px solid #d0e0f0", borderRadius: 6, boxShadow: "0 4px 16px rgba(0,0,0,0.15)", padding: "4px 0", minWidth: 130 }}
+          >
+            <div
+              style={{ padding: "6px 14px", fontSize: 13, cursor: "pointer", color: "#333" }}
+              onClick={() => { setTabs(prev => prev.map(t => t.id === tabContextMenu.tabId ? { ...t, colorIndex: t.colorIndex === 0 ? 1 : 0 } : t)); setTabContextMenu(null); }}
+              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = "#f0f6ff"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+            >Change to {nextLabel}</div>
+          </div>
+        );
+      })()}
 
       {error && (
         <div style={{ position: "fixed", bottom: "16px", left: "50%", transform: "translateX(-50%)", background: "#c00", color: "#fff", padding: "8px 16px", borderRadius: "4px", fontSize: "13px" }}>
@@ -1514,7 +1544,7 @@ export default function App() {
 >
           <div style={{ background: "#fff", borderRadius: 8, minWidth: 480, maxWidth: 600, width: "90vw", boxShadow: "0 8px 32px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column", height: 480 }}>
             <div style={{ padding: "16px 20px 12px", borderBottom: "1px solid #e8e8e8" }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "#1a3a5c", marginBottom: 8 }}>Add File from Markdown</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: "#1a3a5c", marginBottom: 8 }}>Add Files from Markdown</div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <button
                   onClick={() => folderBrowserParent !== null && navigateFolderBrowser(folderBrowserParent).then(files => setAddFileSelected(new Set(files)))}

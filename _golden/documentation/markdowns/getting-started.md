@@ -11,8 +11,8 @@ No installation required. Everything is bundled in the download.
 Go to the [Releases page](https://github.com/rick-does/pith/releases) and download the zip for your platform:
 
 - `pith-Windows.zip` — Windows
-- `pith-macOS.zip` — Mac
 - `pith-Linux.zip` — Linux
+- `pith-macOS.zip` — Mac
 
 ### 2. Unzip and run
 

@@ -13,13 +13,14 @@ The pane is open by default. Click the chip to collapse it, and again to reopen 
 
 ## Adding files to the hierarchy
 
-There are three ways to move an unlinked file into the hierarchy:
+There are four ways to move unlinked files into the hierarchy:
 
-1. **Drag** it from the Unlinked pane and drop it onto the hierarchy
-2. **Select** it (click once) and press the **←** arrow key
-3. Click **⋮** on the file chip and choose **Add to hierarchy**
+1. **Select** and **Drag** them from the Unlinked pane and drop them onto the hierarchy
+2. **Select** and press the **←** arrow key
+3. **Select** and click the **←** button between the two panes
+4. Click **⋮** on one file chip and choose **Add to hierarchy**
 
-Double-clicking an unlinked file opens it in the editor.
+**Note**: Double-clicking an unlinked file opens it in the editor.
 
 **Alt+click** on a file chip shows a preview of the file's contents without opening the editor. The preview tooltip shows the opposite of the current label mode — if labels show filenames, the tooltip shows the title, and vice versa.
 
@@ -51,4 +52,4 @@ You can also add existing markdown files from another directory — see [Adding 
 
 ## Files in subdirectories
 
-Files inside subdirectories of `markdowns/` are also surfaced in the Unlinked pane if they are not in the hierarchy. Files inside `markdowns/_archive/` are excluded.
+Files inside subdirectories of `markdowns/` also appear in the Unlinked pane if they are not in the hierarchy. Files inside `markdowns/_archive/` are excluded.

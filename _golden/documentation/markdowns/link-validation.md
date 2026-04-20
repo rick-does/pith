@@ -12,9 +12,9 @@ Every file chip in the hierarchy shows a single status indicator to the left of 
 | Yellow ⚠ | Style issue — frontmatter or file template is non-compliant (no broken links) |
 | Red ⚠ | Broken links found (takes priority over yellow) |
 
-Hover over the indicator to see a popup with three rows — **Frontmatter**, **Structure**, and **Links** — each showing its own green circle or warning icon. Frontmatter checks key compliance; Structure checks required headings from the template. This lets you see at a glance which checks are passing and which are not.
+Click the indicator to see a popup with three rows — **Frontmatter**, **Structure**, and **Links** — each showing its own green circle or warning icon. Frontmatter checks key compliance; Structure checks required headings from the template. Click anywhere outside to dismiss it.
 
-In the Unlinked pane, the indicator appears when you hover over a chip, select it, or hover over the **eye icon** on the Unlinked header to reveal all at once.
+In the Unlinked pane, the indicator appears when you hover over a chip or select it. Click the indicator to open the popup, or hover over the **eye icon** on the Unlinked header to reveal all indicators at once.
 
 ## Validating links
 
@@ -34,7 +34,7 @@ Edit the file to correct or remove the broken links, then save (`Ctrl+S`). PiTH 
 - The broken link panel in the editor
 - The status indicator on the file's chip
 
-The indicator turns green as soon as all links in the file are valid.
+The indicator turns green when all links in the file are valid.
 
 ## Turning off indicators
 

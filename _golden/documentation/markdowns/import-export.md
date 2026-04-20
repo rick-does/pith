@@ -18,7 +18,7 @@ The hierarchy is built from the `nav:` section of your config. Category-only nod
 3. Copy your markdown files into `projects/{name}/markdowns/`
 4. Click **⋮** on the project chip, then **Import from... → Docusaurus**
 
-If neither `sidebars.js` nor `sidebars.ts` is found, you will be prompted for the filename.
+If neither `sidebars.js` nor `sidebars.ts` is found, you are prompted for the filename.
 
 ## Exporting to MkDocs
 

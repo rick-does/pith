@@ -7,7 +7,7 @@ Required:
 
 ## Opening a file
 
-Double-click any file chip in the hierarchy to open it. You can also click **⋮** on any file chip in the hierarchy or the Unlinked pane and choose **View/Edit**.
+Double-click any file chip in the hierarchy to open it in the editor panel. You can also click **⋮** on any file chip in the hierarchy or the Unlinked pane and choose **View/Edit**.
 
 ## The editor
 
@@ -45,7 +45,7 @@ Vi-specific save commands:
 
 ## Editor tab bar
 
-Below the editor toolbar is a bar with the following tabs: **Template**, **Stats**, **Issues**, and **Structure**, and on the right side a **Themes** button, an **Images** button, and a **Scan Project** button. Click any tab header to expand it; clicking an open tab collapses it. Only one tab can be open at a time. The Stats, Issues, and Structure panels open as floating overlays so they don't push the editor down.
+Below the editor toolbar is a bar with the following tabs: **Template**, **Stats**, **Issues**, **Structure**, and **Scan Project**, and on the right side a **Themes** button and an **Images** button. Click any tab header to expand it; clicking an open tab collapses it. Only one tab can be open at a time. The Stats, Issues, and Structure panels open as floating overlays so they don't push the editor down.
 
 ## Template
 
@@ -85,7 +85,7 @@ The **Issues** tab runs a structural triage of the current file and flags potent
 - Sentences over 40 words
 - Paragraphs over 150 words
 
-If no issues are found, the panel shows **No issues found**. The heading count for the file is always shown at the bottom.
+The panel shows **No issues found** if none found. The heading count for the file is always at the bottom.
 
 See [Issues Example](scan-test.md) for a sample file that triggers every Issues flag.
 
@@ -122,7 +122,7 @@ If you click a thumbnail while the editor is open, the image is inserted at the 
 
 ## Scan Project
 
-The **Scan Project** button on the right of the tab bar runs Stats, Issues, and Structure analysis on every file in the current project and produces a single HTML report. The same action is available from **⋮ → Scan Project** in the project menu.
+The **Scan Project** button in the tab bar (next to Structure) runs Stats, Issues, and Structure analysis on every file in the current project and produces a single HTML report. The same action is available from **⋮ → Scan Project** in the project menu.
 
 The report opens in a full-screen overlay and includes:
 
@@ -133,7 +133,7 @@ Use the **Save as HTML** button to download the report, or **Print / Save as PDF
 
 ## Multi-tab editor
 
-Each file you open adds a tab to the vertical strip along the left edge of the editor panel. Click any tab to switch to it. Tabs are color-coded alternating blue and orange.
+Each file you open adds a tab to the vertical strip along the left edge of the editor panel. Click any tab to switch to it. The first tab is orange; each new tab alternates color from the one above it. A tab's color is fixed for its lifetime — closing other tabs does not recolor the remaining ones. Right-click a tab to change it to the other color.
 
 - A small circle at the bottom of a tab indicates unsaved changes
 - Click the close icon at the top of a tab to close that file without closing the panel
@@ -156,7 +156,7 @@ The editor checks your prose for spelling as you type. Misspelled words are unde
 
 Spell check skips code blocks, inline code, URLs, frontmatter, and markdown syntax marks — only regular prose text is checked.
 
-The checker uses the standard en-US Hunspell dictionary, so technical terms, compound words, acronyms (e.g. GFM, LTS), and proper nouns (e.g. names of people or products) will be flagged even when spelled correctly. Add them to your personal dictionary once and they will never be flagged again.
+The checker uses the standard en-US Hunspell dictionary, so technical terms, compound words, acronyms (e.g. GFM, LTS), and proper nouns (e.g. names of people or products) are flagged even when spelled correctly. Add them to your personal dictionary once to avoid being flagged again.
 
 To add a word to your personal dictionary, hover over the underlined word and click **Add to dictionary** in the tooltip. Words you add are saved immediately and persist across sessions and projects.
 
