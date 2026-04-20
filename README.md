@@ -59,6 +59,7 @@ On Windows and Mac, `pith` opens a desktop window. On Linux, it starts a server 
 | Flag | Effect |
 |------|--------|
 | `--server` | Force headless mode on any platform — starts the server and opens a browser tab |
+| `--port N` | Listen on port N instead of 5000 |
 
 ### Linux / remote access
 

@@ -64,13 +64,18 @@ def _kill_existing(port: int) -> None:
 
 
 def main():
-    port = 5000
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--server", action="store_true", help="Force headless/browser mode")
+    parser.add_argument("--port", type=int, default=5000, help="Port to listen on (default: 5000)")
+    args = parser.parse_args()
+
+    port = args.port
     _kill_existing(port)
 
-    headless = "--server" in sys.argv
     wsl = _is_wsl()
     pure_linux = sys.platform == "linux" and not wsl
-    use_webview = not headless and sys.platform in ("win32", "darwin")
+    use_webview = not args.server and sys.platform in ("win32", "darwin")
 
     host = "0.0.0.0" if pure_linux else "127.0.0.1"
     url = f"http://127.0.0.1:{port}"
@@ -93,7 +98,7 @@ def main():
         server_thread.start()
         if wsl:
             subprocess.Popen(["cmd.exe", "/c", "start", url])
-        elif not pure_linux:
+        elif not pure_linux:  # --server on Windows/Mac
             threading.Timer(1.5, webbrowser.open, [url]).start()
         server_thread.join()
 
