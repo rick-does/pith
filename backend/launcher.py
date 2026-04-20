@@ -80,17 +80,27 @@ def main():
     host = "0.0.0.0" if pure_linux else "127.0.0.1"
     url = f"http://127.0.0.1:{port}"
 
-    def start_server():
-        import uvicorn
-        uvicorn.run("backend.main:app", host=host, port=port, log_level="warning")
-
     if use_webview:
+        def start_server():
+            import uvicorn
+            uvicorn.run("backend.main:app", host=host, port=port, log_level="warning")
+
         server_thread = threading.Thread(target=start_server, daemon=True)
         server_thread.start()
         import webview
         webview.create_window("PiTH", url, width=1400, height=900)
         webview.start()
     else:
+        import socket as _socket
+        sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+        sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
+        sock.bind((host, port))
+        sock.listen(128)
+
+        def start_server():
+            import uvicorn
+            uvicorn.run("backend.main:app", fd=sock.fileno(), log_level="warning")
+
         print(f"PiTH running at {url}")
         if pure_linux:
             print(f"Remote access: ssh -L {port}:localhost:{port} <user>@<host>")
