@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pith-md"
-version = "0.1.2"
+version = "0.1.3"
 description = "Visual markdown workspace — hierarchy editor, prose analysis, live preview"
 readme = "README.md"
 license = {text = "MIT"}

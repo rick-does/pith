@@ -63,7 +63,17 @@ def _kill_existing(port: int) -> None:
         pass
 
 
+def _setup_signals():
+    import signal
+    def _exit(signum, frame):
+        sys.exit(0)
+    signal.signal(signal.SIGHUP, _exit)
+    signal.signal(signal.SIGTERM, _exit)
+
+
 def main():
+    if sys.platform != "win32":
+        _setup_signals()
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--server", action="store_true", help="Force headless/browser mode")
@@ -101,9 +111,10 @@ def main():
             import uvicorn
             uvicorn.run("backend.main:app", fd=sock.fileno(), log_level="warning")
 
-        print(f"PiTH running at {url}")
+        print(f"PiTH running at {url}", flush=True)
         if pure_linux:
-            print(f"Remote access: ssh -L {port}:localhost:{port} <user>@<host>")
+            print(f"Open your browser to {url}", flush=True)
+            print(f"Remote access: ssh -L {port}:localhost:{port} <user>@<host>", flush=True)
         server_thread = threading.Thread(target=start_server, daemon=True)
         server_thread.start()
         if wsl:
