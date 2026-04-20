@@ -101,15 +101,9 @@ def main():
         webview.create_window("PiTH", url, width=1400, height=900)
         webview.start()
     else:
-        import socket as _socket
-        sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
-        sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
-        sock.bind((host, port))
-        sock.listen(128)
-
         def start_server():
             import uvicorn
-            uvicorn.run("backend.main:app", fd=sock.fileno(), log_level="warning")
+            uvicorn.run("backend.main:app", host=host, port=port, log_level="warning")
 
         print(f"PiTH running at {url}", flush=True)
         if pure_linux:
