@@ -93,7 +93,6 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: node.path });
   const [renaming, setRenaming] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [previewContent, setPreviewContent] = useState<string | null>(null);
   const [previewPos, setPreviewPos] = useState<{ top: number; left: number } | null>(null);
@@ -103,29 +102,25 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
   const childInputRef = useRef<HTMLInputElement>(null);
   const menuTriggerRef = useRef<HTMLSpanElement>(null);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [indicatorOpen, setIndicatorOpen] = useState(false);
   const [indicatorPos, setIndicatorPos] = useState<{ bottom: number; centerX: number } | null>(null);
   const indicatorButtonRef = useRef<HTMLSpanElement>(null);
-  const indicatorHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const scheduleHide = () => { indicatorHideTimer.current = setTimeout(() => setIndicatorOpen(false), 150); };
-  const cancelHide = () => { if (indicatorHideTimer.current) { clearTimeout(indicatorHideTimer.current); indicatorHideTimer.current = null; } };
 
   useEffect(() => {
-    if (!indicatorOpen) return;
-    const handler = (e: MouseEvent) => { if (!indicatorButtonRef.current?.contains(e.target as Node)) setIndicatorOpen(false); };
+    if (!indicatorPos) return;
+    const handler = (e: MouseEvent) => { if (!indicatorButtonRef.current?.contains(e.target as Node)) setIndicatorPos(null); };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [indicatorOpen]);
+  }, [indicatorPos]);
 
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuPos) return;
     const handler = (e: MouseEvent) => {
       if (menuTriggerRef.current?.contains(e.target as Node)) return;
-      setMenuOpen(false);
+      setMenuPos(null);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [menuOpen]);
+  }, [menuPos]);
 
   useEffect(() => {
     if (isDragging) onSelect(node.path);
@@ -173,7 +168,7 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
       )}
       <div style={{ display: "flex", alignItems: "stretch", opacity: isDragging ? 0 : 1 }}>
         <ConnectorLines depth={depth} ancestors={ancestors} isLast={isLast} />
-        <div style={{ minWidth: 0, position: "relative", zIndex: menuOpen || indicatorOpen ? 50 : undefined }}>
+        <div style={{ minWidth: 0, position: "relative", zIndex: menuPos !== null || indicatorPos !== null ? 50 : undefined }}>
           <div
             {...attributes} {...listeners}
             style={{
@@ -227,14 +222,14 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
               {showIndicators && (
                 <span
                   ref={indicatorButtonRef}
-                  onClick={(e) => { e.stopPropagation(); if (indicatorButtonRef.current) { const r = indicatorButtonRef.current.getBoundingClientRect(); setIndicatorPos({ bottom: window.innerHeight - r.top + 8, centerX: r.left + r.width / 2 }); setIndicatorOpen(o => !o); } }}
+                  onClick={(e) => { e.stopPropagation(); if (indicatorPos) { setIndicatorPos(null); } else if (indicatorButtonRef.current) { const r = indicatorButtonRef.current.getBoundingClientRect(); setIndicatorPos({ bottom: window.innerHeight - r.top + 8, centerX: r.left + r.width / 2 }); } }}
                   style={{ position: "absolute", right: "31px", top: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center", width: "14px", cursor: "pointer" }}
                 >
                   {indicatorLevel === "green"
                     ? <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#3a7d44", flexShrink: 0, marginTop: "2px" }} />
                     : <span style={{ fontSize: "13px", lineHeight: 1, fontWeight: "bold", color: indicatorLevel === "red" ? "#c00" : "#cc8800", userSelect: "none" }}>&#9888;</span>
                   }
-                  {indicatorOpen && indicatorPos && (
+                  {indicatorPos && (
                     <div style={{ position: "fixed", bottom: indicatorPos.bottom, left: indicatorPos.centerX, transform: "translateX(-50%)", zIndex: 1000, background: "#fff", border: "1px solid #d0e8f7", borderRadius: "8px", boxShadow: "0 4px 16px rgba(0,0,0,0.12)", padding: "6px 10px", minWidth: "170px" }}>
                       <div style={{ position: "absolute", bottom: -9, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "9px solid transparent", borderRight: "9px solid transparent", borderTop: "9px solid #d0e8f7" }} />
                       <div style={{ position: "absolute", bottom: -8, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderTop: "8px solid #fff" }} />
@@ -256,17 +251,17 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
               )}
               <span
                 ref={menuTriggerRef}
-                onClick={(e) => { e.stopPropagation(); onSelect(node.path); if (!menuOpen && menuTriggerRef.current) { const r = menuTriggerRef.current.getBoundingClientRect(); setMenuPos({ top: r.top + r.height / 2, left: r.left + r.width / 2 }); } setMenuOpen(o => !o); }}
+                onClick={(e) => { e.stopPropagation(); onSelect(node.path); if (menuPos) { setMenuPos(null); } else if (menuTriggerRef.current) { const r = menuTriggerRef.current.getBoundingClientRect(); setMenuPos({ top: r.top + r.height / 2, left: r.left + r.width / 2 }); } }}
                 style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "31px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "16px", fontWeight: "bold", color: "#bbb" }}
               >
                 &#8942;
-                {menuOpen && (
-                  <div onClick={(e) => e.stopPropagation()} style={{ position: "fixed", top: menuPos?.top ?? 0, left: menuPos?.left ?? 0, zIndex: 200, background: "#fff", border: "1px solid #d0e8f7", borderRadius: "8px", boxShadow: "0 4px 16px rgba(0,0,0,0.12)", minWidth: "150px", overflow: "hidden" }}>
-                    <div style={mi} onClick={() => { onOpen(node.path); setMenuOpen(false); }} onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }} onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = ""; }}>View/Edit</div>
-                    <div style={mi} onClick={() => { setMenuOpen(false); setTimeout(() => setRenaming(true), 0); }} onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }} onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = ""; }}>Rename</div>
-                    <div style={mi} onClick={() => { setAddingChild(true); setChildName(""); setChildError(""); setMenuOpen(false); setTimeout(() => childInputRef.current?.focus(), 50); }} onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }} onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = ""; }}>New sub-page</div>
-                    <div style={mi} onClick={() => { onCopyToChild(node.path); setMenuOpen(false); }} onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }} onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = ""; }}>Copy to new sub-page</div>
-                    <div style={{ ...mi, color: "#c00" }} onClick={() => { onDelete(node.path); setMenuOpen(false); }} onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#fff5f5"; }} onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = ""; }}>Delete</div>
+                {menuPos !== null && (
+                  <div onClick={(e) => e.stopPropagation()} style={{ position: "fixed", top: menuPos.top, left: menuPos.left, zIndex: 200, background: "#fff", border: "1px solid #d0e8f7", borderRadius: "8px", boxShadow: "0 4px 16px rgba(0,0,0,0.12)", minWidth: "150px", overflow: "hidden" }}>
+                    <div style={mi} onClick={() => { onOpen(node.path); setMenuPos(null); }} onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }} onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = ""; }}>View/Edit</div>
+                    <div style={mi} onClick={() => { setMenuPos(null); setTimeout(() => setRenaming(true), 0); }} onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }} onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = ""; }}>Rename</div>
+                    <div style={mi} onClick={() => { setAddingChild(true); setChildName(""); setChildError(""); setMenuPos(null); setTimeout(() => childInputRef.current?.focus(), 50); }} onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }} onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = ""; }}>New sub-page</div>
+                    <div style={mi} onClick={() => { onCopyToChild(node.path); setMenuPos(null); }} onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }} onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = ""; }}>Copy to new sub-page</div>
+                    <div style={{ ...mi, color: "#c00" }} onClick={() => { onDelete(node.path); setMenuPos(null); }} onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#fff5f5"; }} onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = ""; }}>Delete</div>
                   </div>
                 )}
               </span>

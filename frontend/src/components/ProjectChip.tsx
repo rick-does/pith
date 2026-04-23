@@ -37,12 +37,13 @@ export interface ProjectChipProps {
   onSwitchRoot: (path: string) => void;
   onAddRoot: () => void;
   onRemoveRoot: (path: string) => void;
+  onRestoreRoot: (path: string) => void;
   onBrowseImages: () => void;
   onAddImages: () => void;
   onOpenImagesFolder: () => void;
 }
 
-export default function ProjectChip({ currentProject, currentProjectTitle, projects, titleMode, setTitleMode, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onCreateFile, onAddFileFromMd, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, showIndicators, onToggleIndicators, showNewProjectFile, onToggleNewProjectFile, roots, currentRoot, onSwitchRoot, onAddRoot, onRemoveRoot, onBrowseImages, onAddImages, onOpenImagesFolder }: ProjectChipProps) {
+export default function ProjectChip({ currentProject, currentProjectTitle, projects, titleMode, setTitleMode, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onCreateFile, onAddFileFromMd, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, showIndicators, onToggleIndicators, showNewProjectFile, onToggleNewProjectFile, roots, currentRoot, onSwitchRoot, onAddRoot, onRemoveRoot, onRestoreRoot, onBrowseImages, onAddImages, onOpenImagesFolder }: ProjectChipProps) {
 
 
 
@@ -50,6 +51,7 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [projectSubmenuOpen, setProjectSubmenuOpen] = useState(false);
   const [rootsSubmenuOpen, setRootsSubmenuOpen] = useState(false);
+  const [archivedRootsOpen, setArchivedRootsOpen] = useState(false);
   const [importSubmenuOpen, setImportSubmenuOpen] = useState(false);
   const [exportSubmenuOpen, setExportSubmenuOpen] = useState(false);
   const [templateSubmenuOpen, setTemplateSubmenuOpen] = useState(false);
@@ -176,7 +178,7 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                             onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
                           >New root</div>
                           <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />
-                          {roots.map(root => (
+                          {roots.filter(r => !r.archived).map(root => (
                             <div key={root.path}
                               style={{ ...menuItem, justifyContent: "space-between", paddingRight: "8px", background: root.path === currentRoot ? "#e8f4fd" : "transparent", color: root.path === currentRoot ? "#1a6fa8" : "#666", fontWeight: root.path === currentRoot ? 600 : 400 }}
                               onClick={() => { if (root.path !== currentRoot) { onSwitchRoot(root.path); setMenuOpen(false); setProjectSubmenuOpen(false); setRootsSubmenuOpen(false); } }}
@@ -195,7 +197,7 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                               </span>
                               {root.path !== currentRoot && !root.is_default && (
                                 <span
-                                  title="Remove root"
+                                  title="Archive root"
                                   onClick={(e) => { e.stopPropagation(); onRemoveRoot(root.path); setMenuOpen(false); setProjectSubmenuOpen(false); setRootsSubmenuOpen(false); }}
                                   style={{ color: "#555", fontSize: "18px", lineHeight: 1, padding: "2px 6px", borderRadius: "3px", cursor: "pointer", flexShrink: 0 }}
                                   onMouseEnter={(e) => { e.stopPropagation(); (e.currentTarget as HTMLSpanElement).style.color = "#c0392b"; }}
@@ -204,6 +206,38 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                               )}
                             </div>
                           ))}
+                          {roots.some(r => r.archived) && (
+                            <>
+                              <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />
+                              <div
+                                style={{ ...menuItem, justifyContent: "space-between", color: "#888", fontSize: "12px" }}
+                                onClick={() => setArchivedRootsOpen(o => !o)}
+                                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                              >
+                                <span>Archived roots</span>
+                                <span style={{ fontSize: "10px" }}>{archivedRootsOpen ? "▲" : "▼"}</span>
+                              </div>
+                              {archivedRootsOpen && roots.filter(r => r.archived).map(root => (
+                                <div key={root.path}
+                                  style={{ ...menuItem, justifyContent: "space-between", paddingRight: "8px", paddingLeft: "20px", color: "#999" }}
+                                  onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                                  onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                                >
+                                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, fontSize: "12px" }}>
+                                    {root.path.replace(/[\\/]+$/, "").split(/[\\/]/).pop() || root.path}
+                                  </span>
+                                  <span
+                                    title="Restore root"
+                                    onClick={(e) => { e.stopPropagation(); onRestoreRoot(root.path); setArchivedRootsOpen(false); }}
+                                    style={{ color: "#1a6fa8", fontSize: "11px", padding: "2px 6px", borderRadius: "3px", cursor: "pointer", flexShrink: 0, border: "1px solid #b3d9f7" }}
+                                    onMouseEnter={(e) => { (e.currentTarget as HTMLSpanElement).style.background = "#e8f4fd"; }}
+                                    onMouseLeave={(e) => { (e.currentTarget as HTMLSpanElement).style.background = "transparent"; }}
+                                  >Restore</span>
+                                </div>
+                              ))}
+                            </>
+                          )}
                         </div>
                       )}
                     </div>

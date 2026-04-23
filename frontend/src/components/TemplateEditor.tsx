@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import CodeEditor from "./CodeEditor";
 
 interface TemplatePrefs {
-  applyFm: boolean;
-  removeExtra: boolean;
-  appendBody: boolean;
+  apply_fm: boolean;
+  remove_extra: boolean;
+  append_body: boolean;
 }
 
 interface Props {
@@ -12,7 +12,7 @@ interface Props {
   onSave: (content: string) => void;
   onClose: () => void;
   onViewCompliance?: () => void;
-  onApply?: (removeExtra: boolean, applyFm: boolean, appendBody: boolean) => void;
+  onApply?: (remove_extra: boolean, apply_fm: boolean, append_body: boolean) => void;
   prefs: TemplatePrefs;
   onPrefsChange: (prefs: TemplatePrefs) => void;
 }
@@ -42,15 +42,15 @@ export default function TemplateEditor({ content, onSave, onClose, onViewComplia
           <hr style={{ border: "none", borderTop: "2px solid #ddd", margin: "12px 0 8px" }} />
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#555", cursor: "pointer" }}>
-              <input type="checkbox" checked={prefs.applyFm} onChange={e => set({ applyFm: e.target.checked })} />
+              <input type="checkbox" checked={prefs.apply_fm} onChange={e => set({ apply_fm: e.target.checked })} />
               Update frontmatter
             </label>
             <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#888", cursor: "pointer", marginLeft: 16 }}>
-              <input type="checkbox" checked={prefs.removeExtra} onChange={e => set({ removeExtra: e.target.checked })} disabled={!prefs.applyFm} />
+              <input type="checkbox" checked={prefs.remove_extra} onChange={e => set({ remove_extra: e.target.checked })} disabled={!prefs.apply_fm} />
               Remove extra frontmatter keys not in template
             </label>
             <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#555", cursor: "pointer" }}>
-              <input type="checkbox" checked={prefs.appendBody} onChange={e => set({ appendBody: e.target.checked })} />
+              <input type="checkbox" checked={prefs.append_body} onChange={e => set({ append_body: e.target.checked })} />
               Append template body
             </label>
           </div>
@@ -63,7 +63,7 @@ export default function TemplateEditor({ content, onSave, onClose, onViewComplia
           <div style={{ flex: 1 }} />
           <button onClick={onClose} style={{ ...actionBtn, background: "#eee", color: "#333" }}>Close</button>
           {onApply && (
-            <button onClick={() => { onApply(prefs.removeExtra, prefs.applyFm, prefs.appendBody); onClose(); }} style={actionBtn}>Apply to open file</button>
+            <button onClick={() => { onApply(prefs.remove_extra, prefs.apply_fm, prefs.append_body); onClose(); }} style={actionBtn}>Apply to open file</button>
           )}
           <button onClick={() => onSave(value)} style={actionBtn}>Save template</button>
         </div>

@@ -10,47 +10,29 @@ import SearchPanel from "./components/SearchPanel";
 import TemplateEditor from "./components/TemplateEditor";
 import ComplianceReport from "./components/ComplianceReport";
 import LinkReport from "./components/LinkReport";
+import NewProjectDialog from "./components/NewProjectDialog";
+import AddFileDialog from "./components/AddFileDialog";
+import AddRootDialog from "./components/AddRootDialog";
+import { useEditorTabs, TAB_STYLES, TABS_KEY, ACTIVE_TAB_KEY } from "./hooks/useEditorTabs";
 import {
   listProjects, createProject, archiveProject, renameProject,
   fetchProjectMd, saveProjectMd,
   fetchCollection, saveCollection, fetchMarkdown, saveMarkdown, fetchCollectionYaml,
-  fetchOrphans, createFile, deleteFile, archiveFile, renameFile,
+  fetchOrphans, createFile, archiveFile, renameFile,
   fetchTemplate, saveTemplate,
   fetchTemplateCompliance, applyTemplate, batchApplyTemplate, useFileAsTemplate,
   validateProjectLinks, validateFileLinks,
   importFromFormat, exportToFormat,
-  importMarkdowns, importFiles, browseDirs, browseStartDir,
   flattenHierarchy, restoreHierarchy, checkHierarchyBackup,
-  fetchConfig, fetchRoots, addRoot, removeRoot, switchRoot, setLastProject,
-  uploadImages, openImagesFolder,
+  fetchConfig, fetchRoots, removeRoot, restoreRoot, switchRoot, setLastProject,
+  openImagesFolder,
   fetchPrefs, savePrefs,
 } from "./api";
-import type { CollectionStructure, FileInfo, FileNode, ProjectInfo } from "./types";
+import type { CollectionStructure, FileInfo, FileNode, ProjectInfo, EditorTab, OverlayType } from "./types";
 import type { TemplateComplianceItem, FileLinkReport, BrokenLink, RootInfo } from "./api";
 import { insertAsLastChild, reorder } from "./treeHelpers";
 
 const LAST_FILE_KEY = "pith_selected_file";
-const TABS_KEY = (r: string, p: string) => `pith_tabs_${r}:${p}`;
-const ACTIVE_TAB_KEY = (r: string, p: string) => `pith_active_tab_${r}:${p}`;
-
-type OverlayType = "editor" | "yaml" | "project-md" | null;
-
-interface EditorTab {
-  id: string;
-  type: "editor";
-  path: string;
-  content: string;
-  savedContent: string;
-  title: string;
-  frontmatter: Record<string, any>;
-  brokenLinks: BrokenLink[];
-  colorIndex: number;
-}
-
-const TAB_STYLES = [
-  { bg: "#fff3e0", text: "#555", border: "#ff8c00", indicator: "#1a6fa8" },
-  { bg: "#e8f4fd", text: "#555", border: "#1a6fa8", indicator: "#ff8c00" },
-];
 
 function getTitleForPath(path: string, col: CollectionStructure, orph: FileInfo[]): string {
   const find = (nodes: FileNode[]): string | null => {
@@ -65,6 +47,7 @@ function getTitleForPath(path: string, col: CollectionStructure, orph: FileInfo[
 }
 
 export default function App() {
+  // Core project/collection state
   const [projects, setProjects] = useState<ProjectInfo[]>([]);
   const [currentProject, setCurrentProject] = useState<string | null>(null);
   const [collection, setCollection] = useState<CollectionStructure>({ root: [] });
@@ -78,78 +61,64 @@ export default function App() {
   const [overlayType, setOverlayType] = useState<OverlayType>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Simple overlay/modal toggles
   const [importModal, setImportModal] = useState<{ format: "mkdocs" | "docusaurus" } | null>(null);
   const [exportModal, setExportModal] = useState<{ format: "mkdocs" | "docusaurus" } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [imageBrowserOpen, setImageBrowserOpen] = useState(false);
   const [imageBrowserTriggerAdd, setImageBrowserTriggerAdd] = useState(false);
+
+  // Template state
   const [templateContent, setTemplateContent] = useState("");
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
   const [complianceItems, setComplianceItems] = useState<TemplateComplianceItem[] | null>(null);
-  const [templatePrefs, setTemplatePrefs] = useState({ applyFm: true, removeExtra: true, appendBody: false });
+  const [templatePrefs, setTemplatePrefs] = useState({ apply_fm: true, remove_extra: true, append_body: false });
   const handlePrefsChange = useCallback((prefs: typeof templatePrefs) => {
     setTemplatePrefs(prefs);
-    savePrefs({ apply_fm: prefs.applyFm, remove_extra: prefs.removeExtra, append_body: prefs.appendBody });
+    savePrefs(prefs);
   }, []);
+
+  // Links/indicators state
   const [linkReport, setLinkReport] = useState<FileLinkReport[] | null>(null);
   const [fileBrokenLinks, setFileBrokenLinks] = useState<BrokenLink[]>([]);
   const [brokenLinkMap, setBrokenLinkMap] = useState<Record<string, number>>({});
   const [frontmatterIssueMap, setFrontmatterIssueMap] = useState<Record<string, boolean>>({});
   const [templateIssueMap, setTemplateIssueMap] = useState<Record<string, boolean>>({});
   const [showIndicators, setShowIndicators] = useState(true);
+
+  // Preview state
   const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
   const [reportPreview, setReportPreview] = useState<string | null>(null);
   const [hasHierarchyBackup, setHasHierarchyBackup] = useState(false);
-  const [newProjectOpen, setNewProjectOpen] = useState(false);
-  const [newProjectTitle, setNewProjectTitle] = useState("");
-  const [newProjectDir, setNewProjectDir] = useState("");
-  const [newProjectDirEdited, setNewProjectDirEdited] = useState(false);
-  const [newProjectMdExpanded, setNewProjectMdExpanded] = useState(false);
-  const [newProjectError, setNewProjectError] = useState("");
-  const [folderBrowserPath, setFolderBrowserPath] = useState("");
-  const [folderBrowserDirs, setFolderBrowserDirs] = useState<string[]>([]);
-  const [folderBrowserFiles, setFolderBrowserFiles] = useState<string[]>([]);
-  const [folderBrowserParent, setFolderBrowserParent] = useState<string | null>(null);
-  const [addFileDialogOpen, setAddFileDialogOpen] = useState(false);
-  const [addFileSelected, setAddFileSelected] = useState<Set<string>>(new Set());
-  const [addFileError, setAddFileError] = useState("");
+
+  // Root/project settings
   const [roots, setRoots] = useState<RootInfo[]>([]);
   const [currentRoot, setCurrentRoot] = useState("");
-  const [newRootOpen, setNewRootOpen] = useState(false);
-  const [newRootDescription, setNewRootDescription] = useState("");
-  const [newRootCreateDir, setNewRootCreateDir] = useState(false);
-  const [newRootNewDirName, setNewRootNewDirName] = useState("");
-  const [newRootError, setNewRootError] = useState("");
-  const [rootBrowserPath, setRootBrowserPath] = useState("");
-  const [rootBrowserDirs, setRootBrowserDirs] = useState<string[]>([]);
-  const [rootBrowserParent, setRootBrowserParent] = useState<string | null>(null);
-  const [tabs, setTabs] = useState<EditorTab[]>([]);
-  const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [titleMode, setTitleMode] = useState(true);
   const [editorTheme, setEditorTheme] = useState<string>("one-dark");
   const [showNewProjectFile, setShowNewProjectFile] = useState(true);
-  const [tabContextMenu, setTabContextMenu] = useState<{ tabId: string; x: number; y: number } | null>(null);
 
+  // Dialog open flags
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [newProjectExpand, setNewProjectExpand] = useState(false);
+  const [addFileDialogOpen, setAddFileDialogOpen] = useState(false);
+  const [newRootOpen, setNewRootOpen] = useState(false);
+
+  // Refs that the hook and tab handlers share
   const editorContentRef = useRef(editorContent);
   const savedContentRef = useRef(savedContent);
-  const markdownEditorRef = useRef<MarkdownEditorHandle>(null);
-  const htmlIframeRef = useRef<HTMLIFrameElement>(null);
-  const reportIframeRef = useRef<HTMLIFrameElement>(null);
-  const folderBrowserScrollRef = useRef<HTMLDivElement>(null);
-  const tabsRef = useRef(tabs);
-  const activeTabIdRef = useRef(activeTabId);
-  const tabsRestoredRef = useRef(false);
   useEffect(() => { editorContentRef.current = editorContent; }, [editorContent]);
   useEffect(() => { savedContentRef.current = savedContent; }, [savedContent]);
-  useEffect(() => { tabsRef.current = tabs; }, [tabs]);
-  useEffect(() => { activeTabIdRef.current = activeTabId; }, [activeTabId]);
-  useEffect(() => {
-    if (!tabContextMenu) return;
-    const handler = () => setTabContextMenu(null);
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [tabContextMenu]);
 
+  // Editor tabs
+  const {
+    tabs, setTabs, activeTabId, setActiveTabId, tabContextMenu, setTabContextMenu,
+    tabsRef, activeTabIdRef, tabsRestoredRef,
+    handleSwitchTab, handleCloseTab,
+  } = useEditorTabs({ editorContentRef, savedContentRef, setSelectedPath, setEditorContent, setSavedContent, setFileBrokenLinks, setOverlayType });
+
+  // Tab persistence (stays here to read overlayType without passing it to the hook)
   useEffect(() => {
     if (!currentProject || !currentRoot || loading || !tabsRestoredRef.current) return;
     localStorage.setItem(TABS_KEY(currentRoot, currentProject), JSON.stringify(tabs));
@@ -157,56 +126,9 @@ export default function App() {
     if (activeTabId) localStorage.setItem(ACTIVE_TAB_KEY(currentRoot, currentProject), activeTabId);
   }, [tabs, activeTabId, overlayType, currentProject, currentRoot, loading]);
 
-  const handleCloseOverlay = useCallback(() => {
-    if (activeTabIdRef.current) {
-      setTabs(prev => prev.map(t => t.id === activeTabIdRef.current ? { ...t, content: editorContentRef.current } : t));
-    }
-    setOverlayType(null);
-    localStorage.removeItem(LAST_FILE_KEY);
-  }, []);
-
-  const handleSwitchTab = useCallback((id: string) => {
-    if (activeTabIdRef.current) {
-      setTabs(prev => prev.map(t => t.id === activeTabIdRef.current ? { ...t, content: editorContentRef.current } : t));
-    }
-    const tab = tabsRef.current.find(t => t.id === id);
-    if (!tab) return;
-    setActiveTabId(id);
-    setSelectedPath(tab.path);
-    setEditorContent(tab.content);
-    setSavedContent(tab.savedContent);
-    setFileBrokenLinks(tab.brokenLinks);
-    setOverlayType("editor");
-  }, []);
-
-  const handleCloseTab = useCallback((id: string) => {
-    const currentActiveId = activeTabIdRef.current;
-    const allTabs = tabsRef.current;
-    const tab = allTabs.find(t => t.id === id);
-    if (!tab) return;
-    const isDirty = id === currentActiveId
-      ? editorContentRef.current !== savedContentRef.current
-      : tab.content !== tab.savedContent;
-    if (isDirty && !window.confirm(`"${tab.path}" has unsaved changes.\n\nClose without saving?`)) return;
-    const next = allTabs.filter(t => t.id !== id);
-    setTabs(next);
-    if (id === currentActiveId) {
-      if (next.length === 0) {
-        setActiveTabId(null);
-        setOverlayType(null);
-        setSelectedPath(null);
-      } else {
-        const idx = allTabs.findIndex(t => t.id === id);
-        const newActive = next[Math.max(0, idx - 1)];
-        setActiveTabId(newActive.id);
-        setSelectedPath(newActive.path);
-        setEditorContent(newActive.content);
-        setSavedContent(newActive.savedContent);
-        setFileBrokenLinks(newActive.brokenLinks);
-        setOverlayType("editor");
-      }
-    }
-  }, []);
+  const markdownEditorRef = useRef<MarkdownEditorHandle>(null);
+  const htmlIframeRef = useRef<HTMLIFrameElement>(null);
+  const reportIframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -217,7 +139,7 @@ export default function App() {
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [overlayType, handleCloseOverlay]);
+  }, [overlayType]);
 
   const lastFileCountRef = useRef<number>(-1);
   const collectionLoadingRef = useRef(false);
@@ -268,9 +190,9 @@ export default function App() {
         const [cfg, ps, prefs] = await Promise.all([fetchConfig(), listProjects(), fetchPrefs()]);
         if (prefs && typeof prefs === "object") {
           setTemplatePrefs(prev => ({
-            applyFm: "apply_fm" in prefs ? Boolean(prefs.apply_fm) : prev.applyFm,
-            removeExtra: "remove_extra" in prefs ? Boolean(prefs.remove_extra) : prev.removeExtra,
-            appendBody: "append_body" in prefs ? Boolean(prefs.append_body) : prev.appendBody,
+            apply_fm: "apply_fm" in prefs ? Boolean(prefs.apply_fm) : prev.apply_fm,
+            remove_extra: "remove_extra" in prefs ? Boolean(prefs.remove_extra) : prev.remove_extra,
+            append_body: "append_body" in prefs ? Boolean(prefs.append_body) : prev.append_body,
           }));
           if ("show_indicators" in prefs) setShowIndicators(Boolean(prefs.show_indicators));
           if ("title_mode" in prefs) setTitleMode(Boolean(prefs.title_mode));
@@ -281,10 +203,7 @@ export default function App() {
         setRoots(rootList);
         setCurrentRoot(cfg.active_root);
         setProjects(ps);
-        if (ps.length === 0) {
-          setLoading(false);
-          return;
-        }
+        if (ps.length === 0) { setLoading(false); return; }
         const activeRoot = rootList.find((r: RootInfo) => r.active);
         const lastProject = activeRoot?.last_project;
         const project = (lastProject && ps.some((p: ProjectInfo) => p.name === lastProject)) ? lastProject : ps[0].name;
@@ -298,6 +217,7 @@ export default function App() {
     })();
   }, [loadCollection]);
 
+  // Tab restoration (stays here because it needs handleSelect, defined below)
   useEffect(() => {
     if (loading || !currentProject || !currentRoot) return;
     let hadStoredTabs = false;
@@ -353,6 +273,14 @@ export default function App() {
     return () => clearInterval(interval);
   }, [currentProject, loadCollection]);
 
+  const handleCloseOverlay = useCallback(() => {
+    if (activeTabIdRef.current) {
+      setTabs(prev => prev.map(t => t.id === activeTabIdRef.current ? { ...t, content: editorContentRef.current } : t));
+    }
+    setOverlayType(null);
+    localStorage.removeItem(LAST_FILE_KEY);
+  }, []);
+
   const handleSwitchProject = useCallback(async (name: string) => {
     tabsRestoredRef.current = false;
     setTabs([]);
@@ -367,7 +295,6 @@ export default function App() {
     await loadCollection(name);
     checkHierarchyBackup(name).then(setHasHierarchyBackup);
   }, [loadCollection]);
-
 
   const handleArchiveProject = useCallback(async (name: string) => {
     await archiveProject(name);
@@ -388,9 +315,7 @@ export default function App() {
 
   const handleHighlight = useCallback((path: string | null) => {
     setSelectedPath(path);
-    if (path === null && overlayType === "editor") {
-      setOverlayType(null);
-    }
+    if (path === null && overlayType === "editor") setOverlayType(null);
   }, [overlayType]);
 
   const handleSelect = useCallback(async (path: string) => {
@@ -491,8 +416,6 @@ export default function App() {
     });
   }, []);
 
-
-
   const handleShowLinkReport = useCallback(async () => {
     if (!currentProject) return;
     const items = await validateProjectLinks(currentProject);
@@ -504,185 +427,13 @@ export default function App() {
 
   const handleExportHtml = useCallback(() => {
     if (!currentProject) return;
-    const url = `/api/projects/${encodeURIComponent(currentProject)}/export/html`;
-    fetch(url).then(r => r.text()).then(setHtmlPreview).catch(() => {});
+    fetch(`/api/projects/${encodeURIComponent(currentProject)}/export/html`).then(r => r.text()).then(setHtmlPreview).catch(() => {});
   }, [currentProject]);
 
   const handleReport = useCallback(() => {
     if (!currentProject) return;
-    const url = `/api/projects/${encodeURIComponent(currentProject)}/report/html`;
-    fetch(url).then(r => r.text()).then(setReportPreview).catch(() => {});
+    fetch(`/api/projects/${encodeURIComponent(currentProject)}/report/html`).then(r => r.text()).then(setReportPreview).catch(() => {});
   }, [currentProject]);
-
-  const navigateFolderBrowser = useCallback(async (path: string): Promise<string[]> => {
-    try {
-      const result = await browseDirs(path);
-      setFolderBrowserPath(result.path);
-      setFolderBrowserDirs(result.dirs);
-      setFolderBrowserFiles(result.files);
-      setFolderBrowserParent(result.parent);
-      if (folderBrowserScrollRef.current) folderBrowserScrollRef.current.scrollTop = 0;
-      return result.files;
-    } catch { return []; }
-  }, []);
-
-  const handleOpenNewProject = useCallback((expandMarkdowns: boolean) => {
-    setNewProjectTitle("");
-    setNewProjectDir("");
-    setNewProjectDirEdited(false);
-    setNewProjectError("");
-    setNewProjectMdExpanded(expandMarkdowns);
-    setFolderBrowserPath("");
-    setFolderBrowserDirs([]);
-    setFolderBrowserFiles([]);
-    setFolderBrowserParent(null);
-    setNewProjectOpen(true);
-    if (expandMarkdowns) {
-      browseStartDir(currentProject ?? undefined).then(startPath => navigateFolderBrowser(startPath));
-    }
-  }, [navigateFolderBrowser, currentProject]);
-
-  const handleNewProjectTitleChange = useCallback((title: string) => {
-    setNewProjectTitle(title);
-    setNewProjectError("");
-    if (!newProjectDirEdited) {
-      setNewProjectDir(title.trim().replace(/\s+/g, "-").replace(/[/\\<>:"|?*\0]/g, "").toLowerCase());
-    }
-  }, [newProjectDirEdited]);
-
-  const handleNewProjectDirChange = useCallback((dir: string) => {
-    setNewProjectDir(dir);
-    setNewProjectDirEdited(true);
-    setNewProjectError("");
-  }, []);
-
-  const handleNewProjectSubmit = useCallback(async () => {
-    const dirName = newProjectDir.trim().replace(/\s+/g, "-").replace(/[/\\<>:"|?*\0]/g, "").toLowerCase();
-    if (!dirName || dirName === "." || dirName === "..") {
-      setNewProjectError("Invalid project directory name");
-      return;
-    }
-    try {
-      if (folderBrowserPath && newProjectMdExpanded) {
-        const { name } = await importMarkdowns(folderBrowserPath);
-        if (name !== dirName) {
-          await renameProject(name, dirName);
-        }
-        const pmd_title = newProjectTitle.trim() || dirName;
-        await saveProjectMd(dirName, `# ${pmd_title}\n`);
-      } else {
-        await createProject(dirName);
-        if (newProjectTitle.trim()) {
-          await saveProjectMd(dirName, `# ${newProjectTitle.trim()}\n`);
-        }
-      }
-      const ps = await listProjects();
-      setProjects(ps);
-      await handleSwitchProject(dirName);
-      setNewProjectOpen(false);
-    } catch (e: any) {
-      setNewProjectError(e.message ?? "Failed to create project");
-    }
-  }, [newProjectDir, newProjectTitle, folderBrowserPath, newProjectMdExpanded, handleSwitchProject]);
-
-  const navigateRootBrowser = useCallback(async (path: string) => {
-    try {
-      const data = await browseDirs(path);
-      setRootBrowserPath(data.path);
-      setRootBrowserDirs(data.dirs);
-      setRootBrowserParent(data.parent);
-    } catch {}
-  }, []);
-
-  const handleOpenNewRoot = useCallback(() => {
-    setNewRootDescription("");
-    setNewRootCreateDir(false);
-    setNewRootNewDirName("");
-    setNewRootError("");
-    setRootBrowserPath("");
-    setRootBrowserDirs([]);
-    setRootBrowserParent(null);
-    setNewRootOpen(true);
-    browseStartDir().then(startPath => navigateRootBrowser(startPath));
-  }, [navigateRootBrowser]);
-
-  const handleAddRoot = useCallback(async () => {
-    if (!rootBrowserPath) { setNewRootError("Select a directory"); return; }
-    const targetPath = newRootCreateDir
-      ? `${rootBrowserPath}/${newRootNewDirName.trim()}`
-      : rootBrowserPath;
-    if (newRootCreateDir && !newRootNewDirName.trim()) { setNewRootError("Enter a directory name"); return; }
-    try {
-      const { path } = await addRoot(targetPath, newRootDescription.trim(), newRootCreateDir);
-      const updatedRoots = await fetchRoots();
-      setRoots(updatedRoots);
-      setNewRootOpen(false);
-      const result = await switchRoot(path);
-      setCurrentRoot(path);
-      setRoots(prev => prev.map(r => ({ ...r, active: r.path === path })));
-      setProjects(result.projects);
-      if (result.active_project) {
-        setCurrentProject(result.active_project);
-        await loadCollection(result.active_project);
-      } else {
-        setCurrentProject(null);
-        setCollection({ root: [] });
-        setOrphans([]);
-      }
-    } catch (e: any) {
-      setNewRootError(e.message ?? "Failed to add root");
-    }
-  }, [newRootDescription, newRootCreateDir, newRootNewDirName, rootBrowserPath, loadCollection]);
-
-  const handleSwitchRoot = useCallback(async (path: string) => {
-    try {
-      const result = await switchRoot(path);
-      setCurrentRoot(path);
-      setRoots(prev => prev.map(r => ({ ...r, active: r.path === path })));
-      tabsRestoredRef.current = false;
-      setTabs([]);
-      setActiveTabId(null);
-      setSelectedPath(null);
-      setOverlayType(null);
-      localStorage.removeItem(LAST_FILE_KEY);
-      setProjects(result.projects);
-      if (result.active_project) {
-        setCurrentProject(result.active_project);
-        await loadCollection(result.active_project);
-      } else {
-        setCurrentProject(null);
-        setCollection({ root: [] });
-        setOrphans([]);
-      }
-    } catch {}
-  }, [loadCollection]);
-
-  const handleRemoveRoot = useCallback(async (path: string) => {
-    try {
-      await removeRoot(path);
-      const updatedRoots = await fetchRoots();
-      setRoots(updatedRoots);
-      const active = updatedRoots.find(r => r.active);
-      if (active && active.path !== currentRoot) {
-        await handleSwitchRoot(active.path);
-      }
-    } catch (e: any) {
-      alert(e.message ?? "Failed to remove root");
-    }
-  }, [currentRoot, handleSwitchRoot]);
-
-  const handleOpenAddFile = useCallback(() => {
-    setAddFileSelected(new Set());
-    setAddFileError("");
-    setFolderBrowserPath("");
-    setFolderBrowserDirs([]);
-    setFolderBrowserFiles([]);
-    setFolderBrowserParent(null);
-    setAddFileDialogOpen(true);
-    browseStartDir(currentProject ?? undefined).then(startPath =>
-      navigateFolderBrowser(startPath).then(files => setAddFileSelected(new Set(files)))
-    );
-  }, [navigateFolderBrowser, currentProject]);
 
   const handleUseAsTemplate = useCallback(async () => {
     if (!currentProject || !selectedPath) return;
@@ -759,6 +510,25 @@ export default function App() {
     } catch {}
   }, [currentProject]);
 
+  const makeNewTab = (path: string, content: string, title: string, brokenLinks: BrokenLink[]): EditorTab => ({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    type: "editor",
+    path, content, savedContent: content, title, frontmatter: {}, brokenLinks,
+    colorIndex: tabsRef.current.length === 0 ? 0 : (tabsRef.current[tabsRef.current.length - 1].colorIndex === 0 ? 1 : 0),
+  });
+
+  const openNewTab = (tab: EditorTab) => {
+    if (activeTabIdRef.current) {
+      setTabs(prev => prev.map(t => t.id === activeTabIdRef.current ? { ...t, content: editorContentRef.current } : t));
+    }
+    setTabs(prev => [...prev, tab]);
+    setActiveTabId(tab.id);
+    setSelectedPath(tab.path);
+    setEditorContent(tab.content);
+    setSavedContent(tab.content);
+    setOverlayType("editor");
+  };
+
   const handleCreateFile = useCallback(async (filename: string) => {
     if (!currentProject) return;
     await createFile(currentProject, filename);
@@ -770,19 +540,7 @@ export default function App() {
     const o = await fetchOrphans(currentProject);
     setOrphans(o);
     const initContent = await fetchMarkdown(currentProject, filename);
-    if (activeTabIdRef.current) {
-      setTabs(prev => prev.map(t => t.id === activeTabIdRef.current ? { ...t, content: editorContentRef.current } : t));
-    }
-    const newTab: EditorTab = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      type: "editor" as const, path: filename, content: initContent, savedContent: initContent, title, frontmatter: {}, brokenLinks: [], colorIndex: tabsRef.current.length === 0 ? 0 : (tabsRef.current[tabsRef.current.length - 1].colorIndex === 0 ? 1 : 0),
-    };
-    setTabs(prev => [...prev, newTab]);
-    setActiveTabId(newTab.id);
-    setSelectedPath(filename);
-    setEditorContent(initContent);
-    setSavedContent(initContent);
-    setOverlayType("editor");
+    openNewTab(makeNewTab(filename, initContent, title, []));
   }, [currentProject, collection]);
 
   const handleDeleteFile = useCallback(async (path: string) => {
@@ -826,19 +584,7 @@ export default function App() {
     const o = await fetchOrphans(currentProject);
     setOrphans(o);
     const initContent = await fetchMarkdown(currentProject, filename);
-    if (activeTabIdRef.current) {
-      setTabs(prev => prev.map(t => t.id === activeTabIdRef.current ? { ...t, content: editorContentRef.current } : t));
-    }
-    const newTab: EditorTab = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      type: "editor" as const, path: filename, content: initContent, savedContent: initContent, title, frontmatter: {}, brokenLinks: [], colorIndex: tabsRef.current.length === 0 ? 0 : (tabsRef.current[tabsRef.current.length - 1].colorIndex === 0 ? 1 : 0),
-    };
-    setTabs(prev => [...prev, newTab]);
-    setActiveTabId(newTab.id);
-    setSelectedPath(filename);
-    setEditorContent(initContent);
-    setSavedContent(initContent);
-    setOverlayType("editor");
+    openNewTab(makeNewTab(filename, initContent, title, []));
   }, [currentProject, collection]);
 
   const handleCopyToChildFile = useCallback(async (parentPath: string) => {
@@ -847,7 +593,6 @@ export default function App() {
     const stem = parentPath.replace(/\.md$/, "");
     const newFilename = `${stem}-copy.md`;
     await createFile(currentProject, newFilename);
-    // Find the parent's title from the collection and append "-copy"
     const findTitle = (nodes: FileNode[]): string => {
       for (const n of nodes) {
         if (n.path === parentPath) return n.title;
@@ -856,9 +601,7 @@ export default function App() {
       }
       return "";
     };
-    const parentTitle = findTitle(collection.root) || stem;
-    const title = `${parentTitle}-copy`;
-    // Replace the H1 in the copied content
+    const title = `${findTitle(collection.root) || stem}-copy`;
     const newContent = source.replace(/^(#\s+).+$/m, `$1${title}`);
     await saveMarkdown(currentProject, newFilename, newContent);
     const newNode: FileNode = { path: newFilename, title, order: 0, children: [] };
@@ -867,19 +610,7 @@ export default function App() {
     setCollection({ root: newRoot });
     const o = await fetchOrphans(currentProject);
     setOrphans(o);
-    if (activeTabIdRef.current) {
-      setTabs(prev => prev.map(t => t.id === activeTabIdRef.current ? { ...t, content: editorContentRef.current } : t));
-    }
-    const newTab: EditorTab = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      type: "editor" as const, path: newFilename, content: newContent, savedContent: newContent, title, frontmatter: {}, brokenLinks: [], colorIndex: tabsRef.current.length === 0 ? 0 : (tabsRef.current[tabsRef.current.length - 1].colorIndex === 0 ? 1 : 0),
-    };
-    setTabs(prev => [...prev, newTab]);
-    setActiveTabId(newTab.id);
-    setSelectedPath(newFilename);
-    setEditorContent(newContent);
-    setSavedContent(newContent);
-    setOverlayType("editor");
+    openNewTab(makeNewTab(newFilename, newContent, title, []));
   }, [currentProject, collection]);
 
   const handleRenameFile = useCallback(async (oldPath: string, newName: string) => {
@@ -899,20 +630,50 @@ export default function App() {
     await loadCollection(currentProject);
   }, [currentProject, loadCollection]);
 
-  const handleAddFileConfirm = useCallback(async () => {
-    if (!currentProject || addFileSelected.size === 0) return;
-    const filePaths = [...addFileSelected].map(name => {
-      const sep = folderBrowserPath.includes("/") ? "/" : "\\";
-      return folderBrowserPath + sep + name;
-    });
+  const handleSwitchRoot = useCallback(async (path: string) => {
     try {
-      await importFiles(currentProject, filePaths);
-      setAddFileDialogOpen(false);
-      await handleRefresh();
+      const result = await switchRoot(path);
+      setCurrentRoot(path);
+      setRoots(prev => prev.map(r => ({ ...r, active: r.path === path })));
+      tabsRestoredRef.current = false;
+      setTabs([]);
+      setActiveTabId(null);
+      setSelectedPath(null);
+      setOverlayType(null);
+      localStorage.removeItem(LAST_FILE_KEY);
+      setProjects(result.projects);
+      if (result.active_project) {
+        setCurrentProject(result.active_project);
+        await loadCollection(result.active_project);
+      } else {
+        setCurrentProject(null);
+        setCollection({ root: [] });
+        setOrphans([]);
+      }
+    } catch {}
+  }, [loadCollection]);
+
+  const handleRemoveRoot = useCallback(async (path: string) => {
+    try {
+      await removeRoot(path);
+      const updatedRoots = await fetchRoots();
+      setRoots(updatedRoots);
+      const active = updatedRoots.find(r => r.active);
+      if (active && active.path !== currentRoot) await handleSwitchRoot(active.path);
     } catch (e: any) {
-      setAddFileError(e.message ?? "Failed to import files");
+      alert(e.message ?? "Failed to remove root");
     }
-  }, [currentProject, addFileSelected, folderBrowserPath, handleRefresh]);
+  }, [currentRoot, handleSwitchRoot]);
+
+  const handleRestoreRoot = useCallback(async (path: string) => {
+    try {
+      await restoreRoot(path);
+      const updatedRoots = await fetchRoots();
+      setRoots(updatedRoots);
+    } catch (e: any) {
+      alert(e.message ?? "Failed to restore root");
+    }
+  }, []);
 
   const overlayOpen = overlayType !== null;
 
@@ -932,15 +693,8 @@ export default function App() {
           <span style={{ color: "rgba(255,255,255,0.5)", fontSize: "13px", fontStyle: "italic", lineHeight: 1, position: "relative", top: -1 }}>visual markdown workspace</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button
-            onClick={() => setSearchOpen(o => !o)}
-            title="Search (Ctrl+F)"
-            style={{
-              background: searchOpen ? "rgba(255,255,255,0.15)" : "transparent",
-              border: "none", borderRadius: 4,
-              color: "#fff", cursor: "pointer", padding: "4px 6px",
-              display: "flex", alignItems: "center",
-            }}
+          <button onClick={() => setSearchOpen(o => !o)} title="Search (Ctrl+F)"
+            style={{ background: searchOpen ? "rgba(255,255,255,0.15)" : "transparent", border: "none", borderRadius: 4, color: "#fff", cursor: "pointer", padding: "4px 6px", display: "flex", alignItems: "center" }}
             onMouseEnter={(e) => { (e.currentTarget.querySelector("svg") as SVGElement).style.opacity = "1"; e.currentTarget.style.background = "rgba(255,255,255,0.15)"; }}
             onMouseLeave={(e) => { (e.currentTarget.querySelector("svg") as SVGElement).style.opacity = searchOpen ? "1" : "0.7"; e.currentTarget.style.background = searchOpen ? "rgba(255,255,255,0.15)" : "transparent"; }}
           >
@@ -949,16 +703,8 @@ export default function App() {
               <line x1="10" y1="10" x2="14.5" y2="14.5" stroke="white" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </button>
-          <button
-            onClick={() => fetch(`/api/open-url?url=${encodeURIComponent("https://rick-does.github.io/pith/")}`)}
-            title="Documentation"
-            style={{
-              background: "transparent",
-              border: "none", borderRadius: "50%",
-              color: "#fff", cursor: "pointer", padding: "2px",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              width: 28, height: 28,
-            }}
+          <button onClick={() => fetch(`/api/open-url?url=${encodeURIComponent("https://rick-does.github.io/pith/")}`)} title="Documentation"
+            style={{ background: "transparent", border: "none", borderRadius: "50%", color: "#fff", cursor: "pointer", padding: "2px", display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28 }}
             onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.15)"; (e.currentTarget.querySelector("svg") as SVGElement).style.opacity = "1"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; (e.currentTarget.querySelector("svg") as SVGElement).style.opacity = "0.7"; }}
           >
@@ -967,16 +713,8 @@ export default function App() {
               <text x="10" y="15" textAnchor="middle" fill="white" fontSize="12" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" fontWeight="bold">?</text>
             </svg>
           </button>
-          <button
-            onClick={() => fetch(`/api/open-url?url=${encodeURIComponent("https://github.com/rick-does/pith")}`)}
-            title="GitHub — source, issues, contact"
-            style={{
-              background: "transparent",
-              border: "none", borderRadius: "50%",
-              color: "#fff", cursor: "pointer", padding: "2px",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              width: 28, height: 28,
-            }}
+          <button onClick={() => fetch(`/api/open-url?url=${encodeURIComponent("https://github.com/rick-does/pith")}`)} title="GitHub — source, issues, contact"
+            style={{ background: "transparent", border: "none", borderRadius: "50%", color: "#fff", cursor: "pointer", padding: "2px", display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28 }}
             onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.15)"; (e.currentTarget.querySelector("svg") as SVGElement).style.opacity = "1"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; (e.currentTarget.querySelector("svg") as SVGElement).style.opacity = "0.7"; }}
           >
@@ -993,60 +731,62 @@ export default function App() {
           onSelect={handleHighlight}
           onOpen={handleSelect}
           onCollectionChange={handleCollectionChange}
-          onCreateFile={handleCreateFile}
-          onAddFileFromMd={handleOpenAddFile}
-          onDeleteFile={handleDeleteFile}
-          onRenameFile={handleRenameFile}
-          onCreateChildFile={handleCreateChildFile}
-          onCopyToChildFile={handleCopyToChildFile}
-          onOpenYaml={handleOpenYaml}
-          yamlOpen={overlayType === "yaml"}
           orphans={orphans}
-          currentProject={currentProject ?? ""}
-          currentProjectTitle={projects.find(p => p.name === currentProject)?.title ?? currentProject ?? ""}
-          projects={projects}
-          onSwitchProject={handleSwitchProject}
-          onNewProject={handleOpenNewProject}
-          onArchiveProject={handleArchiveProject}
-          onOpenProjectMd={handleOpenProjectMd}
           onRefresh={handleRefresh}
-          onImport={(fmt) => setImportModal({ format: fmt })}
-          onExport={(fmt) => setExportModal({ format: fmt })}
-          onEditTemplate={() => setShowTemplateEditor(true)}
-          onCheckCompliance={handleShowCompliance}
-          onValidateLinks={handleShowLinkReport}
-          onExportHtml={handleExportHtml}
-          onReport={handleReport}
-          hasHierarchyBackup={hasHierarchyBackup}
-          onFlattenHierarchy={async () => {
-            if (!currentProject) return;
-            await flattenHierarchy(currentProject);
-            setHasHierarchyBackup(true);
-            await handleRefresh();
+          treeOps={{
+            onDelete: handleDeleteFile,
+            onRename: handleRenameFile,
+            onCreateChild: handleCreateChildFile,
+            onCopyToChild: handleCopyToChildFile,
           }}
-          onRestoreHierarchy={async () => {
-            if (!currentProject) return;
-            await restoreHierarchy(currentProject);
-            setHasHierarchyBackup(false);
-            await loadCollection(currentProject);
+          indicators={{ brokenLinkMap, frontmatterIssueMap, templateIssueMap }}
+          chip={{
+            currentProject: currentProject ?? "",
+            currentProjectTitle: projects.find(p => p.name === currentProject)?.title ?? currentProject ?? "",
+            projects,
+            titleMode,
+            setTitleMode: (mode: boolean) => { setTitleMode(mode); savePrefs({ title_mode: mode }).catch(() => {}); },
+            onSwitchProject: handleSwitchProject,
+            onNewProject: (expand) => { setNewProjectExpand(expand); setNewProjectOpen(true); },
+            onArchiveProject: handleArchiveProject,
+            onOpenProjectMd: handleOpenProjectMd,
+            onCreateFile: handleCreateFile,
+            onAddFileFromMd: () => setAddFileDialogOpen(true),
+            onOpenYaml: handleOpenYaml,
+            onImport: (fmt) => setImportModal({ format: fmt }),
+            onExport: (fmt) => setExportModal({ format: fmt }),
+            onEditTemplate: () => setShowTemplateEditor(true),
+            onCheckCompliance: handleShowCompliance,
+            onValidateLinks: handleShowLinkReport,
+            onExportHtml: handleExportHtml,
+            onReport: handleReport,
+            hasHierarchyBackup,
+            onFlattenHierarchy: async () => {
+              if (!currentProject) return;
+              await flattenHierarchy(currentProject);
+              setHasHierarchyBackup(true);
+              await handleRefresh();
+            },
+            onRestoreHierarchy: async () => {
+              if (!currentProject) return;
+              await restoreHierarchy(currentProject);
+              setHasHierarchyBackup(false);
+              await loadCollection(currentProject);
+            },
+            showIndicators,
+            onToggleIndicators: handleToggleIndicators,
+            showNewProjectFile,
+            onToggleNewProjectFile: handleToggleNewProjectFile,
+            roots,
+            currentRoot,
+            onSwitchRoot: handleSwitchRoot,
+            onAddRoot: () => setNewRootOpen(true),
+            onRemoveRoot: handleRemoveRoot,
+            onRestoreRoot: handleRestoreRoot,
+            onBrowseImages: () => { setImageBrowserTriggerAdd(false); setImageBrowserOpen(true); },
+            onAddImages: () => { setImageBrowserTriggerAdd(true); setImageBrowserOpen(true); },
+            onOpenImagesFolder: () => { if (currentProject) openImagesFolder(currentProject); },
           }}
-          brokenLinkMap={brokenLinkMap}
-          frontmatterIssueMap={frontmatterIssueMap}
-          templateIssueMap={templateIssueMap}
-          showIndicators={showIndicators}
-          onToggleIndicators={handleToggleIndicators}
-          showNewProjectFile={showNewProjectFile}
-          onToggleNewProjectFile={handleToggleNewProjectFile}
-          roots={roots}
-          currentRoot={currentRoot}
-          onSwitchRoot={handleSwitchRoot}
-          onAddRoot={handleOpenNewRoot}
-          onRemoveRoot={handleRemoveRoot}
-          onBrowseImages={() => { setImageBrowserTriggerAdd(false); setImageBrowserOpen(true); }}
-          onAddImages={() => { setImageBrowserTriggerAdd(true); setImageBrowserOpen(true); }}
-          onOpenImagesFolder={() => { if (currentProject) openImagesFolder(currentProject); }}
-          titleMode={titleMode}
-          onTitleModeChange={(mode: boolean) => { setTitleMode(mode); savePrefs({ title_mode: mode }).catch(() => {}); }}
         />
       </div>
 
@@ -1057,134 +797,39 @@ export default function App() {
           transform: overlayOpen ? "translateX(0)" : "translateX(calc(100% - 52px))",
         } : undefined}
       >
-        {/* Notebook tab strip — left edge of the panel */}
         {tabs.length > 0 && (
-          <div style={{
-            width: 52, flexShrink: 0,
-            display: "flex", flexDirection: "column",
-            background: "transparent",
-            paddingTop: 133,
-            position: "relative",
-          }}>
-          {!overlayOpen && (
-            <button
-              onClick={() => {
-                const activeTab = tabs.find(t => t.id === activeTabId);
-                if (!activeTab) return;
-                setOverlayType("editor");
-              }}
-              title="Open editor"
-              style={{
-                position: "absolute", top: 72, right: 0,
-                width: 32, height: 32,
-                background: "#fff", border: "none",
-                borderRadius: "4px 0 0 4px", cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 18, fontWeight: 600, color: "#555",
-                padding: 0, lineHeight: 1,
-                filter: "drop-shadow(0 0 10px rgba(125,128,136,0.75))",
-              }}
-            >&#xAB;</button>
-          )}
-          {overlayOpen && (
-            <button
-              onClick={handleCloseOverlay}
-              title="Close editor"
-              style={{
-                position: "absolute", top: 72, right: 0,
-                width: 32, height: 32,
-                background: "#fff", border: "none",
-                borderRadius: "4px 0 0 4px", cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 18, fontWeight: 600, color: "#555",
-                padding: 0, lineHeight: 1,
-                filter: "drop-shadow(0 0 10px rgba(125,128,136,0.75))",
-              }}
-            >&#xBB;</button>
-          )}
-          <div style={{
-            background: "transparent",
-            filter: "drop-shadow(0 0 25px rgba(90,95,105,0.95))",
-            borderRadius: "14px 0 0 14px",
-            padding: "20px 0 20px 20px",
-            display: "flex", flexDirection: "column",
-            gap: 10,
-          }}>
-            {tabs.map((tab) => {
-              const tabStyle = TAB_STYLES[tab.colorIndex % TAB_STYLES.length];
-              const isActive = tab.id === activeTabId;
-              const isDirty = tab.id === activeTabId
-                ? editorContent !== savedContent
-                : tab.content !== tab.savedContent;
-              const label = titleMode ? tab.title : tab.path.replace(/\.md$/, "");
-              return (
-                <div
-                  key={tab.id}
-                  title={label}
-                  className="editor-tab"
-                  onClick={() => handleSwitchTab(tab.id)}
-                  onContextMenu={(e) => { e.preventDefault(); setTabContextMenu({ tabId: tab.id, x: e.clientX, y: e.clientY }); }}
-                  style={{
-                    width: isActive ? 35 : 32, minHeight: 120,
-                    marginLeft: isActive ? -3 : 0,
-                    paddingLeft: isActive ? 3 : 0,
-                    background: tabStyle.bg,
-                    border: `1.5px solid ${tabStyle.border}`,
-                    borderRight: "none",
-                    borderRadius: "10px 0 0 10px",
-                    boxShadow: isActive ? `inset 5px 0 0 0 ${tabStyle.border}` : "none",
-                    cursor: "pointer",
-                    userSelect: "none", flexShrink: 0,
-                    display: "flex", flexDirection: "column",
-                    alignItems: "center", justifyContent: "flex-end",
-                    paddingTop: 4, paddingBottom: 6,
-                    paddingRight: 1.5,
-                  }}
-                >
-                  <button
-                    onClick={e => { e.stopPropagation(); handleCloseTab(tab.id); }}
-                    title="Close"
-                    className="editor-tab-close"
-                    style={{
-                      background: "none", border: "none",
-                      cursor: "pointer", fontSize: 11, padding: 0,
-                      lineHeight: 1, width: 16, height: 16,
-                      display: overlayOpen ? "flex" : "none",
-                      alignItems: "center", justifyContent: "center",
-                      flexShrink: 0,
-                      transform: "translateX(4px)",
-                    }}
-                  >&#x2715;</button>
-                  <div style={{ flex: 1 }} />
-                  <span style={{
-                    writingMode: "vertical-rl" as const,
-                    transform: "rotate(180deg) translateX(-3px)",
-                    fontSize: 15, fontWeight: 500, lineHeight: 1.2,
-                    color: tabStyle.text,
-                    overflow: "hidden", whiteSpace: "nowrap",
-                    maxHeight: 80,
-                    flexShrink: 0,
-                  }}>
-                    {label}
-                  </span>
-                  <div
-                    title={isDirty ? "Not saved" : undefined}
-                    style={{
-                      width: 9, height: 9, marginTop: 6,
-                      borderRadius: "50%",
-                      background: isDirty ? tabStyle.indicator : "transparent",
-                      flexShrink: 0,
-                      transform: "translateX(4px)",
-                    }}
-                  />
-                </div>
-              );
-            })}
-          </div>
+          <div style={{ width: 52, flexShrink: 0, display: "flex", flexDirection: "column", background: "transparent", paddingTop: 133, position: "relative" }}>
+            {!overlayOpen && (
+              <button onClick={() => { const t = tabs.find(t => t.id === activeTabId); if (t) setOverlayType("editor"); }} title="Open editor"
+                style={{ position: "absolute", top: 72, right: 0, width: 32, height: 32, background: "#fff", border: "none", borderRadius: "4px 0 0 4px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 600, color: "#555", padding: 0, lineHeight: 1, filter: "drop-shadow(0 0 10px rgba(125,128,136,0.75))" }}>&#xAB;</button>
+            )}
+            {overlayOpen && (
+              <button onClick={handleCloseOverlay} title="Close editor"
+                style={{ position: "absolute", top: 72, right: 0, width: 32, height: 32, background: "#fff", border: "none", borderRadius: "4px 0 0 4px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 600, color: "#555", padding: 0, lineHeight: 1, filter: "drop-shadow(0 0 10px rgba(125,128,136,0.75))" }}>&#xBB;</button>
+            )}
+            <div style={{ background: "transparent", filter: "drop-shadow(0 0 25px rgba(90,95,105,0.95))", borderRadius: "14px 0 0 14px", padding: "20px 0 20px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
+              {tabs.map((tab) => {
+                const tabStyle = TAB_STYLES[tab.colorIndex % TAB_STYLES.length];
+                const isActive = tab.id === activeTabId;
+                const isDirty = tab.id === activeTabId ? editorContent !== savedContent : tab.content !== tab.savedContent;
+                const label = titleMode ? tab.title : tab.path.replace(/\.md$/, "");
+                return (
+                  <div key={tab.id} title={label} className="editor-tab" onClick={() => handleSwitchTab(tab.id)}
+                    onContextMenu={(e) => { e.preventDefault(); setTabContextMenu({ tabId: tab.id, x: e.clientX, y: e.clientY }); }}
+                    style={{ width: isActive ? 35 : 32, minHeight: 120, marginLeft: isActive ? -3 : 0, paddingLeft: isActive ? 3 : 0, background: tabStyle.bg, border: `1.5px solid ${tabStyle.border}`, borderRight: "none", borderRadius: "10px 0 0 10px", boxShadow: isActive ? `inset 5px 0 0 0 ${tabStyle.border}` : "none", cursor: "pointer", userSelect: "none", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", paddingTop: 4, paddingBottom: 6, paddingRight: 1.5 }}
+                  >
+                    <button onClick={e => { e.stopPropagation(); handleCloseTab(tab.id); }} title="Close" className="editor-tab-close"
+                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, padding: 0, lineHeight: 1, width: 16, height: 16, display: overlayOpen ? "flex" : "none", alignItems: "center", justifyContent: "center", flexShrink: 0, transform: "translateX(4px)" }}>&#x2715;</button>
+                    <div style={{ flex: 1 }} />
+                    <span style={{ writingMode: "vertical-rl" as const, transform: "rotate(180deg) translateX(-3px)", fontSize: 15, fontWeight: 500, lineHeight: 1.2, color: tabStyle.text, overflow: "hidden", whiteSpace: "nowrap", maxHeight: 80, flexShrink: 0 }}>{label}</span>
+                    <div title={isDirty ? "Not saved" : undefined} style={{ width: 9, height: 9, marginTop: 6, borderRadius: "50%", background: isDirty ? tabStyle.indicator : "transparent", flexShrink: 0, transform: "translateX(4px)" }} />
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
-        {/* Editor content area */}
         <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column", overflow: "hidden", background: "#1a1a2e", boxShadow: "-8px 0 20px rgba(125,128,136,0.6)" }}>
           <span className="overlay-close-btn" onClick={handleCloseOverlay}>&#10005;</span>
           {overlayType === "editor" && selectedPath && (
@@ -1199,10 +844,7 @@ export default function App() {
               viMode={viMode}
               onViModeChange={setViMode}
               onSaved={handleFileSaved}
-              onSave={async (path, content) => {
-                if (!currentProject) return;
-                await saveMarkdown(currentProject, path, content);
-              }}
+              onSave={async (path, content) => { if (currentProject) await saveMarkdown(currentProject, path, content); }}
               onRename={handleRenameFile}
               onUseAsTemplate={handleUseAsTemplate}
               onApplyTemplate={handleApplyTemplate}
@@ -1217,13 +859,7 @@ export default function App() {
             />
           )}
           {overlayType === "yaml" && (
-            <YAMLEditor
-              yamlContent={yamlContent}
-              onYamlChange={setYamlContent}
-              onSaved={handleYamlSaved}
-              viMode={viMode}
-              readOnly
-            />
+            <YAMLEditor yamlContent={yamlContent} onYamlChange={setYamlContent} onSaved={handleYamlSaved} viMode={viMode} readOnly />
           )}
           {overlayType === "project-md" && currentProject && (
             <MarkdownEditor
@@ -1234,9 +870,7 @@ export default function App() {
               onContentChange={setProjectMdContent}
               viMode={viMode}
               onViModeChange={setViMode}
-              onSave={async (_path, content) => {
-                await saveProjectMd(currentProject, content);
-              }}
+              onSave={async (_path, content) => { await saveProjectMd(currentProject, content); }}
               onRename={async (_oldName, newName) => {
                 const dirName = newName.trim().replace(/\s+/g, "-").replace(/[/\\<>:"|?*\0]/g, "").toLowerCase();
                 if (!dirName || dirName === currentProject) return;
@@ -1264,12 +898,10 @@ export default function App() {
         if (!ctxTab) return null;
         const nextLabel = ctxTab.colorIndex === 0 ? "blue" : "orange";
         return (
-          <div
-            onMouseDown={e => e.stopPropagation()}
+          <div onMouseDown={e => e.stopPropagation()}
             style={{ position: "fixed", top: tabContextMenu.y, left: tabContextMenu.x, zIndex: 1000, background: "#fff", border: "1px solid #d0e0f0", borderRadius: 6, boxShadow: "0 4px 16px rgba(0,0,0,0.15)", padding: "4px 0", minWidth: 130 }}
           >
-            <div
-              style={{ padding: "6px 14px", fontSize: 13, cursor: "pointer", color: "#333" }}
+            <div style={{ padding: "6px 14px", fontSize: 13, cursor: "pointer", color: "#333" }}
               onClick={() => { setTabs(prev => prev.map(t => t.id === tabContextMenu.tabId ? { ...t, colorIndex: t.colorIndex === 0 ? 1 : 0 } : t)); setTabContextMenu(null); }}
               onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = "#f0f6ff"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
@@ -1286,16 +918,8 @@ export default function App() {
 
       {importModal && currentProject && (
         <ImportModal
-          onImportMkdocs={async () => {
-            await importFromFormat(currentProject, "mkdocs");
-            setImportModal(null);
-            await loadCollection(currentProject);
-          }}
-          onImportDocusaurus={async (filename?: string) => {
-            await importFromFormat(currentProject, "docusaurus", filename);
-            setImportModal(null);
-            await loadCollection(currentProject);
-          }}
+          onImportMkdocs={async () => { await importFromFormat(currentProject, "mkdocs"); setImportModal(null); await loadCollection(currentProject); }}
+          onImportDocusaurus={async (filename?: string) => { await importFromFormat(currentProject, "docusaurus", filename); setImportModal(null); await loadCollection(currentProject); }}
           onClose={() => setImportModal(null)}
         />
       )}
@@ -1304,11 +928,7 @@ export default function App() {
         <ExportModal
           format={exportModal.format}
           resultPath=""
-          onExport={async () => {
-            const result = await exportToFormat(currentProject, exportModal.format);
-            setExportModal(null);
-            window.alert(`Exported to: ${result.path}`);
-          }}
+          onExport={async () => { const result = await exportToFormat(currentProject, exportModal.format); setExportModal(null); window.alert(`Exported to: ${result.path}`); }}
           onClose={() => setExportModal(null)}
         />
       )}
@@ -1325,11 +945,7 @@ export default function App() {
       )}
 
       {searchOpen && currentProject && (
-        <SearchPanel
-          currentProject={currentProject}
-          onOpen={(path) => { setSearchOpen(false); handleSelect(path); }}
-          onClose={() => setSearchOpen(false)}
-        />
+        <SearchPanel currentProject={currentProject} onOpen={(path) => { setSearchOpen(false); handleSelect(path); }} onClose={() => setSearchOpen(false)} />
       )}
 
       {showTemplateEditor && (
@@ -1356,353 +972,82 @@ export default function App() {
       )}
 
       {linkReport !== null && (
-        <LinkReport
-          items={linkReport}
-          onOpen={handleSelect}
-          onClose={() => setLinkReport(null)}
-        />
+        <LinkReport items={linkReport} onOpen={handleSelect} onClose={() => setLinkReport(null)} />
       )}
 
       {htmlPreview !== null && (
         <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "#fff", display: "flex", flexDirection: "column" }}>
-          <div style={{
-            height: 50, background: "#1a6fa8", display: "flex", alignItems: "center",
-            padding: "0 24px", gap: 12, flexShrink: 0,
-          }}>
+          <div style={{ height: 50, background: "#1a6fa8", display: "flex", alignItems: "center", padding: "0 24px", gap: 12, flexShrink: 0 }}>
             <span style={{ color: "#fff", fontWeight: 600, fontSize: 15, flex: 1 }}>Export Preview</span>
-            <button
-              onClick={() => {
-                const blob = new Blob([htmlPreview], { type: "text/html" });
-                const a = document.createElement("a");
-                a.href = URL.createObjectURL(blob);
-                a.download = `${currentProject}.html`;
-                a.click();
-                URL.revokeObjectURL(a.href);
-              }}
-              style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}
-            >Save as HTML</button>
-            <button
-              onClick={() => htmlIframeRef.current?.contentWindow?.print()}
-              style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}
-            >Print / Save as PDF</button>
-            <button
-              onClick={() => setHtmlPreview(null)}
-              style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}
-            >Close</button>
+            <button onClick={() => { const blob = new Blob([htmlPreview], { type: "text/html" }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${currentProject}.html`; a.click(); URL.revokeObjectURL(a.href); }}
+              style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}>Save as HTML</button>
+            <button onClick={() => htmlIframeRef.current?.contentWindow?.print()}
+              style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}>Print / Save as PDF</button>
+            <button onClick={() => setHtmlPreview(null)}
+              style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}>Close</button>
           </div>
-          <iframe
-            ref={htmlIframeRef}
-            srcDoc={htmlPreview}
-            style={{ flex: 1, border: "none", width: "100%" }}
-            title="Export preview"
-          />
+          <iframe ref={htmlIframeRef} srcDoc={htmlPreview} style={{ flex: 1, border: "none", width: "100%" }} title="Export preview" />
         </div>
       )}
 
       {reportPreview !== null && (
         <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "#fff", display: "flex", flexDirection: "column" }}>
-          <div style={{
-            height: 50, background: "#1a6fa8", display: "flex", alignItems: "center",
-            padding: "0 24px", gap: 12, flexShrink: 0,
-          }}>
+          <div style={{ height: 50, background: "#1a6fa8", display: "flex", alignItems: "center", padding: "0 24px", gap: 12, flexShrink: 0 }}>
             <span style={{ color: "#fff", fontWeight: 600, fontSize: 15, flex: 1 }}>Scan Project</span>
-            <button
-              onClick={() => {
-                const blob = new Blob([reportPreview], { type: "text/html" });
-                const a = document.createElement("a");
-                a.href = URL.createObjectURL(blob);
-                a.download = `${currentProject}-report.html`;
-                a.click();
-                URL.revokeObjectURL(a.href);
-              }}
-              style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}
-            >Save as HTML</button>
-            <button
-              onClick={() => reportIframeRef.current?.contentWindow?.print()}
-              style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}
-            >Print / Save as PDF</button>
-            <button
-              onClick={() => setReportPreview(null)}
-              style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}
-            >Close</button>
+            <button onClick={() => { const blob = new Blob([reportPreview], { type: "text/html" }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${currentProject}-report.html`; a.click(); URL.revokeObjectURL(a.href); }}
+              style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}>Save as HTML</button>
+            <button onClick={() => reportIframeRef.current?.contentWindow?.print()}
+              style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}>Print / Save as PDF</button>
+            <button onClick={() => setReportPreview(null)}
+              style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}>Close</button>
           </div>
-          <iframe
-            ref={reportIframeRef}
-            srcDoc={reportPreview}
-            style={{ flex: 1, border: "none", width: "100%" }}
-            title="Analysis report"
-          />
+          <iframe ref={reportIframeRef} srcDoc={reportPreview} style={{ flex: 1, border: "none", width: "100%" }} title="Analysis report" />
         </div>
       )}
 
       {newProjectOpen && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}
->
-          <div style={{ background: "#fff", borderRadius: 8, minWidth: 480, maxWidth: 600, width: "90vw", boxShadow: "0 8px 32px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column", maxHeight: "80vh" }}>
-            <div style={{ padding: "16px 20px 12px", borderBottom: "1px solid #e8e8e8" }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "#1a3a5c", marginBottom: 12 }}>New Project</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <div>
-                  <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>Project title</div>
-                  <input autoFocus value={newProjectTitle}
-                    onChange={e => handleNewProjectTitleChange(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter") handleNewProjectSubmit(); }}
-                    placeholder="My Documentation"
-                    style={{ width: "100%", padding: "7px 10px", fontSize: 13, border: "1px solid #b3d9f7", borderRadius: 4, outline: "none", boxSizing: "border-box" }} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>Directory name</div>
-                  <input value={newProjectDir}
-                    onChange={e => handleNewProjectDirChange(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter") handleNewProjectSubmit(); }}
-                    placeholder="my-documentation"
-                    style={{ width: "100%", padding: "7px 10px", fontSize: 13, border: "1px solid #b3d9f7", borderRadius: 4, outline: "none", boxSizing: "border-box", fontFamily: "monospace" }} />
-                </div>
-              </div>
-            </div>
-
-            <div style={{ borderBottom: "1px solid #e8e8e8" }}>
-              <div
-                onClick={() => {
-                  const expanding = !newProjectMdExpanded;
-                  setNewProjectMdExpanded(expanding);
-                  if (expanding && !folderBrowserPath) {
-                    browseStartDir(currentProject ?? undefined).then(startPath => navigateFolderBrowser(startPath));
-                  }
-                }}
-                style={{ padding: "10px 20px", fontSize: 13, color: "#1a3a5c", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, userSelect: "none" }}
-                onMouseEnter={e => (e.currentTarget.style.background = "#f0f7ff")}
-                onMouseLeave={e => (e.currentTarget.style.background = "")}
-              >
-                <span style={{ fontSize: 11, color: "#999" }}>{newProjectMdExpanded ? "\u25BC" : "\u25B6"}</span>
-                <span>Copy from Markdowns directory</span>
-                {folderBrowserPath && <span style={{ fontSize: 11, color: "#888", fontFamily: "monospace", marginLeft: 8, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{folderBrowserPath}</span>}
-              </div>
-              {newProjectMdExpanded && (
-                <div style={{ display: "flex", flexDirection: "column", height: 280 }}>
-                  <div style={{ padding: "4px 20px 8px", display: "flex", alignItems: "center", gap: 6 }}>
-                    <button
-                      onClick={() => folderBrowserParent !== null && navigateFolderBrowser(folderBrowserParent)}
-                      disabled={folderBrowserParent === null}
-                      title="Go up"
-                      style={{ padding: "3px 8px", border: "1px solid #ccc", borderRadius: 4, background: folderBrowserParent !== null ? "#f5f5f5" : "#fafafa", cursor: folderBrowserParent !== null ? "pointer" : "default", fontSize: 13, color: folderBrowserParent !== null ? "#333" : "#bbb", flexShrink: 0 }}
-                    >↑</button>
-                    <div style={{ fontSize: 12, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace" }}>
-                      {folderBrowserPath || "Select a drive"}
-                    </div>
-                    {folderBrowserPath && (
-                      <button onClick={() => { setFolderBrowserPath(""); setFolderBrowserDirs([]); setFolderBrowserFiles([]); setFolderBrowserParent(null); }}
-                        title="Clear selection" style={{ padding: "2px 6px", border: "1px solid #ccc", borderRadius: 4, background: "#f5f5f5", cursor: "pointer", fontSize: 11, color: "#999", flexShrink: 0 }}>✕</button>
-                    )}
-                  </div>
-                  <div style={{ overflowY: "auto", flex: 1, padding: "2px 0" }}>
-                    {folderBrowserDirs.map(dir => {
-                      const label = dir.replace(/[\\/]$/, "").split(/[\\/]/).pop() || dir;
-                      return (
-                        <div key={dir}
-                          onClick={() => {
-                            navigateFolderBrowser(dir);
-                            if (!newProjectTitle && !newProjectDirEdited) {
-                              const dirLabel = dir.replace(/[\\/]$/, "").split(/[\\/]/).pop() || "";
-                              setNewProjectTitle(dirLabel);
-                              setNewProjectDir(dirLabel.replace(/\s+/g, "-").replace(/[/\\<>:"|?*\0]/g, "").toLowerCase());
-                            }
-                          }}
-                          style={{ padding: "6px 20px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, color: "#1a3a5c" }}
-                          onMouseEnter={e => (e.currentTarget.style.background = "#f0f7ff")}
-                          onMouseLeave={e => (e.currentTarget.style.background = "")}
-                        >
-                          <span style={{ fontSize: 15 }}>📁</span>
-                          <span>{label}</span>
-                        </div>
-                      );
-                    })}
-                    {folderBrowserFiles.length > 0 && folderBrowserDirs.length > 0 && (
-                      <div style={{ height: 1, background: "#e8e8e8", margin: "4px 20px" }} />
-                    )}
-                    {folderBrowserFiles.map(file => (
-                      <div key={file}
-                        style={{ padding: "5px 20px", fontSize: 13, display: "flex", alignItems: "center", gap: 8, color: "#666" }}
-                      >
-                        <span style={{ fontSize: 13, color: "#999" }}>📄</span>
-                        <span>{file}</span>
-                      </div>
-                    ))}
-                    {folderBrowserDirs.length === 0 && folderBrowserFiles.length === 0 && (
-                      <div style={{ padding: "12px 20px", fontSize: 13, color: "#999" }}>Empty directory.</div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {newProjectError && (
-              <div style={{ padding: "8px 20px 0", color: "#c0392b", fontSize: 12 }}>{newProjectError}</div>
-            )}
-            <div style={{ padding: "12px 20px", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button onClick={() => setNewProjectOpen(false)} style={{ padding: "6px 16px", border: "1px solid #ccc", borderRadius: 4, background: "#f5f5f5", cursor: "pointer", fontSize: 13 }}>Cancel</button>
-              <button onClick={handleNewProjectSubmit} disabled={!newProjectDir.trim()} style={{ padding: "6px 16px", border: "none", borderRadius: 4, background: newProjectDir.trim() ? "#1a6fa8" : "#a0c4e8", color: "#fff", cursor: newProjectDir.trim() ? "pointer" : "default", fontSize: 13, fontWeight: 600 }}>Create</button>
-            </div>
-          </div>
-        </div>
+        <NewProjectDialog
+          currentProject={currentProject}
+          initialExpand={newProjectExpand}
+          onCreated={async (dirName) => {
+            const ps = await listProjects();
+            setProjects(ps);
+            await handleSwitchProject(dirName);
+            setNewProjectOpen(false);
+          }}
+          onClose={() => setNewProjectOpen(false)}
+        />
       )}
 
-      {addFileDialogOpen && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}
->
-          <div style={{ background: "#fff", borderRadius: 8, minWidth: 480, maxWidth: 600, width: "90vw", boxShadow: "0 8px 32px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column", height: 480 }}>
-            <div style={{ padding: "16px 20px 12px", borderBottom: "1px solid #e8e8e8" }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "#1a3a5c", marginBottom: 8 }}>Add Files from Markdown</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <button
-                  onClick={() => folderBrowserParent !== null && navigateFolderBrowser(folderBrowserParent).then(files => setAddFileSelected(new Set(files)))}
-                  disabled={folderBrowserParent === null}
-                  title="Go up"
-                  style={{ padding: "3px 8px", border: "1px solid #ccc", borderRadius: 4, background: folderBrowserParent !== null ? "#f5f5f5" : "#fafafa", cursor: folderBrowserParent !== null ? "pointer" : "default", fontSize: 13, color: folderBrowserParent !== null ? "#333" : "#bbb", flexShrink: 0 }}
-                >↑</button>
-                <div style={{ fontSize: 12, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace" }}>
-                  {folderBrowserPath || "Select a drive"}
-                </div>
-              </div>
-            </div>
-            <div ref={folderBrowserScrollRef} style={{ overflowY: "auto", flex: 1, padding: "2px 0" }}>
-              {folderBrowserDirs.map(dir => {
-                const label = dir.replace(/[\\/]$/, "").split(/[\\/]/).pop() || dir;
-                return (
-                  <div key={dir}
-                    onClick={() => { navigateFolderBrowser(dir).then(files => setAddFileSelected(new Set(files))); }}
-                    style={{ padding: "6px 20px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, color: "#1a3a5c" }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "#f0f7ff")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "")}
-                  >
-                    <span style={{ fontSize: 15 }}>📁</span>
-                    <span>{label}</span>
-                  </div>
-                );
-              })}
-              {folderBrowserFiles.length > 0 && folderBrowserDirs.length > 0 && (
-                <div style={{ height: 1, background: "#e8e8e8", margin: "4px 20px" }} />
-              )}
-              {folderBrowserFiles.length > 0 && (
-                <div style={{ padding: "4px 20px 2px", display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 11, color: "#888", cursor: "pointer", textDecoration: "underline" }}
-                    onClick={() => {
-                      if (addFileSelected.size === folderBrowserFiles.length) setAddFileSelected(new Set());
-                      else setAddFileSelected(new Set(folderBrowserFiles));
-                    }}
-                  >{addFileSelected.size === folderBrowserFiles.length ? "Deselect all" : "Select all"}</span>
-                </div>
-              )}
-              {folderBrowserFiles.map(file => {
-                const selected = addFileSelected.has(file);
-                return (
-                  <div key={file}
-                    onClick={() => setAddFileSelected(prev => {
-                      const next = new Set(prev);
-                      if (next.has(file)) next.delete(file); else next.add(file);
-                      return next;
-                    })}
-                    style={{ padding: "5px 20px", fontSize: 13, display: "flex", alignItems: "center", gap: 8, color: selected ? "#1a3a5c" : "#666", background: selected ? "#e8f4fd" : "transparent", cursor: "pointer" }}
-                    onMouseEnter={e => { if (!selected) e.currentTarget.style.background = "#f0f7ff"; }}
-                    onMouseLeave={e => { if (!selected) e.currentTarget.style.background = ""; }}
-                  >
-                    <span style={{ fontSize: 13, color: selected ? "#1a6fa8" : "#999" }}>{selected ? "\u2611" : "\u2610"}</span>
-                    <span>{file}</span>
-                  </div>
-                );
-              })}
-              {folderBrowserDirs.length === 0 && folderBrowserFiles.length === 0 && (
-                <div style={{ padding: "12px 20px", fontSize: 13, color: "#999" }}>Empty directory.</div>
-              )}
-            </div>
-            {addFileError && (
-              <div style={{ padding: "8px 20px 0", color: "#c0392b", fontSize: 12 }}>{addFileError}</div>
-            )}
-            <div style={{ padding: "12px 20px", borderTop: "1px solid #e8e8e8", display: "flex", gap: 8, justifyContent: "flex-end", alignItems: "center" }}>
-              {addFileSelected.size > 0 && <span style={{ fontSize: 12, color: "#888", flex: 1 }}>{addFileSelected.size} file{addFileSelected.size !== 1 ? "s" : ""} selected</span>}
-              <button onClick={() => setAddFileDialogOpen(false)} style={{ padding: "6px 16px", border: "1px solid #ccc", borderRadius: 4, background: "#f5f5f5", cursor: "pointer", fontSize: 13 }}>Cancel</button>
-              <button onClick={handleAddFileConfirm} disabled={addFileSelected.size === 0} style={{ padding: "6px 16px", border: "none", borderRadius: 4, background: addFileSelected.size > 0 ? "#1a6fa8" : "#a0c4e8", color: "#fff", cursor: addFileSelected.size > 0 ? "pointer" : "default", fontSize: 13, fontWeight: 600 }}>Add</button>
-            </div>
-          </div>
-        </div>
+      {addFileDialogOpen && currentProject && (
+        <AddFileDialog
+          currentProject={currentProject}
+          onAdded={() => { setAddFileDialogOpen(false); handleRefresh(); }}
+          onClose={() => setAddFileDialogOpen(false)}
+        />
       )}
 
       {newRootOpen && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}
->
-          <div style={{ background: "#fff", borderRadius: 8, minWidth: 480, maxWidth: 600, width: "90vw", boxShadow: "0 8px 32px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column", maxHeight: "85vh" }}>
-            <div style={{ padding: "16px 20px 12px", borderBottom: "1px solid #e8e8e8" }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "#1a3a5c", marginBottom: 12 }}>New Project Root</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {newRootCreateDir && (
-                  <div>
-                    <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>New directory name</div>
-                    <input autoFocus value={newRootNewDirName}
-                      onChange={e => { setNewRootNewDirName(e.target.value.replace(/\s+/g, "-").replace(/[/\\<>:"|?*\0]/g, "").toLowerCase()); setNewRootError(""); }}
-                      placeholder="my-projects"
-                      style={{ width: "100%", padding: "7px 10px", fontSize: 13, border: "1px solid #b3d9f7", borderRadius: 4, outline: "none", boxSizing: "border-box", fontFamily: "monospace" }} />
-                  </div>
-                )}
-                <div>
-                  <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>Description <span style={{ color: "#bbb" }}>(optional)</span></div>
-                  <input value={newRootDescription}
-                    onChange={e => setNewRootDescription(e.target.value)}
-                    placeholder="Personal documentation projects"
-                    style={{ width: "100%", padding: "7px 10px", fontSize: 13, border: "1px solid #b3d9f7", borderRadius: 4, outline: "none", boxSizing: "border-box" }} />
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  {(["Use existing directory", "Create new directory"] as const).map((label, i) => (
-                    <button key={label} onClick={() => setNewRootCreateDir(i === 1)}
-                      style={{ flex: 1, padding: "6px 10px", border: `1px solid ${newRootCreateDir === (i === 1) ? "#1a6fa8" : "#ccc"}`, borderRadius: 4, background: newRootCreateDir === (i === 1) ? "#e8f4fd" : "#fff", color: newRootCreateDir === (i === 1) ? "#1a6fa8" : "#555", cursor: "pointer", fontSize: 12, fontWeight: newRootCreateDir === (i === 1) ? 600 : 400 }}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ padding: "8px 20px 4px", fontSize: 12, color: "#555" }}>
-              {newRootCreateDir ? "Choose parent directory:" : "Select directory:"}
-              {rootBrowserPath && <span style={{ marginLeft: 8, fontFamily: "monospace", color: "#888" }}>{newRootCreateDir && newRootNewDirName ? `${rootBrowserPath}/${newRootNewDirName}` : rootBrowserPath}</span>}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 20px 6px" }}>
-              <button
-                onClick={() => rootBrowserParent !== null && navigateRootBrowser(rootBrowserParent)}
-                disabled={rootBrowserParent === null}
-                title="Go up"
-                style={{ padding: "3px 8px", border: "1px solid #ccc", borderRadius: 4, background: rootBrowserParent !== null ? "#f5f5f5" : "#fafafa", cursor: rootBrowserParent !== null ? "pointer" : "default", fontSize: 13, color: rootBrowserParent !== null ? "#333" : "#bbb", flexShrink: 0 }}
-              >↑</button>
-              <div style={{ fontSize: 12, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace" }}>
-                {rootBrowserPath || "Select a drive"}
-              </div>
-            </div>
-            <div style={{ overflowY: "auto", flex: 1, padding: "2px 0", minHeight: 160 }}>
-              {rootBrowserDirs.map(dir => {
-                const label = dir.replace(/[\\/]$/, "").split(/[\\/]/).pop() || dir;
-                return (
-                  <div key={dir}
-                    onClick={() => navigateRootBrowser(dir)}
-                    style={{ padding: "6px 20px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, color: "#1a3a5c" }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "#f0f7ff")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "")}
-                  >
-                    <span style={{ fontSize: 15 }}>📁</span>
-                    <span>{label}</span>
-                  </div>
-                );
-              })}
-              {rootBrowserDirs.length === 0 && rootBrowserPath && (
-                <div style={{ padding: "12px 20px", fontSize: 13, color: "#999" }}>No subdirectories.</div>
-              )}
-            </div>
-
-            {newRootError && <div style={{ padding: "8px 20px 0", color: "#c0392b", fontSize: 12 }}>{newRootError}</div>}
-            <div style={{ padding: "12px 20px", borderTop: "1px solid #e8e8e8", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button onClick={() => setNewRootOpen(false)} style={{ padding: "6px 16px", border: "1px solid #ccc", borderRadius: 4, background: "#f5f5f5", cursor: "pointer", fontSize: 13 }}>Cancel</button>
-              <button onClick={handleAddRoot} style={{ padding: "6px 16px", border: "none", borderRadius: 4, background: "#1a6fa8", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Add Root</button>
-            </div>
-          </div>
-        </div>
+        <AddRootDialog
+          onAdded={async (rootPath) => {
+            setNewRootOpen(false);
+            const updatedRoots = await fetchRoots();
+            setRoots(updatedRoots);
+            const result = await switchRoot(rootPath);
+            setCurrentRoot(rootPath);
+            setRoots(prev => prev.map(r => ({ ...r, active: r.path === rootPath })));
+            setProjects(result.projects);
+            if (result.active_project) {
+              setCurrentProject(result.active_project);
+              await loadCollection(result.active_project);
+            } else {
+              setCurrentProject(null);
+              setCollection({ root: [] });
+              setOrphans([]);
+            }
+          }}
+          onClose={() => setNewRootOpen(false)}
+        />
       )}
     </div>
   );

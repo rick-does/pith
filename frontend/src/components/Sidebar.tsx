@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, KeyboardEvent } from "react";
+import React, { useState, useEffect, useRef, useCallback, KeyboardEvent } from "react";
 import {
   DndContext,
   closestCenter,
@@ -34,8 +34,16 @@ import {
 import { GAP, COL_W, TOP_SENTINEL } from "./SortableItemConstants";
 import { SortableItem } from "./SortableItem";
 import OrphanPane from "./OrphanPane";
-import ProjectChip from "./ProjectChip";
+import ProjectChip, { type ProjectChipProps } from "./ProjectChip";
 import type { RootInfo } from "../api";
+
+const DPAD_BTN: React.CSSProperties = {
+  background: "transparent", border: "1px solid #d0e8f7", cursor: "pointer",
+  fontSize: "13px", color: "#1a6fa8", borderRadius: "4px", lineHeight: 1,
+  display: "flex", alignItems: "center", justifyContent: "center",
+};
+const DPAD_ENTER = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = "#e8f4fd"; };
+const DPAD_LEAVE = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = "transparent"; };
 
 function deepestPointerCollision(args: Parameters<typeof closestCenter>[0]) {
   const hits = pointerWithin(args);
@@ -56,61 +64,33 @@ function TopSentinel() {
   );
 }
 
+interface TreeOps {
+  onDelete: (path: string) => Promise<void>;
+  onRename: (oldPath: string, newName: string) => Promise<void>;
+  onCreateChild: (parentPath: string, filename: string) => Promise<void>;
+  onCopyToChild: (parentPath: string) => Promise<void>;
+}
+
+interface Indicators {
+  brokenLinkMap: Record<string, number>;
+  frontmatterIssueMap: Record<string, boolean>;
+  templateIssueMap: Record<string, boolean>;
+}
+
 interface SidebarProps {
   collection: CollectionStructure;
   selectedPath: string | null;
   onSelect: (path: string | null) => void;
   onOpen: (path: string) => void;
   onCollectionChange: (c: CollectionStructure) => void;
-  onCreateFile: (filename: string) => Promise<void>;
-  onAddFileFromMd: () => void;
-  onDeleteFile: (path: string) => Promise<void>;
-  onRenameFile: (oldPath: string, newName: string) => Promise<void>;
-  onCreateChildFile: (parentPath: string, filename: string) => Promise<void>;
-  onCopyToChildFile: (parentPath: string) => Promise<void>;
-  onOpenYaml: () => void;
-  yamlOpen: boolean;
   orphans: FileInfo[];
-  currentProject: string;
-  currentProjectTitle: string;
-  projects: ProjectInfo[];
-  onSwitchProject: (name: string) => void;
-  onNewProject: (expandMarkdowns: boolean) => void;
-  onArchiveProject: (name: string) => Promise<void>;
-  onOpenProjectMd: () => void;
   onRefresh: () => Promise<void>;
-  onImport: (format: "mkdocs" | "docusaurus") => void;
-  onExport: (format: "mkdocs" | "docusaurus") => void;
-  onEditTemplate: () => void;
-  onCheckCompliance: () => void;
-  onValidateLinks: () => void;
-  onExportHtml: () => void;
-  onReport: () => void;
-
-
-  hasHierarchyBackup: boolean;
-  onFlattenHierarchy: () => void;
-  onRestoreHierarchy: () => void;
-  brokenLinkMap: Record<string, number>;
-  frontmatterIssueMap: Record<string, boolean>;
-  templateIssueMap: Record<string, boolean>;
-  showIndicators: boolean;
-  onToggleIndicators: () => void;
-  showNewProjectFile: boolean;
-  onToggleNewProjectFile: () => void;
-  roots: RootInfo[];
-  currentRoot: string;
-  onSwitchRoot: (path: string) => void;
-  onAddRoot: () => void;
-  onRemoveRoot: (path: string) => void;
-  onBrowseImages: () => void;
-  onAddImages: () => void;
-  onOpenImagesFolder: () => void;
-  titleMode: boolean;
-  onTitleModeChange: (mode: boolean) => void;
+  treeOps: TreeOps;
+  indicators: Indicators;
+  chip: ProjectChipProps;
 }
 
-export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onAddFileFromMd, onDeleteFile, onRenameFile, onCreateChildFile, onCopyToChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onRefresh, onImport, onExport, onEditTemplate, onCheckCompliance, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, brokenLinkMap, frontmatterIssueMap, templateIssueMap, showIndicators, onToggleIndicators, showNewProjectFile, onToggleNewProjectFile, roots, currentRoot, onSwitchRoot, onAddRoot, onRemoveRoot, onBrowseImages, onAddImages, onOpenImagesFolder, titleMode, onTitleModeChange }: SidebarProps) {
+export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, orphans, onRefresh, treeOps, indicators, chip }: SidebarProps) {
   const [orphanSort, setOrphanSort] = useState<"recent" | "alpha" | "custom">("recent");
   const [orphanOrder, setOrphanOrder] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(flatIds(collection.root)));
@@ -168,7 +148,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
     });
   }, [collection]);
 
-  useEffect(() => { setSelectedOrphans(new Set()); setOrphanOrder([]); setOrphanSort("recent"); }, [currentProject]);
+  useEffect(() => { setSelectedOrphans(new Set()); setOrphanOrder([]); setOrphanSort("recent"); }, [chip.currentProject]);
 
   useEffect(() => {
     if (!orphanArrowRef.current || !sidebarRef.current) { setDpadTop(null); return; }
@@ -187,10 +167,10 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
   }, [orphans]);
 
   const getSortedOrphanPaths = useCallback((): string[] => {
-    if (orphanSort === "alpha") return [...orphans].sort((a, b) => (titleMode ? a.title : a.path).localeCompare(titleMode ? b.title : b.path)).map(o => o.path);
+    if (orphanSort === "alpha") return [...orphans].sort((a, b) => (chip.titleMode ? a.title : a.path).localeCompare(chip.titleMode ? b.title : b.path)).map(o => o.path);
     if (orphanSort === "custom") return orphanOrder.filter(p => orphans.some(o => o.path === p));
     return orphans.map(o => o.path);
-  }, [orphans, orphanSort, orphanOrder, titleMode]);
+  }, [orphans, orphanSort, orphanOrder, chip.titleMode]);
 
   const handleOrphanSelect = (path: string, ctrl: boolean, shift: boolean) => {
     onSelect(null);
@@ -223,12 +203,11 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
     onSelect(path);
   }, [onSelect]);
 
+  const orphanPathsToNodes = (paths: string[]): FileNode[] =>
+    paths.map(p => { const info = orphans.find(o => o.path === p)!; return { path: p, title: info.title, order: 0, children: [] }; });
+
   const addOrphansToCollection = (paths: string[]) => {
-    const newNodes: FileNode[] = paths.map(p => {
-      const info = orphans.find(o => o.path === p)!;
-      return { path: p, title: info.title, order: 0, children: [] };
-    });
-    onCollectionChange({ root: reorder([...collection.root, ...newNodes]) });
+    onCollectionChange({ root: reorder([...collection.root, ...orphanPathsToNodes(paths)]) });
     setSelectedOrphans(new Set());
     setTimeout(() => onRefresh(), 300);
   };
@@ -271,7 +250,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
   });
 
   const handleDelete = async (path: string) => {
-    await onDeleteFile(path);
+    await treeOps.onDelete(path);
   };
 
   const refocusTree = () => setTimeout(() => treeRef.current?.focus(), 0);
@@ -349,24 +328,12 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
   }, [handleKeyDown]);
 
   function computeNewRoot(dragged: string, target: string, deltaX: number): FileNode[] | null {
-    if (target === TOP_SENTINEL) {
-      const isOrphan = orphans.some(o => o.path === dragged);
-      const orphanInfo = isOrphan ? orphans.find(o => o.path === dragged) : null;
-      const withoutDragged = isOrphan ? collection.root : removeNode(collection.root, dragged)[0];
-      const draggedNode: FileNode | null = isOrphan && orphanInfo
-        ? { path: orphanInfo.path, title: orphanInfo.title, order: 0, children: [] }
-        : removeNode(collection.root, dragged)[1];
-      if (!draggedNode) return null;
-      return reorder([draggedNode, ...withoutDragged]);
-    }
-    if (orphans.some(o => o.path === target)) return null;
+    if (target !== TOP_SENTINEL && orphans.some(o => o.path === target)) return null;
     const isOrphan = orphans.some(o => o.path === dragged);
-    const orphanInfo = isOrphan ? orphans.find(o => o.path === dragged) : null;
     const withoutDragged = isOrphan ? collection.root : removeNode(collection.root, dragged)[0];
-    const draggedNode: FileNode | null = isOrphan && orphanInfo
-      ? { path: orphanInfo.path, title: orphanInfo.title, order: 0, children: [] }
-      : removeNode(collection.root, dragged)[1];
+    const draggedNode = isOrphan ? orphanPathsToNodes([dragged])[0] : removeNode(collection.root, dragged)[1];
     if (!draggedNode) return null;
+    if (target === TOP_SENTINEL) return reorder([draggedNode, ...withoutDragged]);
     if (deltaX > 30) return reorder(insertAsChild(withoutDragged, target, draggedNode));
     if (deltaX < -30) return reorder([...withoutDragged, draggedNode]);
     if (!isOrphan) {
@@ -444,10 +411,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
     // Multi-orphan drag to hierarchy
     if (wasOrphan && !targetIsOrphan && selectedOrphans.has(dragged) && selectedOrphans.size > 1) {
       const pathsToMove = [...selectedOrphans];
-      const newNodes: FileNode[] = pathsToMove.map(p => {
-        const info = orphans.find(o => o.path === p)!;
-        return { path: p, title: info.title, order: 0, children: [] };
-      });
+      const newNodes = orphanPathsToNodes(pathsToMove);
       let root = collection.root;
       if (target === TOP_SENTINEL) {
         root = [...newNodes, ...root];
@@ -492,9 +456,9 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
 
   const activeLabel = activeId ? (() => {
     const orphan = orphans.find(o => o.path === activeId);
-    if (orphan) return titleMode ? orphan.title : orphan.path;
+    if (orphan) return chip.titleMode ? orphan.title : orphan.path;
     const [, node] = removeNode(collection.root, activeId);
-    return node ? (titleMode ? node.title : node.path) : activeId;
+    return node ? (chip.titleMode ? node.title : node.path) : activeId;
   })() : "";
 
   return (
@@ -504,13 +468,13 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
         <div style={{ position: "absolute", left: 0, top: dpadTop ?? 280, width: "1in", display: "flex", justifyContent: "center", zIndex: 5, transform: "translateY(-50%)" }}>
           <div style={{ display: "grid", gridTemplateColumns: "auto auto auto" }}>
             <div />
-            <button onClick={() => fireArrow("up")} title="Move up" style={{ background: "transparent", border: "1px solid #d0e8f7", cursor: "pointer", padding: "4px 6px", fontSize: "13px", color: "#1a6fa8", borderRadius: "4px", lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }} onMouseEnter={(e) => { e.currentTarget.style.background = "#e8f4fd"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>&#9650;</button>
+            <button onClick={() => fireArrow("up")} title="Move up" style={{ ...DPAD_BTN, padding: "4px 6px" }} onMouseEnter={DPAD_ENTER} onMouseLeave={DPAD_LEAVE}>&#9650;</button>
             <div />
-            <button onClick={() => fireArrow("left")} title="Unnest" style={{ background: "transparent", border: "1px solid #d0e8f7", cursor: "pointer", padding: "4px 5px", fontSize: "13px", color: "#1a6fa8", borderRadius: "4px", lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }} onMouseEnter={(e) => { e.currentTarget.style.background = "#e8f4fd"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>&#9664;</button>
+            <button onClick={() => fireArrow("left")} title="Unnest" style={{ ...DPAD_BTN, padding: "4px 5px" }} onMouseEnter={DPAD_ENTER} onMouseLeave={DPAD_LEAVE}>&#9664;</button>
             <div style={{ width: "4px" }} />
-            <button onClick={() => fireArrow("right")} title="Nest" style={{ background: "transparent", border: "1px solid #d0e8f7", cursor: "pointer", padding: "4px 5px", fontSize: "13px", color: "#1a6fa8", borderRadius: "4px", lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }} onMouseEnter={(e) => { e.currentTarget.style.background = "#e8f4fd"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>&#9654;</button>
+            <button onClick={() => fireArrow("right")} title="Nest" style={{ ...DPAD_BTN, padding: "4px 5px" }} onMouseEnter={DPAD_ENTER} onMouseLeave={DPAD_LEAVE}>&#9654;</button>
             <div />
-            <button onClick={() => fireArrow("down")} title="Move down" style={{ background: "transparent", border: "1px solid #d0e8f7", cursor: "pointer", padding: "4px 6px", fontSize: "13px", color: "#1a6fa8", borderRadius: "4px", lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }} onMouseEnter={(e) => { e.currentTarget.style.background = "#e8f4fd"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>&#9660;</button>
+            <button onClick={() => fireArrow("down")} title="Move down" style={{ ...DPAD_BTN, padding: "4px 6px" }} onMouseEnter={DPAD_ENTER} onMouseLeave={DPAD_LEAVE}>&#9660;</button>
             <div />
           </div>
         </div>
@@ -522,52 +486,17 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
 
             <div ref={treeRef} style={{ overflowY: "auto", minHeight: 0, paddingTop: "8px", paddingBottom: "8px", outline: "none" }} tabIndex={0} onKeyDown={handleKeyDown}>
 
-              {!currentProject && (
+              {!chip.currentProject && (
                 <div style={{ color: "#aaa", padding: "16px", fontSize: "13px", textAlign: "center" }}>
                   No projects yet.{" "}
-                  <span onClick={() => onNewProject(false)} style={{ color: "#1a6fa8", cursor: "pointer", textDecoration: "underline" }}>
+                  <span onClick={() => chip.onNewProject(false)} style={{ color: "#1a6fa8", cursor: "pointer", textDecoration: "underline" }}>
                     Create one
                   </span>
                 </div>
               )}
 
-              {currentProject && (
-                <ProjectChip
-                  currentProject={currentProject}
-                  currentProjectTitle={currentProjectTitle}
-                  projects={projects}
-                  titleMode={titleMode}
-                  setTitleMode={onTitleModeChange}
-                  onSwitchProject={onSwitchProject}
-                  onNewProject={onNewProject}
-                  onArchiveProject={onArchiveProject}
-                  onOpenProjectMd={onOpenProjectMd}
-                  onCreateFile={onCreateFile}
-                  onAddFileFromMd={onAddFileFromMd}
-                  onOpenYaml={onOpenYaml}
-                  onImport={onImport}
-                  onExport={onExport}
-                  onEditTemplate={onEditTemplate}
-                  onCheckCompliance={onCheckCompliance}
-                  onValidateLinks={onValidateLinks}
-                  onExportHtml={onExportHtml}
-                  onReport={onReport}
-                  hasHierarchyBackup={hasHierarchyBackup}
-                  onFlattenHierarchy={onFlattenHierarchy}
-                  onRestoreHierarchy={onRestoreHierarchy}
-                  showIndicators={showIndicators}
-                  onToggleIndicators={onToggleIndicators}
-                  showNewProjectFile={showNewProjectFile}
-                  onToggleNewProjectFile={onToggleNewProjectFile}
-                  roots={roots}
-                  currentRoot={currentRoot}
-                  onSwitchRoot={onSwitchRoot}
-                  onAddRoot={onAddRoot}
-                  onRemoveRoot={onRemoveRoot}
-                  onBrowseImages={onBrowseImages}
-                  onAddImages={onAddImages}
-                  onOpenImagesFolder={onOpenImagesFolder}
-                />
+              {chip.currentProject && (
+                <ProjectChip {...chip} />
               )}
 
               <TopSentinel />
@@ -581,24 +510,24 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
                   ancestors={[]}
                   showTopIndicator={idx === 0 && activeId !== null && overId === TOP_SENTINEL}
                   selectedPath={selectedPath}
-                  titleMode={titleMode}
+                  titleMode={chip.titleMode}
                   onSelect={handleHierarchySelect}
                   onOpen={onOpen}
                   onDelete={handleDelete}
-                  onRename={onRenameFile}
-                  onCreateChild={onCreateChildFile}
-                  onCopyToChild={onCopyToChildFile}
+                  onRename={treeOps.onRename}
+                  onCreateChild={treeOps.onCreateChild}
+                  onCopyToChild={treeOps.onCopyToChild}
                   expanded={expanded}
                   toggleExpand={toggleExpand}
                   overId={overId}
                   activeId={activeId}
                   activeLabel={activeLabel}
                   dragDeltaX={dragDeltaX}
-                  currentProject={currentProject}
-                  brokenLinkMap={brokenLinkMap}
-                  frontmatterIssueMap={frontmatterIssueMap}
-                  templateIssueMap={templateIssueMap}
-                  showIndicators={showIndicators}
+                  currentProject={chip.currentProject}
+                  brokenLinkMap={indicators.brokenLinkMap}
+                  frontmatterIssueMap={indicators.frontmatterIssueMap}
+                  templateIssueMap={indicators.templateIssueMap}
+                  showIndicators={chip.showIndicators}
                 />
               ))}
 
@@ -610,17 +539,17 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
             </div>
 
             <OrphanPane
-              orphans={orphans} titleMode={titleMode} activeId={activeId} currentProject={currentProject}
+              orphans={orphans} titleMode={chip.titleMode} activeId={activeId} currentProject={chip.currentProject}
               selectedOrphans={selectedOrphans} onOrphanSelect={handleOrphanSelect}
               onAddToSelection={(path) => setSelectedOrphans(prev => { const next = new Set(prev); next.add(path); return next; })}
               orphanSort={orphanSort} setOrphanSort={setOrphanSort} orphanOrder={orphanOrder}
               rubberBand={rubberBand} orphanSectionRef={orphanSectionRef} orphanChipRefs={orphanChipRefs}
               onOpen={onOpen} onDelete={handleDelete} onAddOrphansToCollection={addOrphansToCollection} onRefresh={onRefresh}
               arrowBtnRef={orphanArrowRef}
-              brokenLinkMap={brokenLinkMap}
-              frontmatterIssueMap={frontmatterIssueMap}
-              templateIssueMap={templateIssueMap}
-              showIndicators={showIndicators}
+              brokenLinkMap={indicators.brokenLinkMap}
+              frontmatterIssueMap={indicators.frontmatterIssueMap}
+              templateIssueMap={indicators.templateIssueMap}
+              showIndicators={chip.showIndicators}
             />
 
           </div>
@@ -632,7 +561,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
             const labels = isMultiOrphanDrag
               ? [...selectedOrphans].map(p => {
                   const o = orphans.find(x => x.path === p);
-                  return o ? (titleMode ? o.title : o.path) : p;
+                  return o ? (chip.titleMode ? o.title : o.path) : p;
                 })
               : [activeLabel];
             return (

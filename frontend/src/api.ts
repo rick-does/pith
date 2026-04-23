@@ -35,6 +35,7 @@ export interface RootInfo {
   last_project: string | null;
   active: boolean;
   is_default?: boolean;
+  archived?: boolean;
 }
 
 export async function fetchConfig(): Promise<{ roots: RootInfo[]; active_root: string; default_root: string }> {
@@ -85,6 +86,18 @@ export async function removeRoot(path: string): Promise<void> {
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));
     throw new Error(err.detail ?? "Failed to remove root");
+  }
+}
+
+export async function restoreRoot(path: string): Promise<void> {
+  const r = await fetch(`${BASE}/roots/restore`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path }),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.detail ?? "Failed to restore root");
   }
 }
 

@@ -613,37 +613,12 @@ def batch_apply_unified_template(project: str, files: list[str], remove_extra: b
 
 
 def parse_frontmatter(content: str) -> tuple[dict, str]:
-    """Parse YAML frontmatter from markdown content. Returns (metadata, body).
-    Handles both standard (---/---) and Jekyll-style (no opening ---) formats."""
+    """Parse YAML frontmatter from markdown content. Returns (metadata, body)."""
     import frontmatter as fm
-
-    # Standard format: starts with ---
     post = fm.loads(content)
     if post.metadata:
         return dict(post.metadata), post.content
-
-    # Jekyll-style: key: value lines at top, terminated by ---
-    lines = content.split("\n")
-    if not lines or not re.match(r"^\w[\w\s]*:", lines[0]):
-        return {}, content
-
-    end_idx = -1
-    for i, line in enumerate(lines):
-        if line.strip() == "---":
-            end_idx = i
-            break
-    if end_idx < 0:
-        return {}, content
-
-    yaml_block = "\n".join(lines[:end_idx])
-    try:
-        meta = yaml.safe_load(yaml_block)
-        if not isinstance(meta, dict):
-            return {}, content
-        body = "\n".join(lines[end_idx + 1:])
-        return meta, body
-    except yaml.YAMLError:
-        return {}, content
+    return {}, content
 
 
 def set_frontmatter(content: str, metadata: dict) -> str:

@@ -7,23 +7,10 @@ import { defaultKeymap, historyKeymap, history } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
 import { yaml } from "@codemirror/lang-yaml";
 import { oneDark } from "@codemirror/theme-one-dark";
-import { dracula } from "@uiw/codemirror-theme-dracula";
-import { nord } from "@uiw/codemirror-theme-nord";
-import { tokyoNight } from "@uiw/codemirror-theme-tokyo-night";
 import { monokai } from "@uiw/codemirror-theme-monokai";
-import { githubLight, githubDark } from "@uiw/codemirror-theme-github";
-import { solarizedLight, solarizedDark } from "@uiw/codemirror-theme-solarized";
-import { abyss } from "@uiw/codemirror-theme-abyss";
 import { andromeda } from "@uiw/codemirror-theme-andromeda";
-import { bbedit } from "@uiw/codemirror-theme-bbedit";
-import { bespin } from "@uiw/codemirror-theme-bespin";
-import { duotoneDark, duotoneLight } from "@uiw/codemirror-theme-duotone";
-import { eclipse } from "@uiw/codemirror-theme-eclipse";
 import { gruvboxDark } from "@uiw/codemirror-theme-gruvbox-dark";
-import { materialDark, materialLight } from "@uiw/codemirror-theme-material";
-import { okaidia } from "@uiw/codemirror-theme-okaidia";
-import { sublime } from "@uiw/codemirror-theme-sublime";
-import { vscodeDark } from "@uiw/codemirror-theme-vscode";
+import { solarizedLight } from "@uiw/codemirror-theme-solarized";
 import { xcodeLight, xcodeDark } from "@uiw/codemirror-theme-xcode";
 import { vim, Vim } from "@replit/codemirror-vim";
 
@@ -40,27 +27,10 @@ export const EDITOR_THEMES: { id: string; label: string }[] = [
 
 function themeExtension(theme: string): Extension {
   switch (theme) {
-    case "dracula":         return dracula;
-    case "nord":            return nord;
-    case "tokyo-night":     return tokyoNight;
     case "monokai":         return monokai;
-    case "github-light":    return githubLight;
-    case "github-dark":     return githubDark;
-    case "solarized-light": return solarizedLight;
-    case "solarized-dark":  return solarizedDark;
-    case "abyss":           return abyss;
     case "andromeda":       return andromeda;
-    case "bbedit":          return bbedit;
-    case "bespin":          return bespin;
-    case "duotone-dark":    return duotoneDark;
-    case "duotone-light":   return duotoneLight;
-    case "eclipse":         return eclipse;
     case "gruvbox-dark":    return gruvboxDark;
-    case "material-dark":   return materialDark;
-    case "material-light":  return materialLight;
-    case "okaidia":         return okaidia;
-    case "sublime":         return sublime;
-    case "vscode-dark":     return vscodeDark;
+    case "solarized-light": return solarizedLight;
     case "xcode-light":     return xcodeLight;
     case "xcode-dark":      return xcodeDark;
     case "one-dark":

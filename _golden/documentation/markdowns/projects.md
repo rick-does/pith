@@ -16,7 +16,7 @@ A project root is a directory that PiTH treats exactly like the default `~/pith-
 4. Choose **Use existing directory** or **Create new directory**
 5. Browse to the location and click **Add Root**
 
-The root's name is always the chosen directory's basename — it's not a user-editable field. The new root becomes active immediately. PiTH records the root's description (and other metadata) in `~/.pith/project-roots/<root-name>/.pith-project-root`. The project root directory itself only holds project content; per-project metadata (`tree.yaml`, `.pith-project`, etc.) lives alongside the marker at `~/.pith/project-roots/<root-name>/<project-name>/`.
+The root's name is always the chosen directory's basename — it's not a user-editable field. The new root becomes active immediately. PiTH records the root's name, description, path, and archived status in `~/.pith/project-roots/<root-name>/.pith-project-root`. If `~/.pith/config.json` is ever deleted, PiTH rebuilds the roots list from these marker files automatically on next launch. The project root directory itself only holds project content; per-project metadata (`tree.yaml`, `.pith-project`, etc.) lives alongside the marker at `~/.pith/project-roots/<root-name>/<project-name>/`.
 
 ### Switching roots
 
@@ -26,11 +26,15 @@ The root's name is always the chosen directory's basename — it's not a user-ed
 
 PiTH remembers the last project you had open in each root and returns to it when you switch back.
 
-### Removing a root
+### Archiving a root
 
-Click the trash icon next to any non-default root in the **Project roots** list. This only removes it from the list — the directory and all its projects remain on disk. You can re-add it at any time.
+Click the trash icon next to any non-default root in the **Project roots** list. This hides it from the list — the directory, all its projects, and all metadata remain on disk untouched.
 
-You cannot remove the default root (`~/pith-projects/`) from the UI.
+You cannot archive the default root (`~/pith-projects/`) from the UI.
+
+### Restoring an archived root
+
+If you have archived roots, an **Archived roots** section appears at the bottom of the **Project roots** submenu. Click it to expand the list, then click **Restore** next to the root you want to bring back. The root reappears in the active list immediately.
 
 ## The project chip
 

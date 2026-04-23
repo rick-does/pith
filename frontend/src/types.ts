@@ -18,3 +18,17 @@ export interface ProjectInfo {
   name: string;
   title: string;
 }
+
+export type OverlayType = "editor" | "yaml" | "project-md" | null;
+
+export interface EditorTab {
+  id: string;
+  type: "editor";
+  path: string;
+  content: string;
+  savedContent: string;
+  title: string;
+  frontmatter: Record<string, any>;
+  brokenLinks: import("./api").BrokenLink[];
+  colorIndex: number;
+}

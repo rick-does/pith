@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import type { TemplateComplianceItem } from "../api";
 
 export interface TemplatePrefs {
-  applyFm: boolean;
-  removeExtra: boolean;
-  appendBody: boolean;
+  apply_fm: boolean;
+  remove_extra: boolean;
+  append_body: boolean;
 }
 
 interface Props {
   items: TemplateComplianceItem[];
-  onBatchApply: (files: string[], removeExtra: boolean, applyFm: boolean, appendBody: boolean) => void;
+  onBatchApply: (files: string[], remove_extra: boolean, apply_fm: boolean, append_body: boolean) => void;
   onClose: () => void;
   onViewTemplate?: () => void;
   prefs: TemplatePrefs;
@@ -20,8 +20,8 @@ export default function ComplianceReport({ items, onBatchApply, onClose, onViewT
   const set = (patch: Partial<TemplatePrefs>) => onPrefsChange({ ...prefs, ...patch });
 
   const visibleItems = items.filter(item => {
-    const hasFm = prefs.applyFm && (item.missing_keys.length > 0 || (prefs.removeExtra && item.extra_keys.length > 0));
-    const hasBody = prefs.appendBody && item.missing_headings.length > 0;
+    const hasFm = prefs.apply_fm && (item.missing_keys.length > 0 || (prefs.remove_extra && item.extra_keys.length > 0));
+    const hasBody = prefs.append_body && item.missing_headings.length > 0;
     return hasFm || hasBody;
   });
 
@@ -29,7 +29,7 @@ export default function ComplianceReport({ items, onBatchApply, onClose, onViewT
 
   useEffect(() => {
     setSelected(new Set(visibleItems.map(i => i.path)));
-  }, [prefs.applyFm, prefs.removeExtra, prefs.appendBody]);
+  }, [prefs.apply_fm, prefs.remove_extra, prefs.append_body]);
 
   const toggleFile = (path: string) => {
     setSelected(prev => {
@@ -87,17 +87,17 @@ export default function ComplianceReport({ items, onBatchApply, onClose, onViewT
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 13, color: "#1a1a1a" }}>{item.title}</div>
                       <div style={{ fontSize: 12, color: "#888" }}>{item.path}</div>
-                      {prefs.applyFm && item.missing_keys.length > 0 && (
+                      {prefs.apply_fm && item.missing_keys.length > 0 && (
                         <div style={{ fontSize: 12, color: "#c00", marginTop: 2 }}>
                           Missing keys: {item.missing_keys.map(k => <span key={k} style={redTag}>{k}</span>)}
                         </div>
                       )}
-                      {prefs.applyFm && prefs.removeExtra && item.extra_keys.length > 0 && (
+                      {prefs.apply_fm && prefs.remove_extra && item.extra_keys.length > 0 && (
                         <div style={{ fontSize: 12, color: "#996600", marginTop: 2 }}>
                           Extra keys: {item.extra_keys.map(k => <span key={k} style={yellowTag}>{k}</span>)}
                         </div>
                       )}
-                      {prefs.appendBody && item.missing_headings.length > 0 && (
+                      {prefs.append_body && item.missing_headings.length > 0 && (
                         <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>
                           Missing headings: {item.missing_headings.map(h => <span key={h} style={grayTag}>{h}</span>)}
                         </div>
@@ -114,15 +114,15 @@ export default function ComplianceReport({ items, onBatchApply, onClose, onViewT
 
           <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
             <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#555", cursor: "pointer" }}>
-              <input type="checkbox" checked={prefs.applyFm} onChange={e => set({ applyFm: e.target.checked })} />
+              <input type="checkbox" checked={prefs.apply_fm} onChange={e => set({ apply_fm: e.target.checked })} />
               Update frontmatter
             </label>
             <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#888", cursor: "pointer", marginLeft: 16 }}>
-              <input type="checkbox" checked={prefs.removeExtra} onChange={e => set({ removeExtra: e.target.checked })} disabled={!prefs.applyFm} />
+              <input type="checkbox" checked={prefs.remove_extra} onChange={e => set({ remove_extra: e.target.checked })} disabled={!prefs.apply_fm} />
               Remove extra frontmatter keys not in template
             </label>
             <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#555", cursor: "pointer" }}>
-              <input type="checkbox" checked={prefs.appendBody} onChange={e => set({ appendBody: e.target.checked })} />
+              <input type="checkbox" checked={prefs.append_body} onChange={e => set({ append_body: e.target.checked })} />
               Append template body
             </label>
           </div>
@@ -134,7 +134,7 @@ export default function ComplianceReport({ items, onBatchApply, onClose, onViewT
             <div style={{ flex: 1 }} />
             <button onClick={onClose} style={{ ...actionBtn, background: "#eee", color: "#333" }}>Close</button>
             <button
-              onClick={() => onBatchApply([...selected], prefs.removeExtra, prefs.applyFm, prefs.appendBody)}
+              onClick={() => onBatchApply([...selected], prefs.remove_extra, prefs.apply_fm, prefs.append_body)}
               disabled={selectedCount === 0}
               style={{ ...actionBtn, opacity: selectedCount === 0 ? 0.5 : 1, cursor: selectedCount === 0 ? "default" : "pointer" }}
             >

@@ -23,6 +23,15 @@ def _default_config() -> dict:
             }
         ],
         "active_root": DEFAULT_ROOT_PATH,
+        "prefs": {
+            "apply_fm": True,
+            "remove_extra": True,
+            "append_body": False,
+            "show_indicators": True,
+            "title_mode": True,
+            "editor_theme": "one-dark",
+            "show_new_project_file": True,
+        },
     }
 
 
@@ -141,7 +150,86 @@ def _migrate_legacy_default(cfg: dict) -> bool:
     return changed
 
 
+_config_cache: dict | None = None
+
+
+def update_root_marker_archived(root_name: str, archived: bool) -> None:
+    """Set the archived flag in a root's .pith-project-root marker file, creating it if needed."""
+    marker = get_root_meta_dir(root_name) / ".pith-project-root"
+    try:
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        existing = marker.read_text(encoding="utf-8").splitlines() if marker.exists() else [f"name: {root_name}"]
+        lines = [l for l in existing if not l.startswith("archived:")]
+        lines.append(f"archived: {str(archived).lower()}")
+        marker.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    except OSError:
+        pass
+
+
+def _recover_roots_from_metadata(cfg: dict) -> bool:
+    """Add any roots found in project-roots/ metadata that are missing from cfg."""
+    import frontmatter as fm
+    if not PROJECT_ROOTS_DIR.exists():
+        return False
+    known_paths = {r["path"] for r in cfg.get("roots", [])}
+    known_names = {r["name"] for r in cfg.get("roots", [])}
+    added = False
+    for root_dir in sorted(PROJECT_ROOTS_DIR.iterdir()):
+        if not root_dir.is_dir():
+            continue
+        name = root_dir.name
+        description = ""
+        path = None
+        archived = False
+        marker = root_dir / ".pith-project-root"
+        if marker.exists():
+            try:
+                for line in marker.read_text(encoding="utf-8").splitlines():
+                    if line.startswith("path:"):
+                        path = line[5:].strip()
+                    elif line.startswith("description:"):
+                        description = line[12:].strip()
+                    elif line.startswith("archived:"):
+                        archived = line[9:].strip().lower() == "true"
+            except OSError:
+                pass
+        if not path:
+            if name == Path(DEFAULT_ROOT_PATH).name:
+                path = DEFAULT_ROOT_PATH
+            else:
+                for proj_dir in root_dir.iterdir():
+                    if not proj_dir.is_dir():
+                        continue
+                    pmd = proj_dir / ".pith-project"
+                    if not pmd.exists():
+                        continue
+                    try:
+                        post = fm.loads(pmd.read_text(encoding="utf-8"))
+                        md_dir = post.metadata.get("markdowns_dir", "")
+                        if md_dir:
+                            path = str(Path(md_dir).parent.parent)
+                            break
+                    except Exception:
+                        pass
+        if not path or path in known_paths or name in known_names:
+            continue
+        cfg.setdefault("roots", []).append({
+            "path": path,
+            "name": name,
+            "description": description,
+            "last_project": None,
+            "archived": archived,
+        })
+        known_paths.add(path)
+        known_names.add(name)
+        added = True
+    return added
+
+
 def load_config() -> dict:
+    global _config_cache
+    if _config_cache is not None:
+        return _config_cache
     if not CONFIG_FILE.exists():
         cfg = _default_config()
         save_config(cfg)
@@ -156,16 +244,24 @@ def load_config() -> dict:
         return cfg
     migrated = _migrate_legacy_default(cfg)
     _ensure_default_root(cfg)
+    if _recover_roots_from_metadata(cfg):
+        migrated = True
     _ensure_active_root_valid(cfg)
+    if "prefs" not in cfg:
+        cfg["prefs"] = _default_config()["prefs"]
+        migrated = True
     if migrated:
         save_config(cfg)
     _migrate_meta_under_project_roots(cfg)
     if _migrate_root_names_to_basenames(cfg):
         save_config(cfg)
+    _config_cache = cfg
     return cfg
 
 
 def save_config(cfg: dict) -> None:
+    global _config_cache
+    _config_cache = None
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2)
