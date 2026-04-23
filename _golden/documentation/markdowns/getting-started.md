@@ -59,9 +59,9 @@ On first run the script installs all dependencies and builds the frontend — th
 
 ## First use
 
-PiTH opens to the **Documentation** project by default. After that, it remembers the last project you had open. See [Managing Projects](projects.md) for how to create and switch between projects.
+On first run PiTH creates a starter project containing a **Getting Started** file that links back to this documentation. After that, it remembers the last project you had open. See [Managing Projects](projects.md) for how to create and switch between projects.
 
-Your projects are stored in `~/.pith/projects/` by default. You can add additional project roots from the project menu to store projects anywhere on your machine.
+Your projects are stored in `~/pith-projects/` by default. You can add additional project roots from the project menu to store projects anywhere on your machine.
 
 PiTH watches the `markdowns/` folder for changes every 3 seconds. If you add, rename, or delete files outside the app, the changes are picked up automatically.
 

@@ -15,9 +15,8 @@ import {
   fetchProjectMd, saveProjectMd,
   fetchCollection, saveCollection, fetchMarkdown, saveMarkdown, fetchCollectionYaml,
   fetchOrphans, createFile, deleteFile, archiveFile, renameFile,
-  fetchTemplate, saveTemplate, deleteTemplate,
+  fetchTemplate, saveTemplate,
   fetchTemplateCompliance, applyTemplate, batchApplyTemplate, useFileAsTemplate,
-  restoreDocStructure, restoreDocAll,
   validateProjectLinks, validateFileLinks,
   importFromFormat, exportToFormat,
   importMarkdowns, importFiles, browseDirs, browseStartDir,
@@ -31,8 +30,8 @@ import type { TemplateComplianceItem, FileLinkReport, BrokenLink, RootInfo } fro
 import { insertAsLastChild, reorder } from "./treeHelpers";
 
 const LAST_FILE_KEY = "pith_selected_file";
-const TABS_KEY = (p: string) => `pith_tabs_${p}`;
-const ACTIVE_TAB_KEY = (p: string) => `pith_active_tab_${p}`;
+const TABS_KEY = (r: string, p: string) => `pith_tabs_${r}:${p}`;
+const ACTIVE_TAB_KEY = (r: string, p: string) => `pith_active_tab_${r}:${p}`;
 
 type OverlayType = "editor" | "yaml" | "project-md" | null;
 
@@ -97,7 +96,7 @@ export default function App() {
   const [brokenLinkMap, setBrokenLinkMap] = useState<Record<string, number>>({});
   const [frontmatterIssueMap, setFrontmatterIssueMap] = useState<Record<string, boolean>>({});
   const [templateIssueMap, setTemplateIssueMap] = useState<Record<string, boolean>>({});
-  const [showIndicators, setShowIndicators] = useState(() => localStorage.getItem("pith_indicators") !== "false");
+  const [showIndicators, setShowIndicators] = useState(true);
   const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
   const [reportPreview, setReportPreview] = useState<string | null>(null);
   const [hasHierarchyBackup, setHasHierarchyBackup] = useState(false);
@@ -117,7 +116,6 @@ export default function App() {
   const [roots, setRoots] = useState<RootInfo[]>([]);
   const [currentRoot, setCurrentRoot] = useState("");
   const [newRootOpen, setNewRootOpen] = useState(false);
-  const [newRootName, setNewRootName] = useState("");
   const [newRootDescription, setNewRootDescription] = useState("");
   const [newRootCreateDir, setNewRootCreateDir] = useState(false);
   const [newRootNewDirName, setNewRootNewDirName] = useState("");
@@ -127,7 +125,9 @@ export default function App() {
   const [rootBrowserParent, setRootBrowserParent] = useState<string | null>(null);
   const [tabs, setTabs] = useState<EditorTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
-  const [titleMode, setTitleMode] = useState(() => localStorage.getItem("pith_title_mode") !== "false");
+  const [titleMode, setTitleMode] = useState(true);
+  const [editorTheme, setEditorTheme] = useState<string>("one-dark");
+  const [showNewProjectFile, setShowNewProjectFile] = useState(true);
   const [tabContextMenu, setTabContextMenu] = useState<{ tabId: string; x: number; y: number } | null>(null);
 
   const editorContentRef = useRef(editorContent);
@@ -151,11 +151,11 @@ export default function App() {
   }, [tabContextMenu]);
 
   useEffect(() => {
-    if (!currentProject || loading || !tabsRestoredRef.current) return;
-    localStorage.setItem(TABS_KEY(currentProject), JSON.stringify(tabs));
-    localStorage.setItem(TABS_KEY(currentProject) + "_overlay", overlayType ?? "");
-    if (activeTabId) localStorage.setItem(ACTIVE_TAB_KEY(currentProject), activeTabId);
-  }, [tabs, activeTabId, overlayType, currentProject, loading]);
+    if (!currentProject || !currentRoot || loading || !tabsRestoredRef.current) return;
+    localStorage.setItem(TABS_KEY(currentRoot, currentProject), JSON.stringify(tabs));
+    localStorage.setItem(TABS_KEY(currentRoot, currentProject) + "_overlay", overlayType ?? "");
+    if (activeTabId) localStorage.setItem(ACTIVE_TAB_KEY(currentRoot, currentProject), activeTabId);
+  }, [tabs, activeTabId, overlayType, currentProject, currentRoot, loading]);
 
   const handleCloseOverlay = useCallback(() => {
     if (activeTabIdRef.current) {
@@ -272,8 +272,12 @@ export default function App() {
             removeExtra: "remove_extra" in prefs ? Boolean(prefs.remove_extra) : prev.removeExtra,
             appendBody: "append_body" in prefs ? Boolean(prefs.append_body) : prev.appendBody,
           }));
+          if ("show_indicators" in prefs) setShowIndicators(Boolean(prefs.show_indicators));
+          if ("title_mode" in prefs) setTitleMode(Boolean(prefs.title_mode));
+          if ("editor_theme" in prefs && typeof prefs.editor_theme === "string") setEditorTheme(prefs.editor_theme);
+          if ("show_new_project_file" in prefs) setShowNewProjectFile(Boolean(prefs.show_new_project_file));
         }
-        const rootList = cfg.roots.map((r: RootInfo) => ({ ...r, active: r.path === cfg.active_root }));
+        const rootList = cfg.roots.map((r: RootInfo) => ({ ...r, active: r.path === cfg.active_root, is_default: r.path === cfg.default_root }));
         setRoots(rootList);
         setCurrentRoot(cfg.active_root);
         setProjects(ps);
@@ -295,16 +299,16 @@ export default function App() {
   }, [loadCollection]);
 
   useEffect(() => {
-    if (loading || !currentProject) return;
+    if (loading || !currentProject || !currentRoot) return;
     let hadStoredTabs = false;
     try {
-      const stored = localStorage.getItem(TABS_KEY(currentProject));
+      const stored = localStorage.getItem(TABS_KEY(currentRoot, currentProject));
       if (stored) {
         hadStoredTabs = true;
         const parsedTabs: EditorTab[] = JSON.parse(stored).map((t: any, i: number) => ({ ...t, colorIndex: typeof t.colorIndex === "number" ? t.colorIndex : i % 2 }));
         if (parsedTabs.length > 0) {
-          const storedActiveId = localStorage.getItem(ACTIVE_TAB_KEY(currentProject));
-          const storedOverlay = localStorage.getItem(TABS_KEY(currentProject) + "_overlay") ?? "";
+          const storedActiveId = localStorage.getItem(ACTIVE_TAB_KEY(currentRoot, currentProject));
+          const storedOverlay = localStorage.getItem(TABS_KEY(currentRoot, currentProject) + "_overlay") ?? "";
           const activeTab = parsedTabs.find(t => t.id === storedActiveId) ?? parsedTabs[0];
           setTabs(parsedTabs);
           setActiveTabId(activeTab.id);
@@ -469,10 +473,24 @@ export default function App() {
   const handleToggleIndicators = useCallback(() => {
     setShowIndicators(prev => {
       const next = !prev;
-      localStorage.setItem("pith_indicators", String(next));
+      savePrefs({ show_indicators: next }).catch(() => {});
       return next;
     });
   }, []);
+
+  const handleEditorThemeChange = useCallback((id: string) => {
+    setEditorTheme(id);
+    savePrefs({ editor_theme: id }).catch(() => {});
+  }, []);
+
+  const handleToggleNewProjectFile = useCallback(() => {
+    setShowNewProjectFile(prev => {
+      const next = !prev;
+      savePrefs({ show_new_project_file: next }).catch(() => {});
+      return next;
+    });
+  }, []);
+
 
 
   const handleShowLinkReport = useCallback(async () => {
@@ -577,7 +595,6 @@ export default function App() {
   }, []);
 
   const handleOpenNewRoot = useCallback(() => {
-    setNewRootName("");
     setNewRootDescription("");
     setNewRootCreateDir(false);
     setNewRootNewDirName("");
@@ -590,14 +607,13 @@ export default function App() {
   }, [navigateRootBrowser]);
 
   const handleAddRoot = useCallback(async () => {
-    if (!newRootName.trim()) { setNewRootError("Title is required"); return; }
     if (!rootBrowserPath) { setNewRootError("Select a directory"); return; }
     const targetPath = newRootCreateDir
       ? `${rootBrowserPath}/${newRootNewDirName.trim()}`
       : rootBrowserPath;
     if (newRootCreateDir && !newRootNewDirName.trim()) { setNewRootError("Enter a directory name"); return; }
     try {
-      const { path } = await addRoot(targetPath, newRootName.trim(), newRootDescription.trim(), newRootCreateDir);
+      const { path } = await addRoot(targetPath, newRootDescription.trim(), newRootCreateDir);
       const updatedRoots = await fetchRoots();
       setRoots(updatedRoots);
       setNewRootOpen(false);
@@ -616,7 +632,7 @@ export default function App() {
     } catch (e: any) {
       setNewRootError(e.message ?? "Failed to add root");
     }
-  }, [newRootName, newRootDescription, newRootCreateDir, newRootNewDirName, rootBrowserPath, loadCollection]);
+  }, [newRootDescription, newRootCreateDir, newRootNewDirName, rootBrowserPath, loadCollection]);
 
   const handleSwitchRoot = useCallback(async (path: string) => {
     try {
@@ -898,18 +914,6 @@ export default function App() {
     }
   }, [currentProject, addFileSelected, folderBrowserPath, handleRefresh]);
 
-  const handleRestoreStructure = useCallback(async () => {
-    if (!window.confirm("Restore documentation hierarchy to the original structure? Your file contents will not change.")) return;
-    await restoreDocStructure();
-    await loadCollection("documentation");
-  }, [loadCollection]);
-
-  const handleRestoreAll = useCallback(async () => {
-    if (!window.confirm("Restore documentation hierarchy AND all file contents to the original? Any edits you made to documentation files will be lost.")) return;
-    await restoreDocAll();
-    await loadCollection("documentation");
-  }, [loadCollection]);
-
   const overlayOpen = overlayType !== null;
 
   if (loading) {
@@ -1010,8 +1014,6 @@ export default function App() {
           onExport={(fmt) => setExportModal({ format: fmt })}
           onEditTemplate={() => setShowTemplateEditor(true)}
           onCheckCompliance={handleShowCompliance}
-          onRestoreStructure={handleRestoreStructure}
-          onRestoreAll={handleRestoreAll}
           onValidateLinks={handleShowLinkReport}
           onExportHtml={handleExportHtml}
           onReport={handleReport}
@@ -1033,6 +1035,8 @@ export default function App() {
           templateIssueMap={templateIssueMap}
           showIndicators={showIndicators}
           onToggleIndicators={handleToggleIndicators}
+          showNewProjectFile={showNewProjectFile}
+          onToggleNewProjectFile={handleToggleNewProjectFile}
           roots={roots}
           currentRoot={currentRoot}
           onSwitchRoot={handleSwitchRoot}
@@ -1042,7 +1046,7 @@ export default function App() {
           onAddImages={() => { setImageBrowserTriggerAdd(true); setImageBrowserOpen(true); }}
           onOpenImagesFolder={() => { if (currentProject) openImagesFolder(currentProject); }}
           titleMode={titleMode}
-          onTitleModeChange={(mode: boolean) => { setTitleMode(mode); localStorage.setItem("pith_title_mode", String(mode)); }}
+          onTitleModeChange={(mode: boolean) => { setTitleMode(mode); savePrefs({ title_mode: mode }).catch(() => {}); }}
         />
       </div>
 
@@ -1148,7 +1152,7 @@ export default function App() {
                       display: overlayOpen ? "flex" : "none",
                       alignItems: "center", justifyContent: "center",
                       flexShrink: 0,
-                      transform: "translateX(2px)",
+                      transform: "translateX(4px)",
                     }}
                   >&#x2715;</button>
                   <div style={{ flex: 1 }} />
@@ -1208,6 +1212,8 @@ export default function App() {
               onReport={handleReport}
               onOpenImageBrowser={() => { setImageBrowserTriggerAdd(false); setImageBrowserOpen(true); }}
               brokenLinks={fileBrokenLinks}
+              editorTheme={editorTheme}
+              onEditorThemeChange={handleEditorThemeChange}
             />
           )}
           {overlayType === "yaml" && (
@@ -1246,6 +1252,8 @@ export default function App() {
                   alert(e.message ?? "Failed to rename project");
                 }
               }}
+              editorTheme={editorTheme}
+              onEditorThemeChange={handleEditorThemeChange}
             />
           )}
         </div>
@@ -1635,13 +1643,6 @@ export default function App() {
                       style={{ width: "100%", padding: "7px 10px", fontSize: 13, border: "1px solid #b3d9f7", borderRadius: 4, outline: "none", boxSizing: "border-box", fontFamily: "monospace" }} />
                   </div>
                 )}
-                <div>
-                  <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>Title</div>
-                  <input autoFocus={!newRootCreateDir} value={newRootName}
-                    onChange={e => { setNewRootName(e.target.value); setNewRootError(""); }}
-                    placeholder="My Docs"
-                    style={{ width: "100%", padding: "7px 10px", fontSize: 13, border: "1px solid #b3d9f7", borderRadius: 4, outline: "none", boxSizing: "border-box" }} />
-                </div>
                 <div>
                   <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>Description <span style={{ color: "#bbb" }}>(optional)</span></div>
                   <input value={newRootDescription}

@@ -1,4 +1,5 @@
-Title: Title
+---
+Title: Editing Files
 Author:
 Required:
 ---
@@ -52,7 +53,7 @@ Below the editor toolbar is a bar with the following tabs: **Template**, **Stats
 The **Template** tab shows action buttons for working with the project template:
 
 - **Apply template** — applies the template to this file using the currently configured options (configure them in **View template** or the compliance dialog — see [Frontmatter and Templates](frontmatter.md))
-- **Use as template** — saves this file's current content as `template.md`, replacing the previous template. The content is saved verbatim, including any specific frontmatter values. If you want placeholder values in the template (e.g. `Title:` with no value), edit the template directly via **View template** instead
+- **Use as template** — saves this file's current content as the project's template (the file in `~/.pith/templates/` that the project's `.pith-project` points to), replacing the previous content. Because templates are shared across projects, this affects every project using the same template. The content is saved verbatim, including any specific frontmatter values. If you want placeholder values in the template (e.g. `Title:` with no value), edit the template directly via **View template** instead
 - **View template** — opens the project template in an editor modal, where you can edit the template, configure apply options, and click **Apply to open file** to apply directly to the file you have open
 - **View compliance** — opens the compliance report showing which files are out of compliance given the current apply options
 

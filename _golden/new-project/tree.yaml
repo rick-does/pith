@@ -1,0 +1,5 @@
+root:
+- children: []
+  order: 0
+  path: new-project-guide.md
+  title: Getting Started

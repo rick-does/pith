@@ -25,4 +25,4 @@ Projects can be stored anywhere on disk using [project roots](projects.md).
 
 ## How this documentation works
 
-This documentation is published on [GitHub Pages](https://rick-does.github.io/pith/) and is also bundled inside the app as a live PiTH project. If you're running PiTH locally, you can open the documentation project directly in the app to read or edit any page. See [Getting Started](getting-started.md) for installation instructions.
+This documentation is published on [GitHub Pages](https://rick-does.github.io/pith/). When you create a new project in PiTH, you'll find a short **Getting Started** file that links back here. See [Getting Started](getting-started.md) for installation instructions.

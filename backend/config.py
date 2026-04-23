@@ -8,7 +8,8 @@ logger = logging.getLogger(__name__)
 
 CONFIG_DIR = Path.home() / ".pith"
 CONFIG_FILE = CONFIG_DIR / "config.json"
-DEFAULT_ROOT_PATH = str(Path.home() / ".pith" / "projects")
+DEFAULT_ROOT_PATH = str(Path.home() / "pith-projects")
+LEGACY_DEFAULT_ROOT_PATH = str(Path.home() / ".pith" / "projects")
 
 
 def _default_config() -> dict:
@@ -42,6 +43,104 @@ def _ensure_active_root_valid(cfg: dict) -> None:
         cfg["active_root"] = paths[0] if paths else DEFAULT_ROOT_PATH
 
 
+def _migrate_meta_under_project_roots(cfg: dict) -> None:
+    """Move legacy ~/.pith/<root-name>/ dirs into ~/.pith/project-roots/<root-name>/.
+
+    Also rewrites absolute paths in each project's .pith-project frontmatter so
+    tree_yaml: still points at the correct (moved) location. Idempotent.
+    """
+    import shutil as _shutil
+    for root in cfg.get("roots", []):
+        name = root.get("name")
+        if not name:
+            continue
+        old_dir = CONFIG_DIR / name
+        new_dir = PROJECT_ROOTS_DIR / name
+        if not old_dir.is_dir() or new_dir.exists() or old_dir == new_dir:
+            continue
+        if old_dir.resolve() == PROJECT_ROOTS_DIR.resolve():
+            continue
+        PROJECT_ROOTS_DIR.mkdir(parents=True, exist_ok=True)
+        _shutil.move(str(old_dir), str(new_dir))
+        old_prefix = str(old_dir)
+        new_prefix = str(new_dir)
+        for proj_dir in new_dir.iterdir():
+            if not proj_dir.is_dir():
+                continue
+            pmd = proj_dir / ".pith-project"
+            if not pmd.exists():
+                continue
+            try:
+                content = pmd.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            if old_prefix in content:
+                pmd.write_text(content.replace(old_prefix, new_prefix), encoding="utf-8")
+
+
+def _migrate_root_names_to_basenames(cfg: dict) -> bool:
+    """Rewrite each root's `name` to match its path basename, renaming its metadata
+    dir under ~/.pith/project-roots/ and fixing absolute paths in each project's
+    .pith-project frontmatter. Skips collisions (logs warning). Returns True if
+    any root was renamed.
+    """
+    import shutil as _shutil
+    changed = False
+    names_in_use = {r.get("name") for r in cfg.get("roots", []) if r.get("name")}
+    for root in cfg.get("roots", []):
+        old_name = root.get("name", "")
+        path = root.get("path", "")
+        if not path:
+            continue
+        new_name = Path(path).name
+        if not new_name or new_name == old_name:
+            continue
+        if new_name in names_in_use:
+            logger.warning(
+                "Skipping rename of root '%s' to '%s': collision with existing root name",
+                old_name, new_name,
+            )
+            continue
+        old_dir = PROJECT_ROOTS_DIR / old_name if old_name else None
+        new_dir = PROJECT_ROOTS_DIR / new_name
+        if old_dir and old_dir.exists() and not new_dir.exists():
+            _shutil.move(str(old_dir), str(new_dir))
+            old_prefix = str(old_dir)
+            new_prefix = str(new_dir)
+            for proj_dir in new_dir.iterdir():
+                if not proj_dir.is_dir():
+                    continue
+                pmd = proj_dir / ".pith-project"
+                if not pmd.exists():
+                    continue
+                try:
+                    content = pmd.read_text(encoding="utf-8")
+                except OSError:
+                    continue
+                if old_prefix in content:
+                    pmd.write_text(content.replace(old_prefix, new_prefix), encoding="utf-8")
+        names_in_use.discard(old_name)
+        names_in_use.add(new_name)
+        root["name"] = new_name
+        changed = True
+    return changed
+
+
+def _migrate_legacy_default(cfg: dict) -> bool:
+    """Rewrite the Default root's path from ~/.pith/projects to ~/pith-projects.
+    Also updates active_root if it pointed at the legacy path. Returns True if changed.
+    """
+    changed = False
+    for r in cfg.get("roots", []):
+        if r.get("name") == "Default" and r.get("path") == LEGACY_DEFAULT_ROOT_PATH:
+            r["path"] = DEFAULT_ROOT_PATH
+            changed = True
+    if cfg.get("active_root") == LEGACY_DEFAULT_ROOT_PATH:
+        cfg["active_root"] = DEFAULT_ROOT_PATH
+        changed = True
+    return changed
+
+
 def load_config() -> dict:
     if not CONFIG_FILE.exists():
         cfg = _default_config()
@@ -55,8 +154,14 @@ def load_config() -> dict:
         cfg = _default_config()
         save_config(cfg)
         return cfg
+    migrated = _migrate_legacy_default(cfg)
     _ensure_default_root(cfg)
     _ensure_active_root_valid(cfg)
+    if migrated:
+        save_config(cfg)
+    _migrate_meta_under_project_roots(cfg)
+    if _migrate_root_names_to_basenames(cfg):
+        save_config(cfg)
     return cfg
 
 
@@ -69,3 +174,36 @@ def save_config(cfg: dict) -> None:
 def get_active_projects_dir() -> Path:
     cfg = load_config()
     return Path(cfg["active_root"])
+
+
+def get_active_root_entry() -> dict:
+    cfg = load_config()
+    for r in cfg["roots"]:
+        if r["path"] == cfg["active_root"]:
+            return r
+    return cfg["roots"][0] if cfg["roots"] else {"path": DEFAULT_ROOT_PATH, "name": "Default"}
+
+
+def get_active_root_name() -> str:
+    return get_active_root_entry()["name"]
+
+
+PROJECT_ROOTS_DIR = CONFIG_DIR / "project-roots"
+TEMPLATES_DIR = CONFIG_DIR / "templates"
+DEFAULT_TEMPLATE_NAME = "default-template.md"
+
+
+def get_default_template_path() -> Path:
+    return TEMPLATES_DIR / DEFAULT_TEMPLATE_NAME
+
+
+def get_root_meta_dir(root_name: str | None = None) -> Path:
+    """Per-root metadata dir under ~/.pith/project-roots/<root-name>/."""
+    if root_name is None:
+        root_name = get_active_root_name()
+    return PROJECT_ROOTS_DIR / root_name
+
+
+def get_project_meta_dir(project: str, root_name: str | None = None) -> Path:
+    """Per-project metadata dir under ~/.pith/project-roots/<root-name>/<project>/."""
+    return get_root_meta_dir(root_name) / project

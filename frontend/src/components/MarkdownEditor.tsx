@@ -31,15 +31,16 @@ interface Props {
   onClose?: () => void;
   onReport?: () => void;
   onOpenImageBrowser?: () => void;
+  editorTheme: string;
+  onEditorThemeChange: (id: string) => void;
 }
 
-const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function MarkdownEditor({ project, path, content, savedContent, onContentChange, viMode, onViModeChange, onSaved, onSave, onRename, onUseAsTemplate, onApplyTemplate, onEditTemplate, onViewCompliance, onClose, onReport, onOpenImageBrowser, brokenLinks }, ref) {
+const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function MarkdownEditor({ project, path, content, savedContent, onContentChange, viMode, onViModeChange, onSaved, onSave, onRename, onUseAsTemplate, onApplyTemplate, onEditTemplate, onViewCompliance, onClose, onReport, onOpenImageBrowser, brokenLinks, editorTheme, onEditorThemeChange }, ref) {
   const [view, setView] = useState<"edit" | "preview" | "split">("split");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
-  const [editorTheme, setEditorTheme] = useState(() => localStorage.getItem("editorTheme") || "one-dark");
   const savedContentRef = useRef(savedContent ?? content);
   const isDirty = content !== savedContentRef.current;
   const codeEditorRef = useRef<CodeEditorHandle>(null);
@@ -86,11 +87,6 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function Markdown
       body: JSON.stringify({ word }),
     }).catch(() => {});
   }, []);
-
-  const handleThemeChange = (id: string) => {
-    setEditorTheme(id);
-    localStorage.setItem("editorTheme", id);
-  };
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -177,7 +173,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function Markdown
       </div>
 
       {(project || onApplyTemplate || onUseAsTemplate || onEditTemplate || onViewCompliance) && (
-        <FmBar onApplyTemplate={onApplyTemplate} onUseAsTemplate={onUseAsTemplate} onEditTemplate={onEditTemplate} onViewCompliance={onViewCompliance} project={project} filePath={path} onReport={onReport} onOpenImageBrowser={onOpenImageBrowser} editorTheme={editorTheme} onThemeChange={handleThemeChange} />
+        <FmBar onApplyTemplate={onApplyTemplate} onUseAsTemplate={onUseAsTemplate} onEditTemplate={onEditTemplate} onViewCompliance={onViewCompliance} project={project} filePath={path} onReport={onReport} onOpenImageBrowser={onOpenImageBrowser} editorTheme={editorTheme} onThemeChange={onEditorThemeChange} />
       )}
 
       {brokenLinks && brokenLinks.length > 0 && (

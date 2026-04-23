@@ -40,7 +40,7 @@ If you've ever maintained a documentation site and found yourself hand-editing a
 ### Local and private
 
 - Runs entirely on your machine — no cloud, no accounts, no ongoing cost
-- Projects stored in `~/.pith/projects/` — separate from the app, never overwritten on upgrade
+- Projects stored in `~/pith-projects/` by default — separate from the app, never overwritten on upgrade. Per-project metadata (hierarchy YAML, template pointer) lives in `~/.pith/project-roots/`.
 - Available as a PyPI package or standalone executable
 
 ## Install

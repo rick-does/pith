@@ -20,4 +20,4 @@ When you're ready to publish, PiTH can [export your hierarchy](import-export.md)
 
 ## How this documentation works
 
-This documentation is itself a PiTH project — managed in PiTH and bundled with the app. If you're running PiTH locally, you can open the documentation project directly in the app to read or edit any page. See [Getting Started](getting-started.md) for installation instructions.
+This documentation is authored as a PiTH project (`_golden/documentation/` in the repo) and published to GitHub Pages via a CI workflow. See [Getting Started](getting-started.md) for installation instructions.

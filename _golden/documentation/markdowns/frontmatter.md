@@ -6,13 +6,13 @@ Frontmatter is automatically stripped from the rendered preview so it doesn't ap
 
 ## The project template
 
-Each project has a single template file (`template.md`) that defines:
+Each project points at a template file stored centrally in `~/.pith/templates/`. The template defines:
 
 1. **Frontmatter schema** — the YAML keys all project files should have
 2. **Required headings** — the section headings (h2+) all project files should have
 3. **Body content** — any boilerplate text to optionally append to files
 
-The default template is:
+All projects share `default-template.md` unless you change the `template:` field in a project's `.pith-project` metadata. The shipped default is:
 
 ```
 ---
@@ -22,7 +22,7 @@ Title: <add title>
 # Title
 ```
 
-New files created in the project are pre-populated from this template, with the title heading automatically set to the filename.
+New files created in the project are pre-populated from the template, with the title heading automatically set to the filename. Multi-template management (creating and switching templates per project) is planned but not yet exposed in the UI.
 
 ## Managing the template
 
@@ -31,7 +31,7 @@ New files created in the project are pre-populated from this template, with the 
 While editing a file, open the **Template** tab in the editor sub-bar. From there:
 
 - **Apply template** — applies the template to the current file using the options you've configured (see [Applying the template](#applying-the-template))
-- **Use as template** — copies the current file's full content to `template.md`, replacing the previous template
+- **Use as template** — saves the current file's full content as the project's template, replacing the previous content
 - **View template** — opens the template in a markdown editor modal
 - **View compliance** — opens the compliance report
 
@@ -41,7 +41,7 @@ Click **⋮** on the project chip and choose **Template → View template** or *
 
 ### Editing the template directly
 
-The template is a plain markdown file. Open it via **View template** and edit it directly. Save to update the project template. The frontmatter keys you define become the compliance requirements for all project files. The h2+ headings you define are checked for compliance only when **Append template body** is on. Any body content below the h1 heading can be optionally appended to files when applying.
+The template is a plain markdown file in `~/.pith/templates/`. Open it via **View template** and edit it directly. Save to update it. Because templates are shared, editing the default template affects every project that uses it. The frontmatter keys you define become the compliance requirements for all project files using this template. The h2+ headings you define are checked for compliance only when **Append template body** is on. Any body content below the h1 heading can be optionally appended to files when applying.
 
 ## Applying the template
 

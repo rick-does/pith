@@ -1,3 +1,4 @@
+---
 Title: Scan Example
 Author:
 Required:

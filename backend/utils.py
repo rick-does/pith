@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import logging
 import os
 import re
@@ -13,17 +12,35 @@ import yaml
 logger = logging.getLogger(__name__)
 
 from .models import FileNode, CollectionStructure
-from .config import get_active_projects_dir
+from .config import get_active_projects_dir, get_project_meta_dir, get_root_meta_dir, get_default_template_path, load_config
 
 _pkg_golden = Path(__file__).parent / "golden"
-GOLDEN_DIR = _pkg_golden if _pkg_golden.exists() else Path(__file__).parent.parent / "_golden"
+_source_golden = Path(__file__).parent.parent / "_golden"
+GOLDEN_DIR = _source_golden if _source_golden.exists() else _pkg_golden
 
 
 def get_projects_dir() -> Path:
+    """Active root path — where project content (markdowns, images) lives."""
     return get_active_projects_dir()
 
 
+def _read_project_meta(project: str) -> dict:
+    """Read frontmatter from .pith-project. Returns {} if missing or malformed."""
+    pmd = get_project_meta_dir(project) / ".pith-project"
+    if not pmd.exists():
+        return {}
+    try:
+        meta, _ = parse_frontmatter(pmd.read_text(encoding="utf-8"))
+        return meta or {}
+    except (OSError, ValueError):
+        return {}
+
+
 def get_markdowns_dir(project: str) -> Path:
+    meta = _read_project_meta(project)
+    override = meta.get("markdowns_dir")
+    if override:
+        return Path(str(override))
     return get_projects_dir() / project / "markdowns"
 
 
@@ -32,15 +49,43 @@ def get_images_dir(project: str) -> Path:
 
 
 def get_collection_file(project: str) -> Path:
-    return get_projects_dir() / project / "tree.yaml"
+    meta = _read_project_meta(project)
+    override = meta.get("tree_yaml")
+    if override:
+        return Path(str(override))
+    return get_project_meta_dir(project) / "tree.yaml"
 
 
 def get_project_md(project: str) -> Path:
-    return get_projects_dir() / project / ".pith-project"
+    return get_project_meta_dir(project) / ".pith-project"
 
 
 def get_hierarchy_backup_file(project: str) -> Path:
-    return get_projects_dir() / project / "tree-backup.yaml"
+    return get_project_meta_dir(project) / "tree-backup.yaml"
+
+
+def project_exists(project: str) -> bool:
+    return get_project_meta_dir(project).exists()
+
+
+def read_project_md_body(project: str) -> str:
+    """Return the markdown body of .pith-project (without YAML frontmatter). Empty if missing."""
+    pmd = get_project_md(project)
+    if not pmd.exists():
+        return ""
+    _meta, body = parse_frontmatter(pmd.read_text(encoding="utf-8"))
+    return body
+
+
+def format_project_md(body: str, tree_yaml: Path, markdowns_dir: Path, template: Path | None = None) -> str:
+    body = body.lstrip("\n")
+    fm_lines = [
+        f"tree_yaml: {tree_yaml}",
+        f"markdowns_dir: {markdowns_dir}",
+    ]
+    if template is not None:
+        fm_lines.append(f"template: {template}")
+    return "---\n" + "\n".join(fm_lines) + "\n---\n" + body
 
 
 def safe_path(project: str, rel_path: str) -> Path:
@@ -59,36 +104,55 @@ def extract_title(content: str) -> str:
 
 
 def list_projects() -> list[dict]:
-    projects_dir = get_projects_dir()
-    if not projects_dir.exists():
+    """Enumerate projects registered under the active root's meta dir.
+
+    Does NOT scan the content dir — a project exists only when it has been
+    explicitly created (meta dir with .pith-project). This keeps a project root
+    strictly as a target location; existing directories there are ignored.
+    """
+    meta_root = get_root_meta_dir()
+    if not meta_root.exists():
         return []
     result = []
-    for entry in sorted(projects_dir.iterdir()):
+    for entry in sorted(meta_root.iterdir(), key=lambda p: p.name):
         if not entry.is_dir() or entry.name.startswith("_"):
             continue
-        title = entry.name
         pmd = entry / ".pith-project"
-        if pmd.exists():
-            t = extract_title(pmd.read_text(encoding="utf-8"))
-            if t:
-                title = t
+        if not pmd.exists():
+            continue
+        title = entry.name
+        _meta, body = parse_frontmatter(pmd.read_text(encoding="utf-8"))
+        t = extract_title(body)
+        if t:
+            title = t
         result.append({"name": entry.name, "title": title})
     return result
 
 
 def create_project(name: str) -> None:
-    proj_dir = get_projects_dir() / name
-    proj_dir.mkdir(parents=True, exist_ok=True)
-    (proj_dir / "markdowns").mkdir(exist_ok=True)
-    (proj_dir / "images").mkdir(exist_ok=True)
+    meta_dir = get_project_meta_dir(name)
+    meta_dir.mkdir(parents=True, exist_ok=True)
 
-    tree_file = get_collection_file(name)
+    content_dir = get_projects_dir() / name
+    md_dir = content_dir / "markdowns"
+    md_dir.mkdir(parents=True, exist_ok=True)
+    (content_dir / "images").mkdir(exist_ok=True)
+
+    tree_file = meta_dir / "tree.yaml"
     if not tree_file.exists():
-        tree_file.write_text("root: []\n", encoding="utf-8")
+        seed_new_project_guide_if_enabled(md_dir, tree_file)
 
     pmd = get_project_md(name)
     if not pmd.exists():
-        pmd.write_text(f"# {name}\n", encoding="utf-8")
+        pmd.write_text(
+            format_project_md(
+                body=f"# {name}\n",
+                tree_yaml=tree_file,
+                markdowns_dir=md_dir,
+                template=get_default_template_path(),
+            ),
+            encoding="utf-8",
+        )
 
 
 def iter_md_files(md_dir: Path):
@@ -202,19 +266,68 @@ def rename_file(project: str, old_path: str, new_path: str) -> None:
 
 
 def archive_project(name: str) -> None:
-    src = get_projects_dir() / name
-    archive_dir = get_projects_dir() / "_archive"
-    archive_dir.mkdir(exist_ok=True)
-    dest = archive_dir / name
-    if dest.exists():
-        dest = archive_dir / f"{name}-{int(time.time())}"
-    shutil.move(str(src), str(dest))
+    ts = int(time.time())
+    content_src = get_projects_dir() / name
+    if content_src.exists():
+        archive_dir = get_projects_dir() / "_archive"
+        archive_dir.mkdir(exist_ok=True)
+        dest = archive_dir / name
+        if dest.exists():
+            dest = archive_dir / f"{name}-{ts}"
+        shutil.move(str(content_src), str(dest))
+
+    meta_src = get_project_meta_dir(name)
+    if meta_src.exists():
+        meta_archive = get_root_meta_dir() / "_archive"
+        meta_archive.mkdir(exist_ok=True)
+        meta_dest = meta_archive / name
+        if meta_dest.exists():
+            meta_dest = meta_archive / f"{name}-{ts}"
+        shutil.move(str(meta_src), str(meta_dest))
 
 
 def delete_project(name: str) -> None:
-    proj_dir = get_projects_dir() / name
-    if proj_dir.exists():
-        shutil.rmtree(proj_dir)
+    content_dir = get_projects_dir() / name
+    if content_dir.exists():
+        shutil.rmtree(content_dir)
+    meta_dir = get_project_meta_dir(name)
+    if meta_dir.exists():
+        shutil.rmtree(meta_dir)
+
+
+def rename_project(old_name: str, new_name: str) -> None:
+    meta_src = get_project_meta_dir(old_name)
+    content_src = get_projects_dir() / old_name
+    meta_dest = get_project_meta_dir(new_name)
+    content_dest = get_projects_dir() / new_name
+
+    if meta_dest.exists() or content_dest.exists():
+        raise ValueError("Target project already exists")
+
+    if content_src.exists():
+        content_src.rename(content_dest)
+    if meta_src.exists():
+        meta_src.rename(meta_dest)
+
+    pmd = meta_dest / ".pith-project"
+    if pmd.exists():
+        meta, body = parse_frontmatter(pmd.read_text(encoding="utf-8"))
+        old_tree = str(meta_src / "tree.yaml")
+        old_md = str(content_src / "markdowns")
+        if str(meta.get("tree_yaml", "")) in (old_tree, ""):
+            meta["tree_yaml"] = str(meta_dest / "tree.yaml")
+        if str(meta.get("markdowns_dir", "")) in (old_md, ""):
+            meta["markdowns_dir"] = str(content_dest / "markdowns")
+        template_val = meta.get("template")
+        pmd.write_text(
+            format_project_md(
+                body=body,
+                tree_yaml=Path(str(meta["tree_yaml"])),
+                markdowns_dir=Path(str(meta["markdowns_dir"])),
+                template=Path(str(template_val)) if template_val else None,
+            ),
+            encoding="utf-8",
+        )
 
 
 def import_markdowns(path: str) -> str:
@@ -227,19 +340,20 @@ def import_markdowns(path: str) -> str:
     base_name = base_name.lower()
     name = base_name
     i = 1
-    while (get_projects_dir() / name).exists():
+    while project_exists(name):
         name = f"{base_name}-{i}"
         i += 1
 
-    md_dir = get_projects_dir() / name / "markdowns"
+    content_dir = get_projects_dir() / name
+    md_dir = content_dir / "markdowns"
     md_dir.mkdir(parents=True, exist_ok=True)
-    (get_projects_dir() / name / "images").mkdir(exist_ok=True)
+    (content_dir / "images").mkdir(exist_ok=True)
 
     import glob as _glob
     pattern = os.path.join(str(src), "**", "*.md")
     found = _glob.glob(pattern, recursive=True)
     if not found:
-        shutil.rmtree(str(get_projects_dir() / name))
+        shutil.rmtree(str(content_dir))
         raise ValueError(f"No .md files found in: {src}")
     for src_file_str in found:
         src_file = Path(src_file_str)
@@ -248,11 +362,21 @@ def import_markdowns(path: str) -> str:
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src_file_str, str(dest))
 
-    tree_file = get_collection_file(name)
+    meta_dir = get_project_meta_dir(name)
+    meta_dir.mkdir(parents=True, exist_ok=True)
+    tree_file = meta_dir / "tree.yaml"
     tree_file.write_text("root: []\n", encoding="utf-8")
 
     pmd = get_project_md(name)
-    pmd.write_text(f"# {src.name}\n", encoding="utf-8")
+    pmd.write_text(
+        format_project_md(
+            body=f"# {src.name}\n",
+            tree_yaml=tree_file,
+            markdowns_dir=md_dir,
+            template=get_default_template_path(),
+        ),
+        encoding="utf-8",
+    )
 
     return name
 
@@ -339,7 +463,38 @@ DEFAULT_TEMPLATE = "---\nTitle: <add title>\n---\n\n# Title\n"
 
 
 def get_template_path(project: str) -> Path:
-    return get_projects_dir() / project / "template.md"
+    meta = _read_project_meta(project)
+    override = meta.get("template")
+    if override:
+        return Path(str(override))
+    return get_default_template_path()
+
+
+def ensure_default_template() -> None:
+    """Seed ~/.pith/templates/default-template.md from DEFAULT_TEMPLATE if missing."""
+    p = get_default_template_path()
+    if p.exists():
+        return
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(DEFAULT_TEMPLATE, encoding="utf-8")
+
+
+def seed_new_project_guide_if_enabled(md_dir: Path, tree_file: Path) -> None:
+    """Seed tree.yaml and copy the new-project-guide.md from the golden stub into
+    md_dir when the show_new_project_file pref is enabled; otherwise write an
+    empty tree.
+    """
+    include_guide = load_config().get("prefs", {}).get("show_new_project_file", True)
+    golden_stub = GOLDEN_DIR / "new-project"
+    golden_tree = golden_stub / "tree.yaml"
+    golden_md = golden_stub / "markdowns"
+    if include_guide and golden_tree.exists():
+        shutil.copy2(str(golden_tree), str(tree_file))
+    else:
+        tree_file.write_text("root: []\n", encoding="utf-8")
+    if include_guide and golden_md.exists():
+        for fp in golden_md.glob("*.md"):
+            shutil.copy2(str(fp), str(md_dir / fp.name))
 
 
 def load_unified_template(project: str) -> str:
@@ -348,46 +503,13 @@ def load_unified_template(project: str) -> str:
 
 
 def save_unified_template(project: str, content: str) -> None:
-    get_template_path(project).write_text(content, encoding="utf-8")
-
-
-def delete_unified_template(project: str) -> None:
     p = get_template_path(project)
-    if p.exists():
-        p.unlink()
-
-
-def extract_for_use_as_template(content: str) -> str:
-    """Extract file as a template: FM keys with empty values, h1 normalized, h2+ with body text."""
-    meta, body = parse_frontmatter(content)
-    lines: list[str] = []
-    if meta:
-        lines.append("---")
-        for key in meta.keys():
-            lines.append(f"{key}:")
-        lines.append("---")
-        lines.append("")
-    parts = re.split(r'(^#{1,}\s+.+$)', body, flags=re.MULTILINE)
-    i = 1
-    while i < len(parts):
-        heading = parts[i].strip()
-        section_body = parts[i + 1].strip() if i + 1 < len(parts) else ""
-        m = re.match(r'^(#+)\s+', heading)
-        if m:
-            if len(m.group(1)) == 1:
-                lines.append("# Title")
-            else:
-                lines.append(heading)
-                if section_body:
-                    lines.append("")
-                    lines.append(section_body)
-        lines.append("")
-        i += 2
-    return "\n".join(lines).strip() + "\n"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(content, encoding="utf-8")
 
 
 def scan_unified_compliance(project: str) -> list[dict]:
-    """Scan all files against template.md. Returns per-file missing/extra frontmatter keys and missing headings."""
+    """Scan all files against the project's template. Returns per-file missing/extra frontmatter keys and missing headings."""
     template_content = load_unified_template(project)
     tm_meta, tm_body = parse_frontmatter(template_content)
     expected_keys = set(tm_meta.keys())

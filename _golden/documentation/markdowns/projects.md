@@ -2,21 +2,21 @@
 
 A project is a self-contained set of markdown files with its own hierarchy. You can have as many projects as you like and switch between them freely.
 
-Projects live inside a **project root** — a directory on disk that holds one or more projects. By default PiTH uses the `projects/` folder inside the app directory. You can add additional roots to keep separate groups of projects in different locations (for example, a personal writing folder or a separate repo).
+Projects live inside a **project root** — a directory on disk that holds one or more projects. By default PiTH uses `~/pith-projects/` in your home directory. You can add additional roots to keep separate groups of projects in different locations (for example, a personal writing folder or a separate repo).
 
 ## Project roots
 
-A project root is a directory that PiTH treats exactly like the default `projects/` folder — it can hold any number of projects. Switching roots changes which set of projects you see.
+A project root is a directory that PiTH treats exactly like the default `~/pith-projects/` folder — it can hold any number of projects. Switching roots changes which set of projects you see.
 
 ### Adding a root
 
 1. Click **⋮** on the project chip
 2. Click **Projects → Project roots → New root**
-3. Enter a name and optional description
+3. (Optional) Enter a description for this root
 4. Choose **Use existing directory** or **Create new directory**
 5. Browse to the location and click **Add Root**
 
-The new root becomes active immediately, and adds a `.pith-project-root` file to mark the directory as a PiTH project root directory. The file contains the name and description you add when you create the project root. 
+The root's name is always the chosen directory's basename — it's not a user-editable field. The new root becomes active immediately. PiTH records the root's description (and other metadata) in `~/.pith/project-roots/<root-name>/.pith-project-root`. The project root directory itself only holds project content; per-project metadata (`tree.yaml`, `.pith-project`, etc.) lives alongside the marker at `~/.pith/project-roots/<root-name>/<project-name>/`.
 
 ### Switching roots
 
@@ -30,7 +30,7 @@ PiTH remembers the last project you had open in each root and returns to it when
 
 Click the trash icon next to any non-default root in the **Project roots** list. This only removes it from the list — the directory and all its projects remain on disk. You can re-add it at any time.
 
-You cannot remove the default root (the built-in `projects/` folder) from the UI.
+You cannot remove the default root (`~/pith-projects/`) from the UI.
 
 ## The project chip
 
@@ -76,7 +76,7 @@ Files are copied into the project. If a file with the same name already exists, 
 
 ## Renaming a project
 
-Double-click the project chip to open the project notes editor. Double-click the directory name in the editor toolbar to rename it. The directory on disk and the `.pith-project` title both update.
+Double-click the project chip to open the project notes editor. Double-click the directory name in the editor toolbar to rename it. The content directory and the metadata directory are both renamed, and the paths stored in `.pith-project` frontmatter are rewritten to match.
 
 ## Project notes
 
@@ -84,26 +84,17 @@ Each project has a notes file for a description or anything else you want to kee
 
 ## Archiving a project
 
-Projects are never permanently deleted from the UI. Instead, archiving moves the entire project folder to `_archive/` inside the current project root. To archive:
+Projects are never permanently deleted from the UI. Instead, archiving moves both the project's content folder (under the project root) and its metadata folder (under `~/.pith/project-roots/<root-name>/`) to their respective `_archive/` subdirectories. To archive:
 
 1. Click **⋮** on the project chip
 2. Click **Projects**
 3. Click the trash icon next to the project you want to archive
 
-To permanently delete a project, remove its folder from `_archive/` inside the project root by hand.
+To permanently delete a project, remove its folders from the two `_archive/` locations by hand.
 
 ## Viewing the hierarchy file
 
 To see the raw `tree.yaml` for the current project, click **⋮ → View YAML**. This is a read-only view.
-
-## Restoring documentation
-
-The bundled Documentation project includes a golden copy of its original structure and content. If you rearrange or edit the documentation pages and want to reset them, click **⋮** on the project chip, then **Restore Docs**:
-
-- **Structure only** — restores the hierarchy (`tree.yaml`) to its original order without changing any file content
-- **Structure & content** — restores both the hierarchy and all markdown files to their original state
-
-This option only appears when the Documentation project is active. Other projects do not have a golden copy.
 
 ## Settings
 

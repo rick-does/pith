@@ -34,9 +34,10 @@ export interface RootInfo {
   description: string;
   last_project: string | null;
   active: boolean;
+  is_default?: boolean;
 }
 
-export async function fetchConfig(): Promise<{ roots: RootInfo[]; active_root: string }> {
+export async function fetchConfig(): Promise<{ roots: RootInfo[]; active_root: string; default_root: string }> {
   const r = await fetch(`${BASE}/config`);
   if (!r.ok) throw new Error("Failed to fetch config");
   return r.json();
@@ -62,11 +63,11 @@ export async function fetchRoots(): Promise<RootInfo[]> {
   return r.json();
 }
 
-export async function addRoot(path: string, name: string, description: string, createDir: boolean): Promise<{ path: string; name: string }> {
+export async function addRoot(path: string, description: string, createDir: boolean): Promise<{ path: string; name: string }> {
   const r = await fetch(`${BASE}/roots`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ path, name, description, create_dir: createDir }),
+    body: JSON.stringify({ path, description, create_dir: createDir }),
   });
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));
@@ -288,11 +289,6 @@ export async function saveTemplate(project: string, content: string): Promise<vo
   if (!r.ok) throw new Error("Failed to save template");
 }
 
-export async function deleteTemplate(project: string): Promise<void> {
-  const r = await fetch(`${BASE}/projects/${project}/template`, { method: "DELETE" });
-  if (!r.ok) throw new Error("Failed to delete template");
-}
-
 export async function fetchTemplateCompliance(project: string): Promise<TemplateComplianceItem[]> {
   const r = await fetch(`${BASE}/projects/${project}/template/compliance`);
   if (!r.ok) throw new Error("Failed to fetch compliance");
@@ -411,16 +407,6 @@ export async function checkHierarchyBackup(project: string): Promise<boolean> {
   if (!r.ok) return false;
   const data = await r.json();
   return data.exists ?? false;
-}
-
-export async function restoreDocStructure(): Promise<void> {
-  const r = await fetch(`${BASE}/projects/documentation/restore-structure`, { method: "POST" });
-  if (!r.ok) throw new Error("Restore failed");
-}
-
-export async function restoreDocAll(): Promise<void> {
-  const r = await fetch(`${BASE}/projects/documentation/restore-all`, { method: "POST" });
-  if (!r.ok) throw new Error("Restore failed");
 }
 
 // Link validation

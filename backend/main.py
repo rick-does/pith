@@ -22,7 +22,8 @@ from .utils import (
     delete_project,
     import_markdowns,
     extract_title,
-    flatten_paths,
+    ensure_default_template,
+    seed_new_project_guide_if_enabled,
     get_all_md_files,
     get_collection_file,
     get_hierarchy_backup_file,
@@ -31,25 +32,27 @@ from .utils import (
     get_orphans,
     get_project_md,
     get_projects_dir,
+    read_project_md_body,
     list_projects,
     load_collection,
     load_unified_template,
     save_unified_template,
-    delete_unified_template,
-    extract_for_use_as_template,
     scan_unified_compliance,
     apply_unified_template,
     batch_apply_unified_template,
     parse_frontmatter,
+    project_exists,
     rename_file,
+    rename_project,
     safe_path,
     save_collection,
     iter_md_files,
     validate_file_links,
     validate_project_links,
     find_incoming_links,
-    GOLDEN_DIR,
+    format_project_md,
 )
+from .config import get_project_meta_dir, get_root_meta_dir, get_default_template_path
 from .config import load_config, save_config, DEFAULT_ROOT_PATH, CONFIG_DIR
 from .converters import (
     export_docusaurus,
@@ -67,19 +70,8 @@ PERSONAL_DIC = CONFIG_DIR / "personal.dic"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    projects_dir = get_projects_dir()
-    doc_md = projects_dir / "documentation" / "markdowns"
-    golden_doc = GOLDEN_DIR / "documentation"
-    if golden_doc.exists():
-        doc_dir = projects_dir / "documentation"
-        doc_dir.mkdir(parents=True, exist_ok=True)
-        doc_md.mkdir(exist_ok=True)
-        (doc_dir / "images").mkdir(exist_ok=True)
-        golden_tree = golden_doc / "tree.yaml"
-        if golden_tree.exists():
-            shutil.copy2(str(golden_tree), str(doc_dir / "tree.yaml"))
-        for fp in (golden_doc / "markdowns").glob("*.md"):
-            shutil.copy2(str(fp), str(doc_md / fp.name))
+    Path(DEFAULT_ROOT_PATH).mkdir(parents=True, exist_ok=True)
+    ensure_default_template()
     yield
 
 
@@ -115,7 +107,7 @@ async def open_url(url: str):
 @app.get("/api/config")
 async def get_config():
     cfg = load_config()
-    return cfg
+    return {**cfg, "default_root": DEFAULT_ROOT_PATH}
 
 
 @app.get("/api/prefs")
@@ -161,7 +153,11 @@ async def add_personal_word(request: Request):
 async def get_roots():
     cfg = load_config()
     return [
-        {**root, "active": root["path"] == cfg["active_root"]}
+        {
+            **root,
+            "active": root["path"] == cfg["active_root"],
+            "is_default": root["path"] == DEFAULT_ROOT_PATH,
+        }
         for root in cfg["roots"]
     ]
 
@@ -169,14 +165,16 @@ async def get_roots():
 @app.post("/api/roots")
 async def add_root(body: dict):
     path = body.get("path", "").strip()
-    name = body.get("name", "").strip()
     description = body.get("description", "")
     create_dir = body.get("create_dir", False)
 
-    if not path or not name:
-        raise HTTPException(status_code=400, detail="path and name are required")
+    if not path:
+        raise HTTPException(status_code=400, detail="path is required")
 
     root_path = Path(path)
+    name = root_path.name
+    if not name:
+        raise HTTPException(status_code=400, detail="path must have a directory name")
     if create_dir:
         try:
             root_path.mkdir(parents=True, exist_ok=True)
@@ -186,23 +184,37 @@ async def add_root(body: dict):
         if not root_path.exists() or not root_path.is_dir():
             raise HTTPException(status_code=400, detail="Directory does not exist")
 
-    pith_root_file = root_path / ".pith-project-root"
-    pith_root_file.write_text(
-        f"name: {name}\ndescription: {description}\n", encoding="utf-8"
-    )
-
     cfg = load_config()
     existing_paths = [r["path"] for r in cfg["roots"]]
     abs_path = str(root_path.resolve())
     if abs_path in existing_paths:
         raise HTTPException(status_code=400, detail="This directory is already a project root")
 
+    root_meta = get_root_meta_dir(root_name=name)
+    root_meta.mkdir(parents=True, exist_ok=True)
+    (root_meta / ".pith-project-root").write_text(
+        f"name: {name}\ndescription: {description}\n", encoding="utf-8"
+    )
+
     stub_name = "new-project"
-    stub_dir = root_path.resolve() / stub_name
-    (stub_dir / "markdowns").mkdir(parents=True, exist_ok=True)
-    (stub_dir / "images").mkdir(parents=True, exist_ok=True)
-    (stub_dir / "tree.yaml").write_text("root: []\n", encoding="utf-8")
-    (stub_dir / ".pith-project").write_text("# New Project\n", encoding="utf-8")
+    content_dir = root_path.resolve() / stub_name
+    md_dir = content_dir / "markdowns"
+    md_dir.mkdir(parents=True, exist_ok=True)
+    (content_dir / "images").mkdir(parents=True, exist_ok=True)
+
+    meta_dir = get_project_meta_dir(stub_name, root_name=name)
+    meta_dir.mkdir(parents=True, exist_ok=True)
+    tree_file = meta_dir / "tree.yaml"
+    seed_new_project_guide_if_enabled(md_dir, tree_file)
+    (meta_dir / ".pith-project").write_text(
+        format_project_md(
+            body="# New Project\n",
+            tree_yaml=tree_file,
+            markdowns_dir=md_dir,
+            template=get_default_template_path(),
+        ),
+        encoding="utf-8",
+    )
 
     cfg["roots"].append({
         "path": abs_path,
@@ -291,11 +303,9 @@ async def api_import_markdowns(request: Request):
     except ValueError as e:
         raise HTTPException(400, str(e))
     title = name
-    pmd = get_project_md(name)
-    if pmd.exists():
-        t = extract_title(pmd.read_text(encoding="utf-8"))
-        if t:
-            title = t
+    t = extract_title(read_project_md_body(name))
+    if t:
+        title = t
     return {"name": name, "title": title}
 
 
@@ -309,8 +319,7 @@ async def api_import_files(request: Request):
         raise HTTPException(400, "project is required")
     if not files:
         raise HTTPException(400, "files list is required")
-    proj_dir = get_projects_dir() / project
-    if not proj_dir.exists():
+    if not project_exists(project):
         raise HTTPException(404, "Project not found")
     md_dir = get_markdowns_dir(project)
     md_dir.mkdir(parents=True, exist_ok=True)
@@ -355,22 +364,20 @@ async def api_rename_project(name: str, request: Request):
     new_name = data.get("new_name", "").strip()
     if not new_name:
         raise HTTPException(400, "new_name required")
-    src = get_projects_dir() / name
-    dest = get_projects_dir() / new_name
-    if not src.exists():
+    if not project_exists(name):
         raise HTTPException(404, "Project not found")
-    if dest.exists():
+    if project_exists(new_name):
         raise HTTPException(409, "Target project already exists")
-    src.rename(dest)
-    pmd = dest / ".pith-project"
-    if pmd.exists():
-        pmd.write_text(f"# {new_name}\n", encoding="utf-8")
+    try:
+        rename_project(name, new_name)
+    except ValueError as e:
+        raise HTTPException(409, str(e))
     return {"status": "renamed", "name": new_name}
 
 
 @app.post("/api/projects/{name}/archive")
 async def api_archive_project(name: str):
-    if not (get_projects_dir() / name).exists():
+    if not project_exists(name):
         raise HTTPException(404, "Project not found")
     archive_project(name)
     return {"status": "archived"}
@@ -378,7 +385,7 @@ async def api_archive_project(name: str):
 
 @app.delete("/api/projects/{name}")
 async def api_delete_project(name: str):
-    if not (get_projects_dir() / name).exists():
+    if not project_exists(name):
         raise HTTPException(404, "Project not found")
     delete_project(name)
     return {"status": "deleted"}
@@ -389,7 +396,7 @@ async def api_delete_project(name: str):
 
 @app.get("/api/projects/{project}/collection")
 async def api_get_collection(project: str):
-    if not (get_projects_dir() / project).exists():
+    if not project_exists(project):
         raise HTTPException(404, "Project not found")
     collection = load_collection(project)
     return collection.model_dump()
@@ -474,7 +481,7 @@ async def api_browse_dirs(path: str = ""):
 
 @app.post("/api/projects/{project}/flatten")
 async def api_flatten_hierarchy(project: str):
-    if not (get_projects_dir() / project).exists():
+    if not project_exists(project):
         raise HTTPException(404, "Project not found")
     tree_file = get_collection_file(project)
     backup = get_hierarchy_backup_file(project)
@@ -486,7 +493,7 @@ async def api_flatten_hierarchy(project: str):
 
 @app.post("/api/projects/{project}/restore-hierarchy")
 async def api_restore_hierarchy(project: str):
-    if not (get_projects_dir() / project).exists():
+    if not project_exists(project):
         raise HTTPException(404, "Project not found")
     backup = get_hierarchy_backup_file(project)
     if not backup.exists():
@@ -499,7 +506,7 @@ async def api_restore_hierarchy(project: str):
 
 @app.get("/api/projects/{project}/hierarchy-backup")
 async def api_hierarchy_backup_exists(project: str):
-    if not (get_projects_dir() / project).exists():
+    if not project_exists(project):
         raise HTTPException(404, "Project not found")
     return {"exists": get_hierarchy_backup_file(project).exists()}
 
@@ -509,7 +516,7 @@ async def api_hierarchy_backup_exists(project: str):
 
 @app.get("/api/projects/{project}/orphans")
 async def api_get_orphans(project: str):
-    if not (get_projects_dir() / project).exists():
+    if not project_exists(project):
         raise HTTPException(404, "Project not found")
     collection = load_collection(project)
     return get_orphans(project, collection)
@@ -520,7 +527,7 @@ async def api_get_orphans(project: str):
 
 @app.get("/api/projects/{project}/search")
 async def api_search(project: str, q: str = ""):
-    if not (get_projects_dir() / project).exists():
+    if not project_exists(project):
         raise HTTPException(404, "Project not found")
     query = q.strip().lower()
     if not query:
@@ -559,38 +566,30 @@ async def api_search(project: str, q: str = ""):
 
 @app.get("/api/projects/{project}/template")
 async def api_get_template(project: str):
-    if not (get_projects_dir() / project).exists():
+    if not project_exists(project):
         raise HTTPException(404, "Project not found")
     return {"content": load_unified_template(project)}
 
 
 @app.put("/api/projects/{project}/template")
 async def api_save_template(project: str, request: Request):
-    if not (get_projects_dir() / project).exists():
+    if not project_exists(project):
         raise HTTPException(404, "Project not found")
     data = await request.json()
     save_unified_template(project, data["content"])
     return {"status": "saved"}
 
 
-@app.delete("/api/projects/{project}/template")
-async def api_delete_template(project: str):
-    if not (get_projects_dir() / project).exists():
-        raise HTTPException(404, "Project not found")
-    delete_unified_template(project)
-    return {"status": "deleted"}
-
-
 @app.get("/api/projects/{project}/template/compliance")
 async def api_template_compliance(project: str):
-    if not (get_projects_dir() / project).exists():
+    if not project_exists(project):
         raise HTTPException(404, "Project not found")
     return scan_unified_compliance(project)
 
 
 @app.post("/api/projects/{project}/template/apply/{file_path:path}")
 async def api_apply_template(project: str, file_path: str, request: Request):
-    if not (get_projects_dir() / project).exists():
+    if not project_exists(project):
         raise HTTPException(404, "Project not found")
     fp = safe_path(project, file_path)
     if not fp.exists():
@@ -611,7 +610,7 @@ async def api_apply_template(project: str, file_path: str, request: Request):
 
 @app.post("/api/projects/{project}/template/batch-apply")
 async def api_batch_apply_template(project: str, request: Request):
-    if not (get_projects_dir() / project).exists():
+    if not project_exists(project):
         raise HTTPException(404, "Project not found")
     data = await request.json()
     remove_extra = bool(data.get("remove_extra", False))
@@ -624,7 +623,7 @@ async def api_batch_apply_template(project: str, request: Request):
 
 @app.post("/api/projects/{project}/template/from-file/{file_path:path}")
 async def api_template_from_file(project: str, file_path: str, request: Request):
-    if not (get_projects_dir() / project).exists():
+    if not project_exists(project):
         raise HTTPException(404, "Project not found")
     try:
         data = await request.json()
@@ -649,33 +648,6 @@ async def api_get_file_frontmatter(project: str, file_path: str):
     meta, _ = parse_frontmatter(content)
     return {"path": file_path, "frontmatter": meta}
 
-
-@app.post("/api/projects/documentation/restore-structure")
-async def api_restore_structure():
-    """Restore the documentation project's tree.yaml from the bundled golden copy."""
-    golden = GOLDEN_DIR / "documentation" / "tree.yaml"
-    target = get_projects_dir() / "documentation" / "tree.yaml"
-    if not golden.exists():
-        raise HTTPException(404, "Golden copy not found")
-    shutil.copy2(str(golden), str(target))
-    return {"status": "restored", "scope": "structure"}
-
-
-@app.post("/api/projects/documentation/restore-all")
-async def api_restore_all():
-    """Restore the documentation project's tree.yaml and all markdown files from the bundled golden copy."""
-    golden_dir = GOLDEN_DIR / "documentation"
-    if not golden_dir.exists():
-        raise HTTPException(404, "Golden copy not found")
-    shutil.copy2(
-        str(golden_dir / "tree.yaml"),
-        str(get_projects_dir() / "documentation" / "tree.yaml"),
-    )
-    golden_md = golden_dir / "markdowns"
-    target_md = get_projects_dir() / "documentation" / "markdowns"
-    for fp in golden_md.glob("*.md"):
-        shutil.copy2(str(fp), str(target_md / fp.name))
-    return {"status": "restored", "scope": "all"}
 
 # ---------------------------------------------------------------------------
 # Stats
@@ -710,7 +682,7 @@ async def api_issues(project: str, file_path: str):
 
 @app.get("/api/projects/{project}/links/validate")
 async def api_validate_links(project: str):
-    if not (get_projects_dir() / project).exists():
+    if not project_exists(project):
         raise HTTPException(404, "Project not found")
     return validate_project_links(project)
 
@@ -725,7 +697,7 @@ async def api_validate_file_links(project: str, file_path: str):
 
 @app.get("/api/projects/{project}/links/incoming/{file_path:path}")
 async def api_incoming_links(project: str, file_path: str):
-    if not (get_projects_dir() / project).exists():
+    if not project_exists(project):
         raise HTTPException(404, "Project not found")
     return find_incoming_links(project, file_path)
 
@@ -909,6 +881,7 @@ async def api_get_project_md(project: str):
 @app.put("/api/projects/{project}/project-md")
 async def api_save_project_md(project: str, request: Request):
     pmd = get_project_md(project)
+    pmd.parent.mkdir(parents=True, exist_ok=True)
     data = await request.json()
     pmd.write_text(data.get("content", ""), encoding="utf-8")
     return {"status": "saved"}
@@ -974,18 +947,14 @@ async def api_export_docusaurus(project: str):
 
 @app.get("/api/projects/{project}/export/html")
 async def api_export_html(project: str):
-    if not (get_projects_dir() / project).exists():
+    if not project_exists(project):
         raise HTTPException(404, "Project not found")
     collection = load_collection(project)
     md_dir = get_markdowns_dir(project)
     project_title = project
-
-    pmd = get_project_md(project)
-    if pmd.exists():
-        import re as _re
-        _m = _re.search(r"^#\s+(.+)$", pmd.read_text(encoding="utf-8"), _re.MULTILINE)
-        if _m:
-            project_title = _m.group(1).strip()
+    _t = extract_title(read_project_md_body(project))
+    if _t:
+        project_title = _t
 
     toc_entries: list[dict] = []
     body_sections: list[str] = []
@@ -1122,7 +1091,7 @@ async def api_export_html(project: str):
 
 @app.get("/api/projects/{project}/report/html")
 async def api_report_html(project: str):
-    if not (get_projects_dir() / project).exists():
+    if not project_exists(project):
         raise HTTPException(404, "Project not found")
     html = generate_report_html(project)
     return HTMLResponse(content=html)
@@ -1132,7 +1101,8 @@ async def api_report_html(project: str):
 # ---------------------------------------------------------------------------
 
 _pkg_ui = Path(__file__).parent / "ui"
-FRONTEND_DIST = _pkg_ui if _pkg_ui.exists() else Path(__file__).parent.parent / "frontend" / "dist"
+_source_dist = Path(__file__).parent.parent / "frontend" / "dist"
+FRONTEND_DIST = _source_dist if _source_dist.exists() else _pkg_ui
 
 if FRONTEND_DIST.exists():
     app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST / "assets")), name="assets")

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from .utils import get_all_md_files, get_markdowns_dir, get_project_md
+from .utils import get_all_md_files, get_markdowns_dir, read_project_md_body, extract_title
 from .stats import compute_stats
 from .issues import compute_issues
 from .structure import compute_structure
@@ -9,13 +9,7 @@ def generate_report_html(project: str) -> str:
     md_dir = get_markdowns_dir(project)
     files = sorted(f["path"] for f in get_all_md_files(project))
 
-    project_title = project
-    pmd = get_project_md(project)
-    if pmd.exists():
-        import re
-        m = re.search(r"^#\s+(.+)$", pmd.read_text(encoding="utf-8"), re.MULTILINE)
-        if m:
-            project_title = m.group(1).strip()
+    project_title = extract_title(read_project_md_body(project)) or project
 
     sections: list[str] = []
     summary_rows: list[str] = []

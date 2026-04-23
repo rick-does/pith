@@ -83,8 +83,6 @@ interface SidebarProps {
   onExport: (format: "mkdocs" | "docusaurus") => void;
   onEditTemplate: () => void;
   onCheckCompliance: () => void;
-  onRestoreStructure: () => void;
-  onRestoreAll: () => void;
   onValidateLinks: () => void;
   onExportHtml: () => void;
   onReport: () => void;
@@ -98,6 +96,8 @@ interface SidebarProps {
   templateIssueMap: Record<string, boolean>;
   showIndicators: boolean;
   onToggleIndicators: () => void;
+  showNewProjectFile: boolean;
+  onToggleNewProjectFile: () => void;
   roots: RootInfo[];
   currentRoot: string;
   onSwitchRoot: (path: string) => void;
@@ -110,7 +110,7 @@ interface SidebarProps {
   onTitleModeChange: (mode: boolean) => void;
 }
 
-export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onAddFileFromMd, onDeleteFile, onRenameFile, onCreateChildFile, onCopyToChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onRefresh, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, brokenLinkMap, frontmatterIssueMap, templateIssueMap, showIndicators, onToggleIndicators, roots, currentRoot, onSwitchRoot, onAddRoot, onRemoveRoot, onBrowseImages, onAddImages, onOpenImagesFolder, titleMode, onTitleModeChange }: SidebarProps) {
+export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onCreateFile, onAddFileFromMd, onDeleteFile, onRenameFile, onCreateChildFile, onCopyToChildFile, onOpenYaml, yamlOpen, orphans, currentProject, currentProjectTitle, projects, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onRefresh, onImport, onExport, onEditTemplate, onCheckCompliance, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, brokenLinkMap, frontmatterIssueMap, templateIssueMap, showIndicators, onToggleIndicators, showNewProjectFile, onToggleNewProjectFile, roots, currentRoot, onSwitchRoot, onAddRoot, onRemoveRoot, onBrowseImages, onAddImages, onOpenImagesFolder, titleMode, onTitleModeChange }: SidebarProps) {
   const [orphanSort, setOrphanSort] = useState<"recent" | "alpha" | "custom">("recent");
   const [orphanOrder, setOrphanOrder] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(flatIds(collection.root)));
@@ -549,17 +549,16 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
                   onExport={onExport}
                   onEditTemplate={onEditTemplate}
                   onCheckCompliance={onCheckCompliance}
-                  onRestoreStructure={onRestoreStructure}
-                  onRestoreAll={onRestoreAll}
                   onValidateLinks={onValidateLinks}
                   onExportHtml={onExportHtml}
                   onReport={onReport}
                   hasHierarchyBackup={hasHierarchyBackup}
                   onFlattenHierarchy={onFlattenHierarchy}
                   onRestoreHierarchy={onRestoreHierarchy}
-                  isDocumentation={currentProject === "documentation"}
                   showIndicators={showIndicators}
                   onToggleIndicators={onToggleIndicators}
+                  showNewProjectFile={showNewProjectFile}
+                  onToggleNewProjectFile={onToggleNewProjectFile}
                   roots={roots}
                   currentRoot={currentRoot}
                   onSwitchRoot={onSwitchRoot}

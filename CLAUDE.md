@@ -2,7 +2,7 @@
 
 **PiTH** is a full-featured markdown workspace. Visual hierarchy editor + prose analysis + live preview + full-text search. Fully local, no hosted backend.
 
-See `ARCHITECTURE.md` for repo structure, stack, and the docs two-copy model. See `FEATURES.md` for implementation details of shipped features.
+See `ARCHITECTURE.md` for repo structure and stack. See `FEATURES.md` for implementation details of shipped features.
 
 ---
 

@@ -20,8 +20,6 @@ export interface ProjectChipProps {
   onExport: (format: "mkdocs" | "docusaurus") => void;
   onEditTemplate: () => void;
   onCheckCompliance: () => void;
-  onRestoreStructure: () => void;
-  onRestoreAll: () => void;
   onValidateLinks: () => void;
   onExportHtml: () => void;
   onReport: () => void;
@@ -30,9 +28,10 @@ export interface ProjectChipProps {
   hasHierarchyBackup: boolean;
   onFlattenHierarchy: () => void;
   onRestoreHierarchy: () => void;
-  isDocumentation: boolean;
   showIndicators: boolean;
   onToggleIndicators: () => void;
+  showNewProjectFile: boolean;
+  onToggleNewProjectFile: () => void;
   roots: RootInfo[];
   currentRoot: string;
   onSwitchRoot: (path: string) => void;
@@ -43,7 +42,7 @@ export interface ProjectChipProps {
   onOpenImagesFolder: () => void;
 }
 
-export default function ProjectChip({ currentProject, currentProjectTitle, projects, titleMode, setTitleMode, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onCreateFile, onAddFileFromMd, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onRestoreStructure, onRestoreAll, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, isDocumentation, showIndicators, onToggleIndicators, roots, currentRoot, onSwitchRoot, onAddRoot, onRemoveRoot, onBrowseImages, onAddImages, onOpenImagesFolder }: ProjectChipProps) {
+export default function ProjectChip({ currentProject, currentProjectTitle, projects, titleMode, setTitleMode, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onCreateFile, onAddFileFromMd, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, showIndicators, onToggleIndicators, showNewProjectFile, onToggleNewProjectFile, roots, currentRoot, onSwitchRoot, onAddRoot, onRemoveRoot, onBrowseImages, onAddImages, onOpenImagesFolder }: ProjectChipProps) {
 
 
 
@@ -54,10 +53,10 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
   const [importSubmenuOpen, setImportSubmenuOpen] = useState(false);
   const [exportSubmenuOpen, setExportSubmenuOpen] = useState(false);
   const [templateSubmenuOpen, setTemplateSubmenuOpen] = useState(false);
-  const [restoreSubmenuOpen, setRestoreSubmenuOpen] = useState(false);
   const [fileSubmenuOpen, setFileSubmenuOpen] = useState(false);
   const [imagesSubmenuOpen, setImagesSubmenuOpen] = useState(false);
   const [settingsSubmenuOpen, setSettingsSubmenuOpen] = useState(false);
+  const [hoverTip, setHoverTip] = useState<{ text: string; top: number; left: number } | null>(null);
   const menuRef = useRef<HTMLSpanElement>(null);
   const menuButtonRef = useRef<HTMLSpanElement>(null);
 
@@ -70,7 +69,10 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen) {
+      setHoverTip(null);
+      return;
+    }
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
     };
@@ -178,13 +180,20 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                             <div key={root.path}
                               style={{ ...menuItem, justifyContent: "space-between", paddingRight: "8px", background: root.path === currentRoot ? "#e8f4fd" : "transparent", color: root.path === currentRoot ? "#1a6fa8" : "#666", fontWeight: root.path === currentRoot ? 600 : 400 }}
                               onClick={() => { if (root.path !== currentRoot) { onSwitchRoot(root.path); setMenuOpen(false); setProjectSubmenuOpen(false); setRootsSubmenuOpen(false); } }}
-                              onMouseEnter={(e) => { if (root.path !== currentRoot) (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                              onMouseLeave={(e) => { if (root.path !== currentRoot) (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                              onMouseEnter={(e) => {
+                                const r = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+                                setHoverTip({ text: root.path, top: r.top + r.height / 2, left: r.right + 8 });
+                                if (root.path !== currentRoot) (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5";
+                              }}
+                              onMouseLeave={(e) => {
+                                setHoverTip(null);
+                                if (root.path !== currentRoot) (e.currentTarget as HTMLDivElement).style.background = "transparent";
+                              }}
                             >
                               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-                                {root.name}
+                                {root.path.replace(/[\\/]+$/, "").split(/[\\/]/).pop() || root.path}
                               </span>
-                              {root.path !== currentRoot && (
+                              {root.path !== currentRoot && !root.is_default && (
                                 <span
                                   title="Remove root"
                                   onClick={(e) => { e.stopPropagation(); onRemoveRoot(root.path); setMenuOpen(false); setProjectSubmenuOpen(false); setRootsSubmenuOpen(false); }}
@@ -210,12 +219,22 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
                     >New Project from Markdowns</div>
                     <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />
-                    {projects.map(p => (
+                    {projects.map(p => {
+                      const sep = currentRoot.includes("\\") ? "\\" : "/";
+                      const projectPath = currentRoot ? `${currentRoot}${sep}${p.name}` : p.name;
+                      return (
                       <div key={p.name}
                         style={{ ...menuItem, background: p.name === currentProject ? "#e8f4fd" : "transparent", color: p.name === currentProject ? "#1a6fa8" : "#666", fontWeight: p.name === currentProject ? 600 : 400, justifyContent: "space-between", paddingRight: "8px" }}
                         onClick={() => { onSwitchProject(p.name); setMenuOpen(false); setProjectSubmenuOpen(false); }}
-                        onMouseEnter={(e) => { if (p.name !== currentProject) (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                        onMouseLeave={(e) => { if (p.name !== currentProject) (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                        onMouseEnter={(e) => {
+                          const r = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+                          setHoverTip({ text: projectPath, top: r.top + r.height / 2, left: r.right + 8 });
+                          if (p.name !== currentProject) (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5";
+                        }}
+                        onMouseLeave={(e) => {
+                          setHoverTip(null);
+                          if (p.name !== currentProject) (e.currentTarget as HTMLDivElement).style.background = "transparent";
+                        }}
                       >
                         <span>{titleMode ? p.title : p.name}</span>
                         {p.name !== currentProject && (
@@ -228,7 +247,8 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                           >&#128465;</span>
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -348,32 +368,6 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                 onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
               >Scan Project</div>
 
-              {/* Restore Docs flyout (documentation project only) */}
-              {isDocumentation && (
-                <div
-                  style={{ ...menuItem, justifyContent: "space-between", position: "relative" }}
-                  onMouseEnter={() => setRestoreSubmenuOpen(true)}
-                  onMouseLeave={() => setRestoreSubmenuOpen(false)}
-                >
-                  <span>Restore Docs</span>
-                  <span style={flyoutArrow}>&#9656;</span>
-                  {restoreSubmenuOpen && (
-                    <div style={submenuStyle}>
-                      <div style={{ ...menuItem }}
-                        onClick={() => { onRestoreStructure(); setMenuOpen(false); setRestoreSubmenuOpen(false); }}
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                      >Structure only</div>
-                      <div style={{ ...menuItem }}
-                        onClick={() => { onRestoreAll(); setMenuOpen(false); setRestoreSubmenuOpen(false); }}
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                      >Structure &amp; content</div>
-                    </div>
-                  )}
-                </div>
-              )}
-
               <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />
 
               {/* Import/Export flyouts */}
@@ -447,6 +441,15 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                     >
                       <span style={{ fontSize: "13px" }}>{showIndicators ? "Hide" : "Show"} status indicators</span>
                     </div>
+                    <div
+                      title="Select whether to include the default file for new projects"
+                      style={{ ...menuItem }}
+                      onClick={() => { onToggleNewProjectFile(); setMenuOpen(false); }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    >
+                      <span style={{ fontSize: "13px" }}>{showNewProjectFile ? "Hide" : "Show"} new project file</span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -464,6 +467,18 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
             <button onClick={cancelCreating} style={{ padding: "4px 8px", background: "#aaa", border: "none", borderRadius: "4px", color: "#fff", fontSize: "12px", cursor: "pointer" }}>&#10005;</button>
           </div>
           {createError && <div style={{ color: "#f66", fontSize: "11px" }}>{createError}</div>}
+        </div>
+      )}
+      {hoverTip && (
+        <div style={{
+          position: "fixed", top: hoverTip.top, left: hoverTip.left,
+          transform: "translateY(-50%)", zIndex: 2000,
+          background: "#e0e0e0", color: "#000", padding: "5px 9px",
+          borderRadius: "4px", fontSize: "12px", pointerEvents: "none",
+          whiteSpace: "nowrap", boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+          maxWidth: "600px", overflow: "hidden", textOverflow: "ellipsis",
+        }}>
+          {hoverTip.text}
         </div>
       )}
     </div>

@@ -26,7 +26,8 @@ for dest in (root / "backend" / "ui", root / "backend" / "golden"):
         shutil.rmtree(dest)
 
 shutil.copytree(root / "frontend" / "dist", root / "backend" / "ui")
-shutil.copytree(root / "_golden", root / "backend" / "golden")
+# Only the new-project stub is consumed at runtime; documentation/ is GitHub Pages source.
+shutil.copytree(root / "_golden" / "new-project", root / "backend" / "golden" / "new-project")
 
 print("Building wheel...")
 run(sys.executable, "-m", "build", cwd=root)
