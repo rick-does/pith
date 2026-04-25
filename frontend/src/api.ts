@@ -155,7 +155,7 @@ export async function saveMarkdown(project: string, path: string, content: strin
   if (!r.ok) throw new Error("Failed to save file");
 }
 
-export async function createFile(project: string, path: string): Promise<{ title: string }> {
+export async function createFile(project: string, path: string): Promise<{ path: string }> {
   const r = await fetch(`${BASE}/projects/${project}/markdown/${path}`, { method: "POST" });
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));
@@ -254,11 +254,17 @@ export async function fetchTemplateCompliance(project: string): Promise<Template
   return r.json();
 }
 
-export async function applyTemplate(project: string, path: string, removeExtra = false, applyFm = true, appendBody = true): Promise<{ content: string }> {
+export async function fetchTemplateList(): Promise<string[]> {
+  const r = await fetch(`${BASE}/templates`);
+  if (!r.ok) throw new Error("Failed to fetch templates");
+  return r.json();
+}
+
+export async function applyTemplate(project: string, path: string, removeExtra = false, applyFm = true, appendBody = true, templateName?: string): Promise<{ content: string }> {
   const r = await fetch(`${BASE}/projects/${project}/template/apply/${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ remove_extra: removeExtra, apply_fm: applyFm, append_body: appendBody }),
+    body: JSON.stringify({ remove_extra: removeExtra, apply_fm: applyFm, append_body: appendBody, template_name: templateName ?? null }),
   });
   if (!r.ok) throw new Error("Failed to apply template");
   return r.json();
@@ -274,11 +280,14 @@ export async function batchApplyTemplate(project: string, files: string[], remov
   return r.json();
 }
 
-export async function useFileAsTemplate(project: string, path: string, content?: string): Promise<{ content: string }> {
+export async function useFileAsTemplate(project: string, path: string, content?: string, name?: string): Promise<{ content: string }> {
+  const body: Record<string, string> = {};
+  if (content !== undefined) body.content = content;
+  if (name) body.name = name;
   const r = await fetch(`${BASE}/projects/${project}/template/from-file/${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(content !== undefined ? { content } : {}),
+    body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error("Failed to save as template");
   return r.json();
@@ -288,6 +297,15 @@ export async function fetchOrphans(project: string): Promise<FileInfo[]> {
   const r = await fetch(`${BASE}/projects/${project}/orphans`);
   if (!r.ok) throw new Error("Failed to fetch orphans");
   return r.json();
+}
+
+export async function saveUnlinked(project: string, nodes: FileInfo[]): Promise<void> {
+  const r = await fetch(`${BASE}/projects/${project}/unlinked`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(nodes.map(n => ({ path: n.path, title: n.title, children: [], order: 0 }))),
+  });
+  if (!r.ok) throw new Error("Failed to save unlinked");
 }
 
 export async function importFromFormat(project: string, format: "mkdocs" | "docusaurus", filename?: string): Promise<void> {
@@ -325,6 +343,26 @@ export async function browseDirs(path: string = "", fileExt?: string): Promise<{
   const r = await fetch(`${BASE}/browse/dirs?${params}`);
   if (!r.ok) throw new Error("Failed to list directory");
   return r.json();
+}
+
+export async function browseMkdir(parent: string, name: string): Promise<string> {
+  const r = await fetch(`${BASE}/browse/mkdir`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ parent, name }),
+  });
+  if (!r.ok) throw new Error("Failed to create folder");
+  const data = await r.json();
+  return data.path;
+}
+
+export async function addExternalFiles(project: string, paths: string[]): Promise<void> {
+  const r = await fetch(`${BASE}/projects/${encodeURIComponent(project)}/external-files`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ paths }),
+  });
+  if (!r.ok) throw new Error("Failed to add external files");
 }
 
 export async function importFiles(project: string, files: string[]): Promise<{ copied: string[]; count: number }> {

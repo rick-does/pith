@@ -35,7 +35,7 @@ def get_markdowns_dir(project: str) -> Path:
     override = meta.get("markdowns_dir")
     if override:
         return Path(str(override))
-    return Path.home() / "pith-projects" / project / "markdowns"
+    return Path.home() / "pith-projects" / project
 
 
 def get_images_dir(project: str) -> Path:
@@ -89,9 +89,12 @@ def safe_path(project: str, rel_path: str) -> Path:
     target = (base / rel_path).resolve()
     try:
         target.relative_to(base)
+        return target
     except ValueError:
+        # Allow absolute paths that are registered in unlinked.yaml
+        if str(target) in get_unlinked_files(project):
+            return target
         raise ValueError("Path traversal detected")
-    return target
 
 
 def extract_title(content: str) -> str:
@@ -165,16 +168,83 @@ def iter_md_files(md_dir: Path):
                 yield fp, rel
 
 
-def get_all_md_files(project: str) -> list[dict]:
-    md_dir = get_markdowns_dir(project)
-    if not md_dir.exists():
+def get_unlinked_yaml_path(project: str) -> Path:
+    return get_project_meta_dir(project) / "unlinked.yaml"
+
+
+def get_unlinked_nodes(project: str) -> list[FileNode]:
+    p = get_unlinked_yaml_path(project)
+    if not p.exists():
         return []
+    try:
+        data = yaml.safe_load(p.read_text(encoding="utf-8"))
+        if not isinstance(data, list):
+            return []
+        nodes = []
+        for item in data:
+            if isinstance(item, dict) and "path" in item:
+                nodes.append(FileNode(path=item["path"], title=item.get("title", Path(item["path"]).stem), children=[], order=0))
+            elif isinstance(item, str):
+                nodes.append(FileNode(path=item, title=Path(item).stem, children=[], order=0))
+        return nodes
+    except Exception:
+        return []
+
+
+def save_unlinked_nodes(project: str, nodes: list[FileNode]) -> None:
+    data = [{"path": n.path, "title": n.title, "children": [], "order": n.order} for n in nodes]
+    get_unlinked_yaml_path(project).write_text(
+        yaml.dump(data, default_flow_style=False, allow_unicode=True),
+        encoding="utf-8",
+    )
+
+
+def get_unlinked_files(project: str) -> list[str]:
+    return [n.path for n in get_unlinked_nodes(project)]
+
+
+def add_unlinked_files(project: str, paths: list[str], replace: bool = False) -> None:
+    existing = [] if replace else get_unlinked_nodes(project)
+    existing_paths = {n.path for n in existing}
+    new_nodes = []
+    for path_str in paths:
+        if path_str not in existing_paths:
+            fp = Path(path_str)
+            try:
+                title = extract_title(fp.read_text(encoding="utf-8")) or fp.stem
+            except OSError:
+                title = fp.stem
+            new_nodes.append(FileNode(path=path_str, title=title))
+    save_unlinked_nodes(project, existing + new_nodes)
+
+
+def iter_all_project_files(project: str):
+    """Yield (fp, path_str) for every file in the project: md_dir scan + external absolute paths from unlinked.yaml."""
+    md_dir = get_markdowns_dir(project)
+    seen: set[str] = set()
+    if md_dir.exists():
+        for fp, rel in iter_md_files(md_dir):
+            seen.add(str(fp.resolve()))
+            yield fp, rel
+    for node in get_unlinked_nodes(project):
+        fp = Path(node.path)
+        if fp.is_absolute() and fp.exists() and fp.suffix.lower() == ".md":
+            if str(fp.resolve()) not in seen:
+                yield fp, node.path
+
+
+def get_all_md_files(project: str) -> list[dict]:
     files = []
-    for fp, rel in iter_md_files(md_dir):
-        title = extract_title(fp.read_text(encoding="utf-8"))
-        if not title:
-            title = fp.stem
-        files.append({"path": rel, "title": title, "mtime": fp.stat().st_mtime})
+    seen: set[str] = set()
+    for fp, path_str in iter_all_project_files(project):
+        if path_str in seen:
+            continue
+        seen.add(path_str)
+        try:
+            title = extract_title(fp.read_text(encoding="utf-8")) or fp.stem
+            files.append({"path": path_str, "title": title, "mtime": fp.stat().st_mtime})
+        except OSError:
+            pass
     files.sort(key=lambda f: f["mtime"], reverse=True)
     return [{"path": f["path"], "title": f["title"]} for f in files]
 
@@ -200,6 +270,10 @@ def sync_collection(project: str, collection: CollectionStructure) -> Collection
             if not title:
                 title = fp.stem
             node.title = title
+            try:
+                node.path = fp.relative_to(md_dir).as_posix()
+            except ValueError:
+                pass
             node.children = sync_nodes(node.children)
             result.append(node)
         return result
@@ -222,7 +296,13 @@ def _find_md_list(data: object) -> tuple[list | None, str | None, str | None]:
     """Find the first top-level list containing .md references.
     Returns (items, path_field, top_key).
     path_field is '__str__' for plain string lists, or the dict key whose value ends in .md.
+    top_key is None when the document root is itself the list.
     """
+    if isinstance(data, list):
+        field = _detect_path_field(data)
+        if field is not None:
+            return data, field, None
+        return None, None, None
     if not isinstance(data, dict):
         return None, None, None
     for key, value in data.items():
@@ -313,6 +393,9 @@ def load_collection(project: str) -> CollectionStructure:
 
     tree_file = get_collection_file(project)
     if not tree_file.exists():
+        meta = _read_project_meta(project)
+        if meta.get("tree_yaml"):
+            return CollectionStructure(root=[])
         files = get_all_md_files(project)
         nodes = [
             FileNode(path=f["path"], title=f["title"], order=i)
@@ -386,9 +469,19 @@ def save_collection(project: str, collection: CollectionStructure) -> None:
 
 
 def get_orphans(project: str, collection: CollectionStructure) -> list[dict]:
-    all_files = get_all_md_files(project)
     known = flatten_paths(collection.root)
-    return [f for f in all_files if f["path"] not in known]
+    stored = get_unlinked_nodes(project)
+    stored_paths = {n.path for n in stored}
+    # Add any new files from md_dir not yet tracked in either list
+    new_nodes = [
+        FileNode(path=f["path"], title=f["title"])
+        for f in get_all_md_files(project)
+        if f["path"] not in known and f["path"] not in stored_paths
+    ]
+    if new_nodes:
+        stored = stored + new_nodes
+        save_unlinked_nodes(project, stored)
+    return [{"path": n.path, "title": n.title} for n in stored if n.path not in known]
 
 
 def archive_file(project: str, rel_path: str) -> str:
@@ -396,7 +489,7 @@ def archive_file(project: str, rel_path: str) -> str:
     md_dir = get_markdowns_dir(project)
     src = safe_path(project, rel_path)
     rel = Path(rel_path)
-    archive_dir = md_dir / "_archive" / rel.parent
+    archive_dir = md_dir / rel.parent / "_archive"
     archive_dir.mkdir(parents=True, exist_ok=True)
     dest = archive_dir / rel.name
     if dest.exists():
@@ -515,19 +608,12 @@ def validate_file_links(project: str, rel_path: str) -> list[dict]:
 
 def validate_project_links(project: str) -> list[dict]:
     """Scan all files in a project for broken internal links."""
-    md_dir = get_markdowns_dir(project)
-    if not md_dir.exists():
-        return []
     results = []
-    for fp, rel in iter_md_files(md_dir):
-        broken = validate_file_links(project, rel)
+    for fp, path_str in iter_all_project_files(project):
+        broken = validate_file_links(project, path_str)
         if broken:
             title = extract_title(fp.read_text(encoding="utf-8")) or fp.stem
-            results.append({
-                "path": rel,
-                "title": title,
-                "broken_links": broken,
-            })
+            results.append({"path": path_str, "title": title, "broken_links": broken})
     results.sort(key=lambda r: len(r["broken_links"]), reverse=True)
     return results
 
@@ -535,21 +621,15 @@ def validate_project_links(project: str) -> list[dict]:
 def find_incoming_links(project: str, target_path: str) -> list[dict]:
     """Find all files that link to a given path."""
     md_dir = get_markdowns_dir(project)
-    if not md_dir.exists():
-        return []
     results = []
-    for fp, rel in iter_md_files(md_dir):
+    for fp, path_str in iter_all_project_files(project):
         content = fp.read_text(encoding="utf-8")
         links = extract_internal_links(content)
         matching = [l for l in links if l["target"] == target_path or
-                    (md_dir / Path(rel).parent / l["target"]).resolve() == (md_dir / target_path).resolve()]
+                    (md_dir / Path(path_str).parent / l["target"]).resolve() == (md_dir / target_path).resolve()]
         if matching:
             title = extract_title(content) or fp.stem
-            results.append({
-                "path": rel,
-                "title": title,
-                "links": matching,
-            })
+            results.append({"path": path_str, "title": title, "links": matching})
     return results
 
 
@@ -602,6 +682,19 @@ def save_unified_template(project: str, content: str) -> None:
     p.write_text(content, encoding="utf-8")
 
 
+def list_templates() -> list[str]:
+    from .config import TEMPLATES_DIR
+    if not TEMPLATES_DIR.exists():
+        return []
+    return sorted(p.stem for p in TEMPLATES_DIR.glob("*.md"))
+
+
+def save_template_by_name(name: str, content: str) -> None:
+    from .config import TEMPLATES_DIR
+    TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
+    (TEMPLATES_DIR / f"{name}.md").write_text(content, encoding="utf-8")
+
+
 def scan_unified_compliance(project: str) -> list[dict]:
     """Scan all files against the project's template. Returns per-file missing/extra frontmatter keys and missing headings."""
     template_content = load_unified_template(project)
@@ -612,13 +705,12 @@ def scan_unified_compliance(project: str) -> list[dict]:
     if not expected_keys and not required_headings:
         return []
 
-    md_dir = get_markdowns_dir(project)
-    if not md_dir.exists():
-        return []
-
     results = []
-    for fp, rel in iter_md_files(md_dir):
-        content = fp.read_text(encoding="utf-8")
+    for fp, path_str in iter_all_project_files(project):
+        try:
+            content = fp.read_text(encoding="utf-8")
+        except OSError:
+            continue
         meta, body = parse_frontmatter(content)
         file_keys = set(meta.keys())
         missing_keys = sorted(expected_keys - file_keys)
@@ -627,7 +719,7 @@ def scan_unified_compliance(project: str) -> list[dict]:
         missing_headings = [h for h in required_headings if h not in file_headings]
         if missing_keys or extra_keys or missing_headings:
             results.append({
-                "path": rel,
+                "path": path_str,
                 "title": extract_title(content) or fp.stem,
                 "missing_keys": missing_keys,
                 "extra_keys": extra_keys,
@@ -659,10 +751,16 @@ def _extract_template_sections(template_body: str) -> dict:
 
 
 def apply_unified_template(project: str, rel_path: str, remove_extra: bool = False,
-                           apply_fm: bool = True, append_body: bool = True) -> str:
+                           apply_fm: bool = True, append_body: bool = True,
+                           template_name: str | None = None) -> str:
     fp = safe_path(project, rel_path)
     content = fp.read_text(encoding="utf-8")
-    template_content = load_unified_template(project)
+    if template_name:
+        from .config import TEMPLATES_DIR
+        tp = TEMPLATES_DIR / f"{template_name}.md"
+        template_content = tp.read_text(encoding="utf-8") if tp.exists() else DEFAULT_TEMPLATE
+    else:
+        template_content = load_unified_template(project)
     tm_meta, tm_body = parse_frontmatter(template_content)
 
     original = content

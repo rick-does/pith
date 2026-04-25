@@ -18,9 +18,9 @@ import {
   listProjects, createProject, archiveProject, renameProject,
   fetchProjectMd, saveProjectMd,
   fetchCollection, saveCollection, fetchMarkdown, saveMarkdown, fetchCollectionYaml,
-  fetchOrphans, createFile, archiveFile, renameFile,
+  fetchOrphans, saveUnlinked, createFile, archiveFile, renameFile,
   fetchTemplate, saveTemplate,
-  fetchTemplateCompliance, applyTemplate, batchApplyTemplate, useFileAsTemplate,
+  fetchTemplateList, fetchTemplateCompliance, applyTemplate, batchApplyTemplate, useFileAsTemplate,
   validateProjectLinks, validateFileLinks,
   importFromFormat, exportToFormat,
   flattenHierarchy, restoreHierarchy, checkHierarchyBackup,
@@ -435,16 +435,16 @@ export default function App() {
     fetch(`/api/projects/${encodeURIComponent(currentProject)}/report/html`).then(r => r.text()).then(setReportPreview).catch(() => {});
   }, [currentProject]);
 
-  const handleUseAsTemplate = useCallback(async () => {
+  const handleUseAsTemplate = useCallback(async (name: string) => {
     if (!currentProject || !selectedPath) return;
-    const { content } = await useFileAsTemplate(currentProject, selectedPath, editorContent);
+    const { content } = await useFileAsTemplate(currentProject, selectedPath, editorContent, name);
     setTemplateContent(content);
     await refreshTemplateIssues(currentProject);
   }, [currentProject, selectedPath, editorContent, refreshTemplateIssues]);
 
-  const handleApplyTemplate = useCallback(async (removeExtra = false, applyFm = true, appendBody = true) => {
+  const handleApplyTemplate = useCallback(async (removeExtra = false, applyFm = true, appendBody = true, templateName?: string) => {
     if (!currentProject || !selectedPath) return;
-    const { content } = await applyTemplate(currentProject, selectedPath, removeExtra, applyFm, appendBody);
+    const { content } = await applyTemplate(currentProject, selectedPath, removeExtra, applyFm, appendBody, templateName);
     setEditorContent(content);
     setFrontmatterIssueMap(prev => { const next = { ...prev }; delete next[selectedPath]; return next; });
     setTemplateIssueMap(prev => { const next = { ...prev }; delete next[selectedPath]; return next; });
@@ -510,6 +510,28 @@ export default function App() {
     } catch {}
   }, [currentProject]);
 
+  const handleMoveToUnlinked = useCallback(async (node: FileInfo, newCollection: CollectionStructure) => {
+    if (!currentProject) return;
+    setCollection(newCollection);
+    const newOrphans = [...orphans, node];
+    setOrphans(newOrphans);
+    try {
+      await saveCollection(currentProject, newCollection);
+      await saveUnlinked(currentProject, newOrphans);
+    } catch {}
+  }, [currentProject, orphans]);
+
+  const handleRemoveFromUnlinked = useCallback(async (paths: string[], newCollection: CollectionStructure) => {
+    if (!currentProject) return;
+    setCollection(newCollection);
+    const newOrphans = orphans.filter(o => !paths.includes(o.path));
+    setOrphans(newOrphans);
+    try {
+      await saveCollection(currentProject, newCollection);
+      await saveUnlinked(currentProject, newOrphans);
+    } catch {}
+  }, [currentProject, orphans]);
+
   const makeNewTab = (path: string, content: string, title: string, brokenLinks: BrokenLink[]): EditorTab => ({
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     type: "editor",
@@ -531,16 +553,16 @@ export default function App() {
 
   const handleCreateFile = useCallback(async (filename: string) => {
     if (!currentProject) return;
-    await createFile(currentProject, filename);
-    const title = filename.replace(/\.md$/, "").replace(/[-_]/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-    const newNode: FileNode = { path: filename, title, order: 0, children: [] };
+    const { path: actualPath } = await createFile(currentProject, filename);
+    const title = (actualPath.split("/").pop() ?? actualPath).replace(/\.md$/, "").replace(/[-_]/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    const newNode: FileNode = { path: actualPath, title, order: 0, children: [] };
     const newRoot = reorder([...collection.root, newNode]);
     await saveCollection(currentProject, { root: newRoot });
     setCollection({ root: newRoot });
     const o = await fetchOrphans(currentProject);
     setOrphans(o);
-    const initContent = await fetchMarkdown(currentProject, filename);
-    openNewTab(makeNewTab(filename, initContent, title, []));
+    const initContent = await fetchMarkdown(currentProject, actualPath);
+    openNewTab(makeNewTab(actualPath, initContent, title, []));
   }, [currentProject, collection]);
 
   const handleDeleteFile = useCallback(async (path: string) => {
@@ -575,16 +597,16 @@ export default function App() {
 
   const handleCreateChildFile = useCallback(async (parentPath: string, filename: string) => {
     if (!currentProject) return;
-    await createFile(currentProject, filename);
-    const title = filename.replace(/\.md$/, "").replace(/[-_]/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-    const newNode: FileNode = { path: filename, title, order: 0, children: [] };
+    const { path: actualPath } = await createFile(currentProject, filename);
+    const title = (actualPath.split("/").pop() ?? actualPath).replace(/\.md$/, "").replace(/[-_]/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    const newNode: FileNode = { path: actualPath, title, order: 0, children: [] };
     const newRoot = reorder(insertAsLastChild(collection.root, parentPath, newNode));
     await saveCollection(currentProject, { root: newRoot });
     setCollection({ root: newRoot });
     const o = await fetchOrphans(currentProject);
     setOrphans(o);
-    const initContent = await fetchMarkdown(currentProject, filename);
-    openNewTab(makeNewTab(filename, initContent, title, []));
+    const initContent = await fetchMarkdown(currentProject, actualPath);
+    openNewTab(makeNewTab(actualPath, initContent, title, []));
   }, [currentProject, collection]);
 
   const handleCopyToChildFile = useCallback(async (parentPath: string) => {
@@ -592,7 +614,7 @@ export default function App() {
     const source = await fetchMarkdown(currentProject, parentPath).catch(() => "");
     const stem = parentPath.replace(/\.md$/, "");
     const newFilename = `${stem}-copy.md`;
-    await createFile(currentProject, newFilename);
+    const { path: actualPath } = await createFile(currentProject, newFilename);
     const findTitle = (nodes: FileNode[]): string => {
       for (const n of nodes) {
         if (n.path === parentPath) return n.title;
@@ -603,8 +625,8 @@ export default function App() {
     };
     const title = `${findTitle(collection.root) || stem}-copy`;
     const newContent = source.replace(/^(#\s+).+$/m, `$1${title}`);
-    await saveMarkdown(currentProject, newFilename, newContent);
-    const newNode: FileNode = { path: newFilename, title, order: 0, children: [] };
+    await saveMarkdown(currentProject, actualPath, newContent);
+    const newNode: FileNode = { path: actualPath, title, order: 0, children: [] };
     const newRoot = reorder(insertAsLastChild(collection.root, parentPath, newNode));
     await saveCollection(currentProject, { root: newRoot });
     setCollection({ root: newRoot });
@@ -686,6 +708,8 @@ export default function App() {
           onSelect={handleHighlight}
           onOpen={handleSelect}
           onCollectionChange={handleCollectionChange}
+          onMoveToUnlinked={handleMoveToUnlinked}
+          onRemoveFromUnlinked={handleRemoveFromUnlinked}
           orphans={orphans}
           onRefresh={handleRefresh}
           treeOps={{
@@ -797,7 +821,8 @@ export default function App() {
               onSave={async (path, content) => { if (currentProject) await saveMarkdown(currentProject, path, content); }}
               onRename={handleRenameFile}
               onUseAsTemplate={handleUseAsTemplate}
-              onApplyTemplate={handleApplyTemplate}
+              onApplyTemplate={(templateName: string) => handleApplyTemplate(false, true, true, templateName)}
+              onFetchTemplateList={fetchTemplateList}
               onEditTemplate={() => setShowTemplateEditor(true)}
               onViewCompliance={handleShowCompliance}
               onClose={handleCloseOverlay}

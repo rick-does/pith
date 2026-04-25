@@ -36,6 +36,10 @@ async def api_get_markdown(project: str, file_path: str):
 
 @router.post("/api/projects/{project}/markdown/{file_path:path}")
 async def api_create_markdown(project: str, file_path: str):
+    if "/" not in file_path and "\\" not in file_path:
+        markdowns_sub = get_markdowns_dir(project) / "markdowns"
+        if markdowns_sub.exists() and markdowns_sub.is_dir():
+            file_path = f"markdowns/{file_path}"
     fp = safe_path(project, file_path)
     if fp.exists():
         raise HTTPException(409, "File already exists")
@@ -126,10 +130,26 @@ async def api_get_project_md(project: str):
 
 @router.put("/api/projects/{project}/project-md")
 async def api_save_project_md(project: str, request: Request):
+    from ..utils import parse_frontmatter, format_project_md, get_collection_file
     pmd = get_project_md(project)
     pmd.parent.mkdir(parents=True, exist_ok=True)
     data = await request.json()
-    pmd.write_text(data.get("content", ""), encoding="utf-8")
+    new_body = data.get("content", "")
+    if pmd.exists():
+        meta, _ = parse_frontmatter(pmd.read_text(encoding="utf-8"))
+        if meta:
+            from pathlib import Path as _Path
+            tree_yaml_val = meta.get("tree_yaml")
+            markdowns_dir_val = meta.get("markdowns_dir")
+            template_val = meta.get("template")
+            new_body = format_project_md(
+                body=new_body,
+                tree_yaml=_Path(str(tree_yaml_val)) if tree_yaml_val else get_collection_file(project),
+                markdowns_dir=_Path(str(markdowns_dir_val)) if markdowns_dir_val else get_markdowns_dir(project),
+                template=_Path(str(template_val)) if template_val else None,
+                archived=bool(meta.get("archived", False)),
+            )
+    pmd.write_text(new_body, encoding="utf-8")
     return {"status": "saved"}
 
 

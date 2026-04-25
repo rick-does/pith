@@ -31,8 +31,9 @@ No hosted backend. Runs entirely on the user's machine.
 
 ## Project Metadata Layout
 
-- Per-project metadata: `~/.pith/projects/<project-name>/` containing `.pith-project` (YAML frontmatter with `tree_yaml`, `markdowns_dir`, `template:`, optional `archived: true` + markdown body), `tree.yaml` (when not using a custom yaml path), and `tree-backup.yaml` when flattening.
-- Templates are shared across projects in `~/.pith/templates/`. Each project's `.pith-project` `template:` field points at the template file it uses. `default-template.md` is the shared default; multi-template management is future UI work.
+- Per-project metadata: `~/.pith/projects/<project-name>/` containing `.pith-project` (YAML frontmatter with `tree_yaml`, `markdowns_dir`, `template:`, optional `archived: true` + markdown body), `tree.yaml` (when not using a custom yaml path), `tree-backup.yaml` when flattening, and `unlinked.yaml`.
+- `unlinked.yaml` stores unlinked files as a flat list of `FileNode` objects (same schema as tree.yaml entries: `path`, `title`, `children: []`, `order: 0`). Moves between hierarchy and unlinked list are explicit writes to both files — `PUT /api/projects/{project}/unlinked` persists the unlinked list; `GET /api/projects/{project}/orphans` only adds newly discovered md_dir files not yet in either list, never overwrites explicit registrations. External (absolute-path) files survive round-trips through the tree and back.
+- Templates are shared across projects in `~/.pith/templates/`. Each project's `.pith-project` `template:` field points at the template file it uses. `default-template.md` is the shared default. Multiple named templates are supported; the Apply/Use-as-template UI shows a dropdown picker.
 - Project content (markdowns/, images/, exported mkdocs.yml, sidebars.js) lives at whatever path the user specified at project creation, resolved via the `markdowns_dir` frontmatter field. No enforced directory structure.
 - `tree_yaml` in `.pith-project` can point to any file on disk — a PiTH-native `tree.yaml`, an existing `mkdocs.yml`, or any custom YAML. PiTH detects the format on every load and writes back in the same format.
 

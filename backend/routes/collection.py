@@ -10,10 +10,13 @@ from ..utils import (
     get_hierarchy_backup_file,
     get_markdowns_dir,
     get_orphans,
+    get_unlinked_nodes,
+    iter_all_project_files,
     iter_md_files,
     load_collection,
     project_exists,
     save_collection,
+    save_unlinked_nodes,
 )
 
 router = APIRouter()
@@ -94,6 +97,18 @@ async def api_get_orphans(project: str):
     return get_orphans(project, collection)
 
 
+@router.put("/api/projects/{project}/unlinked")
+async def api_save_unlinked(project: str, request: Request):
+    from ..models import FileNode
+    if not project_exists(project):
+        raise HTTPException(404, "Project not found")
+    data = await request.json()
+    nodes_data = data if isinstance(data, list) else data.get("nodes", [])
+    nodes = [FileNode(path=n["path"], title=n.get("title", ""), children=[], order=0) for n in nodes_data]
+    save_unlinked_nodes(project, nodes)
+    return {"status": "saved"}
+
+
 @router.get("/api/projects/{project}/search")
 async def api_search(project: str, q: str = ""):
     if not project_exists(project):
@@ -101,11 +116,8 @@ async def api_search(project: str, q: str = ""):
     query = q.strip().lower()
     if not query:
         return []
-    md_dir = get_markdowns_dir(project)
-    if not md_dir.exists():
-        return []
     results = []
-    for fp, rel in iter_md_files(md_dir):
+    for fp, path_str in iter_all_project_files(project):
         try:
             content = fp.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
@@ -114,17 +126,10 @@ async def api_search(project: str, q: str = ""):
         matches = []
         for i, line in enumerate(lines):
             if query in line.lower():
-                matches.append({
-                    "line": i + 1,
-                    "text": line.strip()[:200],
-                })
+                matches.append({"line": i + 1, "text": line.strip()[:200]})
         if matches:
             title_match = re.search(r"^#\s+(.+)$", content, re.MULTILINE)
             title = title_match.group(1).strip() if title_match else fp.stem
-            results.append({
-                "path": rel,
-                "title": title,
-                "matches": matches[:10],
-            })
+            results.append({"path": path_str, "title": title, "matches": matches[:10]})
     results.sort(key=lambda r: len(r["matches"]), reverse=True)
     return results[:50]

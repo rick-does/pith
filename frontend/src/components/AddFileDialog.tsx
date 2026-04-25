@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { importFiles, browseStartDir, browseDirs } from "../api";
+import { addExternalFiles, importFiles, browseStartDir, browseDirs } from "../api";
 
 interface Props {
   currentProject: string;
@@ -9,11 +9,13 @@ interface Props {
 
 export default function AddFileDialog({ currentProject, onAdded, onClose }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [copyToMarkdowns, setCopyToMarkdowns] = useState(false);
   const [error, setError] = useState("");
   const [browserPath, setBrowserPath] = useState("");
   const [browserDirs, setBrowserDirs] = useState<string[]>([]);
   const [browserFiles, setBrowserFiles] = useState<string[]>([]);
   const [browserParent, setBrowserParent] = useState<string | null>(null);
+  const [selectedDir, setSelectedDir] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const navigate = useCallback(async (path: string): Promise<string[]> => {
@@ -23,15 +25,14 @@ export default function AddFileDialog({ currentProject, onAdded, onClose }: Prop
       setBrowserDirs(result.dirs);
       setBrowserFiles(result.files);
       setBrowserParent(result.parent);
+      setSelectedDir(null);
       if (scrollRef.current) scrollRef.current.scrollTop = 0;
       return result.files;
     } catch { return []; }
   }, []);
 
   useEffect(() => {
-    browseStartDir(currentProject).then(startPath =>
-      navigate(startPath).then(files => setSelected(new Set(files)))
-    );
+    browseStartDir(currentProject).then(startPath => navigate(startPath));
   }, []);
 
   const handleConfirm = async () => {
@@ -39,10 +40,14 @@ export default function AddFileDialog({ currentProject, onAdded, onClose }: Prop
     const sep = browserPath.includes("/") ? "/" : "\\";
     const filePaths = [...selected].map(name => browserPath + sep + name);
     try {
-      await importFiles(currentProject, filePaths);
+      if (copyToMarkdowns) {
+        await importFiles(currentProject, filePaths);
+      } else {
+        await addExternalFiles(currentProject, filePaths);
+      }
       onAdded();
     } catch (e: any) {
-      setError(e.message ?? "Failed to import files");
+      setError(e.message ?? "Failed to add files");
     }
   };
 
@@ -52,7 +57,7 @@ export default function AddFileDialog({ currentProject, onAdded, onClose }: Prop
         <div style={{ padding: "16px 20px 12px", borderBottom: "1px solid #e8e8e8" }}>
           <div style={{ fontSize: 15, fontWeight: 600, color: "#1a3a5c", marginBottom: 8 }}>Add Files from Markdown</div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <button onClick={() => browserParent !== null && navigate(browserParent).then(files => setSelected(new Set(files)))} disabled={browserParent === null} title="Go up"
+            <button onClick={() => browserParent !== null && navigate(browserParent)} disabled={browserParent === null} title="Go up"
               style={{ padding: "3px 8px", border: "1px solid #ccc", borderRadius: 4, background: browserParent !== null ? "#f5f5f5" : "#fafafa", cursor: browserParent !== null ? "pointer" : "default", fontSize: 13, color: browserParent !== null ? "#333" : "#bbb", flexShrink: 0 }}>↑</button>
             <div style={{ fontSize: 12, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace" }}>
               {browserPath || "Select a drive"}
@@ -62,11 +67,14 @@ export default function AddFileDialog({ currentProject, onAdded, onClose }: Prop
         <div ref={scrollRef} style={{ overflowY: "auto", flex: 1, padding: "2px 0" }}>
           {browserDirs.map(d => {
             const label = d.replace(/[\\/]$/, "").split(/[\\/]/).pop() || d;
+            const isSelected = selectedDir === d;
             return (
-              <div key={d} onClick={() => navigate(d).then(files => setSelected(new Set(files)))}
-                style={{ padding: "6px 20px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, color: "#1a3a5c" }}
-                onMouseEnter={e => (e.currentTarget.style.background = "#f0f7ff")}
-                onMouseLeave={e => (e.currentTarget.style.background = "")}
+              <div key={d}
+                onClick={() => setSelectedDir(d)}
+                onDoubleClick={() => navigate(d)}
+                style={{ padding: "6px 20px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, color: "#1a3a5c", background: isSelected ? "#e8f4fd" : "" }}
+                onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = "#f0f7ff"; }}
+                onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = ""; }}
               >
                 <span style={{ fontSize: 15 }}>📁</span><span>{label}</span>
               </div>
@@ -100,7 +108,11 @@ export default function AddFileDialog({ currentProject, onAdded, onClose }: Prop
         </div>
         {error && <div style={{ padding: "8px 20px 0", color: "#c0392b", fontSize: 12 }}>{error}</div>}
         <div style={{ padding: "12px 20px", borderTop: "1px solid #e8e8e8", display: "flex", gap: 8, justifyContent: "flex-end", alignItems: "center" }}>
-          {selected.size > 0 && <span style={{ fontSize: 12, color: "#888", flex: 1 }}>{selected.size} file{selected.size !== 1 ? "s" : ""} selected</span>}
+          <label style={{ fontSize: 12, color: "#666", display: "flex", alignItems: "center", gap: 5, flex: 1, cursor: "pointer", userSelect: "none" }}>
+            <input type="checkbox" checked={copyToMarkdowns} onChange={e => setCopyToMarkdowns(e.target.checked)} />
+            Copy to current project
+          </label>
+          {selected.size > 0 && <span style={{ fontSize: 12, color: "#888" }}>{selected.size} file{selected.size !== 1 ? "s" : ""} selected</span>}
           <button onClick={onClose} style={{ padding: "6px 16px", border: "1px solid #ccc", borderRadius: 4, background: "#f5f5f5", cursor: "pointer", fontSize: 13 }}>Cancel</button>
           <button onClick={handleConfirm} disabled={selected.size === 0} style={{ padding: "6px 16px", border: "none", borderRadius: 4, background: selected.size > 0 ? "#1a6fa8" : "#a0c4e8", color: "#fff", cursor: selected.size > 0 ? "pointer" : "default", fontSize: 13, fontWeight: 600 }}>Add</button>
         </div>

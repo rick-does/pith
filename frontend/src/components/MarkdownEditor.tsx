@@ -24,8 +24,9 @@ interface Props {
   onSave: (path: string, content: string) => Promise<void>;
   onRename?: (oldPath: string, newName: string) => void;
   brokenLinks?: BrokenLink[];
-  onUseAsTemplate?: () => void;
-  onApplyTemplate?: () => void;
+  onUseAsTemplate?: (name: string) => Promise<void> | void;
+  onApplyTemplate?: (templateName: string) => Promise<void> | void;
+  onFetchTemplateList?: () => Promise<string[]>;
   onEditTemplate?: () => void;
   onViewCompliance?: () => void;
   onClose?: () => void;
@@ -35,7 +36,7 @@ interface Props {
   onEditorThemeChange: (id: string) => void;
 }
 
-const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function MarkdownEditor({ project, path, content, savedContent, onContentChange, viMode, onViModeChange, onSaved, onSave, onRename, onUseAsTemplate, onApplyTemplate, onEditTemplate, onViewCompliance, onClose, onReport, onOpenImageBrowser, brokenLinks, editorTheme, onEditorThemeChange }, ref) {
+const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function MarkdownEditor({ project, path, content, savedContent, onContentChange, viMode, onViModeChange, onSaved, onSave, onRename, onUseAsTemplate, onApplyTemplate, onFetchTemplateList, onEditTemplate, onViewCompliance, onClose, onReport, onOpenImageBrowser, brokenLinks, editorTheme, onEditorThemeChange }, ref) {
   const [view, setView] = useState<"edit" | "preview" | "split">("split");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
@@ -173,7 +174,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function Markdown
       </div>
 
       {(project || onApplyTemplate || onUseAsTemplate || onEditTemplate || onViewCompliance) && (
-        <FmBar onApplyTemplate={onApplyTemplate} onUseAsTemplate={onUseAsTemplate} onEditTemplate={onEditTemplate} onViewCompliance={onViewCompliance} project={project} filePath={path} onReport={onReport} onOpenImageBrowser={onOpenImageBrowser} editorTheme={editorTheme} onThemeChange={onEditorThemeChange} />
+        <FmBar onApplyTemplate={onApplyTemplate} onFetchTemplateList={onFetchTemplateList} onUseAsTemplate={onUseAsTemplate} onEditTemplate={onEditTemplate} onViewCompliance={onViewCompliance} project={project} filePath={path} onReport={onReport} onOpenImageBrowser={onOpenImageBrowser} editorTheme={editorTheme} onThemeChange={onEditorThemeChange} />
       )}
 
       {brokenLinks && brokenLinks.length > 0 && (
@@ -263,9 +264,10 @@ interface StructureData { sections: StructureSection[]; max_depth: number; total
 
 type ActivePanel = "frontmatter" | "template" | "stats" | "issues" | "structure" | null;
 
-function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewCompliance, project, filePath, onReport, onOpenImageBrowser, editorTheme = "one-dark", onThemeChange }: {
-  onApplyTemplate?: () => Promise<void> | void;
-  onUseAsTemplate?: () => Promise<void> | void;
+function FmBar({ onApplyTemplate, onFetchTemplateList, onUseAsTemplate, onEditTemplate, onViewCompliance, project, filePath, onReport, onOpenImageBrowser, editorTheme = "one-dark", onThemeChange }: {
+  onApplyTemplate?: (templateName: string) => Promise<void> | void;
+  onFetchTemplateList?: () => Promise<string[]>;
+  onUseAsTemplate?: (name: string) => Promise<void> | void;
   onEditTemplate?: () => void;
   onViewCompliance?: () => void;
   project?: string;
@@ -336,12 +338,33 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
     }
   }, [active, project, filePath]);
 
+  const [templatePicker, setTemplatePicker] = useState<string[] | null>(null);
+  const [nameInput, setNameInput] = useState<string | null>(null);
+
   const toggle = (panel: NonNullable<ActivePanel>) => setActive(p => p === panel ? null : panel);
 
   const runFm = async (fn: () => Promise<void> | void, label: string) => {
     await fn();
     setFmMsg(label + " \u2713");
     setTimeout(() => setFmMsg(""), 2000);
+  };
+
+  const openTemplatePicker = async () => {
+    if (!onFetchTemplateList) return;
+    const list = await onFetchTemplateList().catch(() => [] as string[]);
+    setTemplatePicker(list);
+  };
+
+  const selectTemplate = async (name: string) => {
+    setTemplatePicker(null);
+    if (onApplyTemplate) await runFm(() => onApplyTemplate(name), "Applied");
+  };
+
+  const submitName = async () => {
+    const n = (nameInput ?? "").trim();
+    if (!n) return;
+    setNameInput(null);
+    if (onUseAsTemplate) await runFm(() => onUseAsTemplate(n), "Saved as template");
   };
 
   const hasTemplate = onApplyTemplate || onUseAsTemplate || onEditTemplate || onViewCompliance;
@@ -529,12 +552,44 @@ function FmBar({ onApplyTemplate, onUseAsTemplate, onEditTemplate, onViewComplia
       </div>
 
       {active === "template" && hasTemplate && (
-        <div style={{ padding: "4px 12px 6px 32px", display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ padding: "4px 12px 6px 32px", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           {onApplyTemplate && (
-            <button onClick={() => runFm(onApplyTemplate, "Applied")} title="Apply project template to this file" style={fmBtnStyle} onMouseEnter={fmBtnHover} onMouseLeave={fmBtnLeave}>Apply template</button>
+            <div style={{ position: "relative" }}>
+              <button onClick={openTemplatePicker} title="Apply a template to this file" style={fmBtnStyle} onMouseEnter={fmBtnHover} onMouseLeave={fmBtnLeave}>Apply template</button>
+              {templatePicker !== null && (
+                <>
+                  <div style={{ position: "fixed", inset: 0, zIndex: 299 }} onClick={() => setTemplatePicker(null)} />
+                  <div style={{ position: "absolute", top: "100%", left: 0, zIndex: 300, background: "#1e1e1e", border: "1px solid #444", borderRadius: 4, minWidth: 180, boxShadow: "0 4px 12px rgba(0,0,0,0.4)", marginTop: 2 }}>
+                    {templatePicker.length === 0
+                      ? <div style={{ padding: "8px 12px", fontSize: 12, color: "#888" }}>No templates found</div>
+                      : templatePicker.map(name => (
+                          <div key={name} onClick={() => selectTemplate(name)}
+                            style={{ padding: "7px 12px", fontSize: 12, color: "#ccc", cursor: "pointer" }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "#2a2a2a")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "")}
+                          >{name}</div>
+                        ))
+                    }
+                  </div>
+                </>
+              )}
+            </div>
           )}
           {onUseAsTemplate && (
-            <button onClick={() => runFm(onUseAsTemplate, "Saved as template")} title="Save this file's frontmatter and headings as the project template" style={fmBtnStyle} onMouseEnter={fmBtnHover} onMouseLeave={fmBtnLeave}>Use as template</button>
+            <div style={{ position: "relative" }}>
+              <button onClick={() => setNameInput(n => n === null ? "" : null)} title="Save this file as a named template" style={fmBtnStyle} onMouseEnter={fmBtnHover} onMouseLeave={fmBtnLeave}>Use as template</button>
+              {nameInput !== null && (
+                <>
+                  <div style={{ position: "fixed", inset: 0, zIndex: 299 }} onClick={() => setNameInput(null)} />
+                  <div style={{ position: "absolute", top: "100%", left: 0, zIndex: 300, background: "#1e1e1e", border: "1px solid #444", borderRadius: 4, boxShadow: "0 4px 12px rgba(0,0,0,0.4)", marginTop: 2, padding: "8px 10px", display: "flex", gap: 6, alignItems: "center" }}>
+                    <input autoFocus value={nameInput} onChange={e => setNameInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") submitName(); if (e.key === "Escape") setNameInput(null); }}
+                      placeholder="template name" style={{ padding: "3px 6px", fontSize: 12, background: "#222", border: "1px solid #555", borderRadius: 3, color: "#ccc", width: 140, outline: "none" }} />
+                    <button onClick={submitName} style={{ ...fmBtnStyle, padding: "3px 8px" }} onMouseEnter={fmBtnHover} onMouseLeave={fmBtnLeave}>Save</button>
+                  </div>
+                </>
+              )}
+            </div>
           )}
           {onEditTemplate && (
             <button onClick={onEditTemplate} title="View and edit the project template" style={fmBtnStyle} onMouseEnter={fmBtnHover} onMouseLeave={fmBtnLeave}>View template</button>

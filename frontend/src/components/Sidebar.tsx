@@ -82,6 +82,8 @@ interface SidebarProps {
   onSelect: (path: string | null) => void;
   onOpen: (path: string) => void;
   onCollectionChange: (c: CollectionStructure) => void;
+  onMoveToUnlinked: (node: FileInfo, newCollection: CollectionStructure) => void;
+  onRemoveFromUnlinked: (paths: string[], newCollection: CollectionStructure) => void;
   orphans: FileInfo[];
   onRefresh: () => Promise<void>;
   treeOps: TreeOps;
@@ -89,7 +91,7 @@ interface SidebarProps {
   chip: ProjectChipProps;
 }
 
-export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, orphans, onRefresh, treeOps, indicators, chip }: SidebarProps) {
+export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onMoveToUnlinked, onRemoveFromUnlinked, orphans, onRefresh, treeOps, indicators, chip }: SidebarProps) {
   const [orphanSort, setOrphanSort] = useState<"recent" | "alpha" | "custom">("recent");
   const [orphanOrder, setOrphanOrder] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(flatIds(collection.root)));
@@ -206,9 +208,9 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
     paths.map(p => { const info = orphans.find(o => o.path === p)!; return { path: p, title: info.title, order: 0, children: [] }; });
 
   const addOrphansToCollection = (paths: string[]) => {
-    onCollectionChange({ root: reorder([...collection.root, ...orphanPathsToNodes(paths)]) });
+    const newCollection = { root: reorder([...collection.root, ...orphanPathsToNodes(paths)]) };
     setSelectedOrphans(new Set());
-    setTimeout(() => onRefresh(), 300);
+    onRemoveFromUnlinked(paths, newCollection);
   };
 
   const startRubberBand = (e: React.MouseEvent) => {
@@ -382,10 +384,12 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
     const dragged = active.id as string;
     const isFromHierarchy = !orphans.some(o => o.path === dragged);
     if (isFromHierarchy && (droppedOnZone || (over && orphans.some(o => o.path === over.id as string)))) {
-      const [newRoot] = removeNode(collection.root, dragged);
+      const [newRoot, removedNode] = removeNode(collection.root, dragged);
       onSelect(null);
-      onCollectionChange({ root: reorder(newRoot) });
-      setTimeout(() => onRefresh(), 300);
+      onMoveToUnlinked(
+        { path: dragged, title: removedNode?.title ?? dragged.split("/").pop() ?? dragged },
+        { root: reorder(newRoot) }
+      );
       return;
     }
     if (!over || active.id === over.id) return;
@@ -421,8 +425,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
         for (const n of [...newNodes].reverse()) root = insertAfter(root, target, n);
       }
       setSelectedOrphans(new Set());
-      onCollectionChange({ root: reorder(root) });
-      setTimeout(() => onRefresh(), 300);
+      onRemoveFromUnlinked(pathsToMove, { root: reorder(root) });
       refocusTree();
       return;
     }
@@ -430,10 +433,11 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
     const newNodes = computeNewRoot(dragged, target, effectiveDx);
     if (!newNodes) return;
     if (effectiveDx > 30) setExpanded(prev => { const s = new Set(prev); s.add(target); return s; });
-    onCollectionChange({ root: newNodes });
     if (wasOrphan) {
       setSelectedOrphans(new Set());
-      setTimeout(() => onRefresh(), 300);
+      onRemoveFromUnlinked([dragged], { root: newNodes });
+    } else {
+      onCollectionChange({ root: newNodes });
     }
     refocusTree();
   }

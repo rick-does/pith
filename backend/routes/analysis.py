@@ -6,10 +6,12 @@ from ..utils import (
     apply_unified_template,
     batch_apply_unified_template,
     find_incoming_links,
+    list_templates,
     load_unified_template,
     parse_frontmatter,
     project_exists,
     safe_path,
+    save_template_by_name,
     save_unified_template,
     scan_unified_compliance,
     validate_file_links,
@@ -20,6 +22,11 @@ from ..issues import compute_issues
 from ..structure import compute_structure
 
 router = APIRouter()
+
+
+@router.get("/api/templates")
+async def api_list_templates():
+    return list_templates()
 
 
 @router.get("/api/projects/{project}/template")
@@ -57,12 +64,15 @@ async def api_apply_template(project: str, file_path: str, request: Request):
         remove_extra = bool(data.get("remove_extra", False))
         apply_fm = bool(data.get("apply_fm", True))
         append_body = bool(data.get("append_body", True))
+        template_name = data.get("template_name") or None
     except (ValueError, KeyError):
         remove_extra = False
         apply_fm = True
         append_body = True
+        template_name = None
     content = apply_unified_template(project, file_path, remove_extra=remove_extra,
-                                     apply_fm=apply_fm, append_body=append_body)
+                                     apply_fm=apply_fm, append_body=append_body,
+                                     template_name=template_name)
     return {"content": content}
 
 
@@ -93,7 +103,11 @@ async def api_template_from_file(project: str, file_path: str, request: Request)
         if not fp.exists():
             raise HTTPException(404, "File not found")
         content = fp.read_text(encoding="utf-8")
-    save_unified_template(project, content)
+    name = data.get("name") if isinstance(data, dict) else None
+    if name:
+        save_template_by_name(name.strip(), content)
+    else:
+        save_unified_template(project, content)
     return {"content": content}
 
 

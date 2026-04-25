@@ -72,6 +72,19 @@ async def api_import_files(request: Request):
     return {"copied": copied, "count": len(copied)}
 
 
+@router.post("/api/projects/{name}/external-files")
+async def api_add_external_files(name: str, request: Request):
+    from ..utils import add_unlinked_files
+    if not project_exists(name):
+        raise HTTPException(404, "Project not found")
+    data = await request.json()
+    paths = [p for p in data.get("paths", []) if isinstance(p, str)]
+    if not paths:
+        raise HTTPException(400, "paths required")
+    add_unlinked_files(name, paths)
+    return {"status": "added"}
+
+
 @router.post("/api/projects/{name}")
 async def api_create_project(name: str, request: Request):
     data = await request.json()
@@ -129,12 +142,26 @@ async def api_browse_start_dir(project: str = ""):
     from ..utils import get_markdowns_dir
     if project:
         try:
-            p = get_markdowns_dir(project).parent
+            p = get_markdowns_dir(project)
             if p.exists():
                 return {"path": str(p)}
         except (OSError, ValueError):
             pass
     return {"path": str(Path.home())}
+
+
+@router.post("/api/browse/mkdir")
+async def api_browse_mkdir(request: Request):
+    data = await request.json()
+    parent = data.get("parent", "").strip()
+    name = data.get("name", "").strip()
+    if not parent or not name:
+        raise HTTPException(400, "parent and name required")
+    if any(c in name for c in r'\/:*?"<>|'):
+        raise HTTPException(400, "Invalid folder name")
+    new_dir = Path(parent) / name
+    new_dir.mkdir(parents=True, exist_ok=True)
+    return {"path": str(new_dir)}
 
 
 @router.get("/api/browse/dirs")
