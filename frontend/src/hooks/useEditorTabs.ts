@@ -2,8 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import type { EditorTab, OverlayType } from "../types";
 import type { BrokenLink } from "../api";
 
-export const TABS_KEY = (r: string, p: string) => `pith_tabs_${r}:${p}`;
-export const ACTIVE_TAB_KEY = (r: string, p: string) => `pith_active_tab_${r}:${p}`;
+export const TABS_KEY = (p: string) => `pith_tabs_${p}`;
+export const ACTIVE_TAB_KEY = (p: string) => `pith_active_tab_${p}`;
 
 export const TAB_STYLES = [
   { bg: "#fff3e0", text: "#555", border: "#ff8c00", indicator: "#1a6fa8" },

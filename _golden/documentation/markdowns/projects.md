@@ -1,68 +1,67 @@
 # Managing Projects
 
-A project is a self-contained set of markdown files with its own hierarchy. You can have as many projects as you like and switch between them freely.
+A project is a named set of markdown files with its own hierarchy. You can have as many projects as you like and switch between them freely.
 
-Projects live inside a **project root** — a directory on disk that holds one or more projects. By default PiTH uses `~/pith-projects/` in your home directory. You can add additional roots to keep separate groups of projects in different locations (for example, a personal writing folder or a separate repo).
+## How projects work
 
-## Project roots
-
-A project root is a directory that PiTH treats exactly like the default `~/pith-projects/` folder — it can hold any number of projects. Switching roots changes which set of projects you see.
-
-### Adding a root
-
-1. Click **⋮** on the project chip
-2. Click **Projects → Project roots → New root**
-3. (Optional) Enter a description for this root
-4. Choose **Use existing directory** or **Create new directory**
-5. Browse to the location and click **Add Root**
-
-The root's name is always the chosen directory's basename — it's not a user-editable field. The new root becomes active immediately. PiTH records the root's name, description, path, and archived status in `~/.pith/project-roots/<root-name>/.pith-project-root`. If `~/.pith/config.json` is ever deleted, PiTH rebuilds the roots list from these marker files automatically on next launch. The project root directory itself only holds project content; per-project metadata (`tree.yaml`, `.pith-project`, etc.) lives alongside the marker at `~/.pith/project-roots/<root-name>/<project-name>/`.
-
-### Switching roots
-
-1. Click **⋮** on the project chip
-2. Click **Projects → Project roots**
-3. Click any root in the list
-
-PiTH remembers the last project you had open in each root and returns to it when you switch back.
-
-### Archiving a root
-
-Click the trash icon next to any non-default root in the **Project roots** list. This hides it from the list — the directory, all its projects, and all metadata remain on disk untouched.
-
-You cannot archive the default root (`~/pith-projects/`) from the UI.
-
-### Restoring an archived root
-
-If you have archived roots, an **Archived roots** section appears at the bottom of the **Project roots** submenu. Click it to expand the list, then click **Restore** next to the root you want to bring back. The root reappears in the active list immediately.
+Each project stores a small amount of metadata in `~/.pith/projects/<project-name>/` — a pointer to where your markdowns live, a pointer to the hierarchy YAML, and a pointer to the project's template. Your actual markdown files stay wherever you put them; PiTH never moves or copies them unless you explicitly ask it to.
 
 ## The project chip
 
-The orange chip at the top of the hierarchy pane is the project chip. It shows the current project name. Click the **⋮** icon on it to open the project menu.
+The orange chip at the top of the hierarchy pane shows the current project name. Click **⋮** on it to open the project menu.
 
 ## Creating a project
 
 1. Click **⋮** on the project chip
 2. Click **Projects → New project**
-3. Enter a project title and directory name, then click **Create**
+3. Enter a project title and a project name (auto-derived from the title; you can edit it independently)
+4. Browse to the **markdowns directory** — the folder where your `.md` files live or will live. This is required.
+5. Optionally browse to a **YAML file** — an existing `.yaml` or `.yml` file to use as the project's hierarchy. See [Using an existing YAML](#using-an-existing-yaml) below.
+6. Click **Create**
 
-The directory name derives automatically from the title (lowercased, spaces become hyphens). You can edit it independently. The display title comes from the `# H1` heading in the project notes file.
+PiTH creates the markdowns directory if it does not exist. If you selected a YAML file, PiTH uses it as the working hierarchy and reads whatever format it finds. If you did not select a YAML file, PiTH creates a new `tree.yaml` in `~/.pith/projects/<name>/`.
 
-## Creating a project from existing markdowns
+### Using an existing YAML
 
-If you already have a folder of `.md` files you want to work with:
+If you already have a YAML file that describes your file structure — a `mkdocs.yml`, a custom nav config, or any YAML with a list of `.md` paths — you can point PiTH directly at it when creating a project. PiTH reads the file, builds the hierarchy from it, and writes any changes back to the same file in the original format. Your file structure, formatting, and any extra fields per entry are preserved.
+
+When you select a YAML file first, PiTH suggests `<yaml-dir>/markdowns/` as the markdowns directory. You can accept the suggestion or browse to any other location.
+
+Supported formats: PiTH native (`root:` key), MkDocs (`nav:` key), and any generic YAML with a list of `.md` paths.
+
+## Switching projects
+
+The **Projects** flyout shows the five most recently opened projects. Click any of them to switch. To open a project not in the recent list, click **Open project…** to see the full list.
+
+## Open Project
+
+**Open project…** in the Projects flyout opens a dialog listing all registered projects. Type to filter by name. Click any row to open that project.
+
+Archived projects are hidden by default. Click **Archived** at the bottom to expand the list; each archived project has a **Restore** button.
+
+## Renaming a project
+
+Double-click the project chip to open the project notes editor. Double-click the project name in the editor toolbar to rename it. The metadata directory is renamed to match; your markdown files are not moved.
+
+## Project notes
+
+Each project has a notes file for a description or anything else you want to keep alongside it. Open it with **⋮ → Project info**, or double-click the project chip.
+
+## Archiving a project
+
+Archiving hides a project from the Projects flyout and the recents list. Your markdown files are not touched. To archive:
 
 1. Click **⋮** on the project chip
-2. Click **Projects → New Project from Markdowns**
-3. Enter a project title and directory name
-4. Expand **Copy from Markdowns directory** and browse to the folder containing your files
-5. Click **Create**
+2. Click **Projects**
+3. Click the trash icon next to the project you want to archive
 
-All `.md` files in the selected directory are copied into the new project's `markdowns/` folder. The originals are not modified. Files appear in the [Unlinked pane](unlinked-files.md) ready to be organized into the hierarchy.
+To restore an archived project, open **Open project…** and expand the **Archived** section. Click **Restore** next to the project.
+
+To permanently remove a project from PiTH, delete its metadata folder at `~/.pith/projects/<project-name>/` by hand. This does not delete your markdown files.
 
 ## Adding files from another directory
 
-To add individual markdown files to an existing project:
+To copy individual markdown files from another location into the current project:
 
 1. Click **⋮** on the project chip
 2. Click **File → Add Files from Markdown**
@@ -70,39 +69,16 @@ To add individual markdown files to an existing project:
 4. Select or deselect files (all are selected by default)
 5. Click **Add**
 
-Files are copied into the project. If a file with the same name already exists, an index is appended (e.g. `notes-1.md`, `notes-2.md`).
-
-## Switching projects
-
-1. Click **⋮** on the project chip
-2. Click **Projects**
-3. Click any project in the list
-
-## Renaming a project
-
-Double-click the project chip to open the project notes editor. Double-click the directory name in the editor toolbar to rename it. The content directory and the metadata directory are both renamed, and the paths stored in `.pith-project` frontmatter are rewritten to match.
-
-## Project notes
-
-Each project has a notes file for a description or anything else you want to keep alongside the files. Open it with **⋮ → Project info**, or double-click the project chip.
-
-## Archiving a project
-
-Projects are never permanently deleted from the UI. Instead, archiving moves both the project's content folder (under the project root) and its metadata folder (under `~/.pith/project-roots/<root-name>/`) to their respective `_archive/` subdirectories. To archive:
-
-1. Click **⋮** on the project chip
-2. Click **Projects**
-3. Click the trash icon next to the project you want to archive
-
-To permanently delete a project, remove its folders from the two `_archive/` locations by hand.
+Files are copied into the project's markdowns directory. If a file with the same name already exists, an index is appended (e.g. `notes-1.md`, `notes-2.md`).
 
 ## Viewing the hierarchy file
 
-To see the raw `tree.yaml` for the current project, click **⋮ → View YAML**. This is a read-only view.
+To see the raw YAML for the current project's hierarchy, click **⋮ → View YAML**. This is a read-only view.
 
 ## Settings
 
 Click **⋮ → Settings** on the project chip. Available options:
 
-- **Labels** — toggle between showing file titles or filenames on chips. This preference persists across sessions.
-- **Hide/Show status indicators** — toggles the status indicator on each chip (link validation, frontmatter compliance, and file template compliance). This preference persists across sessions.
+- **Labels** — toggle between showing file titles or filenames on chips. Persists across sessions.
+- **Hide/Show status indicators** — toggles the status dot on each chip (link validation and template compliance). Persists across sessions.
+- **Hide/Show new project file** — controls whether new projects are seeded with a Getting Started file.

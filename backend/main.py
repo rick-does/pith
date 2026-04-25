@@ -8,7 +8,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from .config import DEFAULT_ROOT_PATH
+from .config import PROJECTS_META_DIR
 from .utils import ensure_default_template
 from .routes.config import router as config_router
 from .routes.projects import router as projects_router
@@ -20,7 +20,7 @@ from .routes.export import router as export_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Path(DEFAULT_ROOT_PATH).mkdir(parents=True, exist_ok=True)
+    PROJECTS_META_DIR.mkdir(parents=True, exist_ok=True)
     ensure_default_template()
     yield
 

@@ -1,16 +1,16 @@
 import { useState, useRef, useEffect, CSSProperties, KeyboardEvent } from "react";
 import type { ProjectInfo } from "../types";
-import type { RootInfo } from "../api";
 import { GAP } from "./SortableItemConstants";
 
 export interface ProjectChipProps {
   currentProject: string;
   currentProjectTitle: string;
-  projects: ProjectInfo[];
+  recentProjects: ProjectInfo[];
   titleMode: boolean;
   setTitleMode: (mode: boolean) => void;
   onSwitchProject: (name: string) => void;
-  onNewProject: (expandMarkdowns: boolean) => void;
+  onNewProject: () => void;
+  onOpenProject: () => void;
   onArchiveProject: (name: string) => Promise<void>;
   onOpenProjectMd: () => void;
   onCreateFile: (filename: string) => Promise<void>;
@@ -23,8 +23,6 @@ export interface ProjectChipProps {
   onValidateLinks: () => void;
   onExportHtml: () => void;
   onReport: () => void;
-
-
   hasHierarchyBackup: boolean;
   onFlattenHierarchy: () => void;
   onRestoreHierarchy: () => void;
@@ -32,26 +30,18 @@ export interface ProjectChipProps {
   onToggleIndicators: () => void;
   showNewProjectFile: boolean;
   onToggleNewProjectFile: () => void;
-  roots: RootInfo[];
-  currentRoot: string;
-  onSwitchRoot: (path: string) => void;
-  onAddRoot: () => void;
-  onRemoveRoot: (path: string) => void;
-  onRestoreRoot: (path: string) => void;
   onBrowseImages: () => void;
   onAddImages: () => void;
   onOpenImagesFolder: () => void;
 }
 
-export default function ProjectChip({ currentProject, currentProjectTitle, projects, titleMode, setTitleMode, onSwitchProject, onNewProject, onArchiveProject, onOpenProjectMd, onCreateFile, onAddFileFromMd, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, showIndicators, onToggleIndicators, showNewProjectFile, onToggleNewProjectFile, roots, currentRoot, onSwitchRoot, onAddRoot, onRemoveRoot, onRestoreRoot, onBrowseImages, onAddImages, onOpenImagesFolder }: ProjectChipProps) {
+export default function ProjectChip({ currentProject, currentProjectTitle, recentProjects, titleMode, setTitleMode, onSwitchProject, onNewProject, onOpenProject, onArchiveProject, onOpenProjectMd, onCreateFile, onAddFileFromMd, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, showIndicators, onToggleIndicators, showNewProjectFile, onToggleNewProjectFile, onBrowseImages, onAddImages, onOpenImagesFolder }: ProjectChipProps) {
 
 
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [projectSubmenuOpen, setProjectSubmenuOpen] = useState(false);
-  const [rootsSubmenuOpen, setRootsSubmenuOpen] = useState(false);
-  const [archivedRootsOpen, setArchivedRootsOpen] = useState(false);
   const [importSubmenuOpen, setImportSubmenuOpen] = useState(false);
   const [exportSubmenuOpen, setExportSubmenuOpen] = useState(false);
   const [templateSubmenuOpen, setTemplateSubmenuOpen] = useState(false);
@@ -162,107 +152,24 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                 <span style={flyoutArrow}>&#9656;</span>
                 {projectSubmenuOpen && (
                   <div style={{ ...submenuStyle, overflow: "visible" }}>
-                    {/* Project roots sub-flyout */}
-                    <div
-                      style={{ ...menuItem, justifyContent: "space-between", position: "relative" }}
-                      onMouseEnter={() => setRootsSubmenuOpen(true)}
-                      onMouseLeave={() => setRootsSubmenuOpen(false)}
-                    >
-                      <span>Project roots</span>
-                      <span style={flyoutArrow}>&#9656;</span>
-                      {rootsSubmenuOpen && (
-                        <div style={{ ...submenuStyle, minWidth: "220px" }}>
-                          <div style={{ ...menuItem }}
-                            onClick={() => { onAddRoot(); setMenuOpen(false); setProjectSubmenuOpen(false); setRootsSubmenuOpen(false); }}
-                            onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                            onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                          >New root</div>
-                          <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />
-                          {roots.filter(r => !r.archived).map(root => (
-                            <div key={root.path}
-                              style={{ ...menuItem, justifyContent: "space-between", paddingRight: "8px", background: root.path === currentRoot ? "#e8f4fd" : "transparent", color: root.path === currentRoot ? "#1a6fa8" : "#666", fontWeight: root.path === currentRoot ? 600 : 400 }}
-                              onClick={() => { if (root.path !== currentRoot) { onSwitchRoot(root.path); setMenuOpen(false); setProjectSubmenuOpen(false); setRootsSubmenuOpen(false); } }}
-                              onMouseEnter={(e) => {
-                                const r = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
-                                setHoverTip({ text: root.path, top: r.top + r.height / 2, left: r.right + 8 });
-                                if (root.path !== currentRoot) (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5";
-                              }}
-                              onMouseLeave={(e) => {
-                                setHoverTip(null);
-                                if (root.path !== currentRoot) (e.currentTarget as HTMLDivElement).style.background = "transparent";
-                              }}
-                            >
-                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-                                {root.path.replace(/[\\/]+$/, "").split(/[\\/]/).pop() || root.path}
-                              </span>
-                              {root.path !== currentRoot && !root.is_default && (
-                                <span
-                                  title="Archive root"
-                                  onClick={(e) => { e.stopPropagation(); onRemoveRoot(root.path); setMenuOpen(false); setProjectSubmenuOpen(false); setRootsSubmenuOpen(false); }}
-                                  style={{ color: "#555", fontSize: "18px", lineHeight: 1, padding: "2px 6px", borderRadius: "3px", cursor: "pointer", flexShrink: 0 }}
-                                  onMouseEnter={(e) => { e.stopPropagation(); (e.currentTarget as HTMLSpanElement).style.color = "#c0392b"; }}
-                                  onMouseLeave={(e) => { (e.currentTarget as HTMLSpanElement).style.color = "#555"; }}
-                                >&#128465;</span>
-                              )}
-                            </div>
-                          ))}
-                          {roots.some(r => r.archived) && (
-                            <>
-                              <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />
-                              <div
-                                style={{ ...menuItem, justifyContent: "space-between", color: "#888", fontSize: "12px" }}
-                                onClick={() => setArchivedRootsOpen(o => !o)}
-                                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                              >
-                                <span>Archived roots</span>
-                                <span style={{ fontSize: "10px" }}>{archivedRootsOpen ? "▲" : "▼"}</span>
-                              </div>
-                              {archivedRootsOpen && roots.filter(r => r.archived).map(root => (
-                                <div key={root.path}
-                                  style={{ ...menuItem, justifyContent: "space-between", paddingRight: "8px", paddingLeft: "20px", color: "#999" }}
-                                  onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                                  onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                                >
-                                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, fontSize: "12px" }}>
-                                    {root.path.replace(/[\\/]+$/, "").split(/[\\/]/).pop() || root.path}
-                                  </span>
-                                  <span
-                                    title="Restore root"
-                                    onClick={(e) => { e.stopPropagation(); onRestoreRoot(root.path); setArchivedRootsOpen(false); }}
-                                    style={{ color: "#1a6fa8", fontSize: "11px", padding: "2px 6px", borderRadius: "3px", cursor: "pointer", flexShrink: 0, border: "1px solid #b3d9f7" }}
-                                    onMouseEnter={(e) => { (e.currentTarget as HTMLSpanElement).style.background = "#e8f4fd"; }}
-                                    onMouseLeave={(e) => { (e.currentTarget as HTMLSpanElement).style.background = "transparent"; }}
-                                  >Restore</span>
-                                </div>
-                              ))}
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />
                     <div style={{ ...menuItem }}
-                      onClick={() => { onNewProject(false); setMenuOpen(false); setProjectSubmenuOpen(false); }}
+                      onClick={() => { onNewProject(); setMenuOpen(false); setProjectSubmenuOpen(false); }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
                     >New project</div>
                     <div style={{ ...menuItem }}
-                      onClick={() => { onNewProject(true); setMenuOpen(false); setProjectSubmenuOpen(false); }}
+                      onClick={() => { onOpenProject(); setMenuOpen(false); setProjectSubmenuOpen(false); }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                    >New Project from Markdowns</div>
-                    <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />
-                    {projects.map(p => {
-                      const sep = currentRoot.includes("\\") ? "\\" : "/";
-                      const projectPath = currentRoot ? `${currentRoot}${sep}${p.name}` : p.name;
-                      return (
+                    >Open project…</div>
+                    {recentProjects.length > 0 && <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />}
+                    {recentProjects.map(p => (
                       <div key={p.name}
                         style={{ ...menuItem, background: p.name === currentProject ? "#e8f4fd" : "transparent", color: p.name === currentProject ? "#1a6fa8" : "#666", fontWeight: p.name === currentProject ? 600 : 400, justifyContent: "space-between", paddingRight: "8px" }}
                         onClick={() => { onSwitchProject(p.name); setMenuOpen(false); setProjectSubmenuOpen(false); }}
                         onMouseEnter={(e) => {
                           const r = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
-                          setHoverTip({ text: projectPath, top: r.top + r.height / 2, left: r.right + 8 });
+                          setHoverTip({ text: p.markdowns_dir ?? p.name, top: r.top + r.height / 2, left: r.right + 8 });
                           if (p.name !== currentProject) (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5";
                         }}
                         onMouseLeave={(e) => {
@@ -281,8 +188,7 @@ export default function ProjectChip({ currentProject, currentProjectTitle, proje
                           >&#128465;</span>
                         )}
                       </div>
-                      );
-                    })}
+                    ))}
                   </div>
                 )}
               </div>

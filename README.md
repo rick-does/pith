@@ -10,7 +10,7 @@ A visual markdown workspace for people who work with large collections of `.md` 
 
 If you've ever maintained a documentation site and found yourself hand-editing a YAML nav file, a `sidebars.js`, or a custom sidebar config every time you added, renamed, or reorganized a page — this tool is for you.
 
-**PiTH** gives you a visual, drag-and-drop interface for organizing markdown files into a hierarchy. The hierarchy is stored as a simple `tree.yaml` alongside your files, and can be exported directly to MkDocs or Docusaurus config format when you're ready to build your site.
+**PiTH** gives you a visual, drag-and-drop interface for organizing markdown files into a hierarchy. The hierarchy lives in a `tree.yaml` that can be anywhere on your filesystem — point PiTH at your existing files instead of moving them. PiTH reads and writes MkDocs `nav:` configs, custom YAML, and its own format, preserving whatever structure and extra fields your file already has.
 
 ## Features
 
@@ -19,7 +19,7 @@ If you've ever maintained a documentation site and found yourself hand-editing a
 - **Visual hierarchy** — drag and drop files to reorder and nest them; keyboard shortcuts for fine-grained control
 - **Unlinked file management** — files not in the hierarchy surface automatically; rubber-band, shift-click, and ctrl-click multi-select; multi-drag to hierarchy
 - **Flatten / restore** — flatten the tree to start fresh; restore the saved hierarchy if you change your mind
-- **Multiple projects** — switch between doc sets without losing your place
+- **Multiple projects** — switch between doc sets without losing your place; quick access to the last 5 opened, full searchable list via Open Project
 
 ### Edit and analyze
 
@@ -33,14 +33,16 @@ If you've ever maintained a documentation site and found yourself hand-editing a
 
 ### Import and export
 
-- **Import markdowns from any directory** — create a new project from an existing folder of `.md` files, or add individual files to a project
+- **Point at existing files** — create a project by selecting any markdowns directory; PiTH works with the files in place rather than copying them
+- **Use any YAML as your hierarchy** — point a project at an existing `mkdocs.yml`, a custom YAML file, or let PiTH create one; changes are written back preserving the original format and any extra fields
 - **MkDocs and Docusaurus** — import an existing nav config or export when ready to publish
+- **Add files from anywhere** — copy individual `.md` files into a project from any directory
 - **HTML/PDF export** — whole-collection export to a single document with table of contents and print CSS
 
 ### Local and private
 
 - Runs entirely on your machine — no cloud, no accounts, no ongoing cost
-- Projects stored in `~/pith-projects/` by default — separate from the app, never overwritten on upgrade. Per-project metadata (hierarchy YAML, template pointer) lives in `~/.pith/project-roots/`.
+- Your files stay where they are — PiTH stores only lightweight metadata in `~/.pith/projects/` (hierarchy pointer, template, recent projects). It never copies or moves your markdowns unless you ask it to.
 - Available as a PyPI package or standalone executable
 
 ## Install
@@ -118,4 +120,5 @@ Then open `http://localhost:8002` in your browser.
 - **Editor:** CodeMirror 6 (vi mode via @replit/codemirror-vim)
 - **Drag and drop:** dnd-kit
 - **Readability:** textstat
+- **YAML:** pyyaml (PiTH-native format), ruamel.yaml (round-trip for MkDocs and custom formats)
 - **Standalone:** PyInstaller, pywebview

@@ -28,17 +28,7 @@ export async function openImagesFolder(project: string): Promise<void> {
   if (!r.ok) throw new Error("Failed to open images folder");
 }
 
-export interface RootInfo {
-  path: string;
-  name: string;
-  description: string;
-  last_project: string | null;
-  active: boolean;
-  is_default?: boolean;
-  archived?: boolean;
-}
-
-export async function fetchConfig(): Promise<{ roots: RootInfo[]; active_root: string; default_root: string }> {
+export async function fetchConfig(): Promise<{ recent_projects: string[]; prefs: Record<string, unknown> }> {
   const r = await fetch(`${BASE}/config`);
   if (!r.ok) throw new Error("Failed to fetch config");
   return r.json();
@@ -56,62 +46,6 @@ export async function savePrefs(prefs: Record<string, unknown>): Promise<void> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(prefs),
   });
-}
-
-export async function fetchRoots(): Promise<RootInfo[]> {
-  const r = await fetch(`${BASE}/roots`);
-  if (!r.ok) throw new Error("Failed to fetch roots");
-  return r.json();
-}
-
-export async function addRoot(path: string, description: string, createDir: boolean): Promise<{ path: string; name: string }> {
-  const r = await fetch(`${BASE}/roots`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ path, description, create_dir: createDir }),
-  });
-  if (!r.ok) {
-    const err = await r.json().catch(() => ({}));
-    throw new Error(err.detail ?? "Failed to add root");
-  }
-  return r.json();
-}
-
-export async function removeRoot(path: string): Promise<void> {
-  const r = await fetch(`${BASE}/roots`, {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ path }),
-  });
-  if (!r.ok) {
-    const err = await r.json().catch(() => ({}));
-    throw new Error(err.detail ?? "Failed to remove root");
-  }
-}
-
-export async function restoreRoot(path: string): Promise<void> {
-  const r = await fetch(`${BASE}/roots/restore`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ path }),
-  });
-  if (!r.ok) {
-    const err = await r.json().catch(() => ({}));
-    throw new Error(err.detail ?? "Failed to restore root");
-  }
-}
-
-export async function switchRoot(path: string): Promise<{ active_project: string | null; projects: ProjectInfo[] }> {
-  const r = await fetch(`${BASE}/roots/active`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ path }),
-  });
-  if (!r.ok) {
-    const err = await r.json().catch(() => ({}));
-    throw new Error(err.detail ?? "Failed to switch root");
-  }
-  return r.json();
 }
 
 export async function setLastProject(project: string): Promise<void> {
@@ -141,8 +75,12 @@ export async function renameProject(name: string, newName: string): Promise<{ ne
   return r.json();
 }
 
-export async function createProject(name: string): Promise<void> {
-  const r = await fetch(`${BASE}/projects/${name}`, { method: "POST" });
+export async function createProject(name: string, markdownsDir: string, treeYaml?: string): Promise<void> {
+  const r = await fetch(`${BASE}/projects/${name}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ markdowns_dir: markdownsDir, tree_yaml: treeYaml ?? "" }),
+  });
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));
     throw new Error(err.detail ?? "Failed to create project");
@@ -159,6 +97,14 @@ export async function archiveProject(name: string): Promise<void> {
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));
     throw new Error(err.detail ?? "Failed to archive project");
+  }
+}
+
+export async function restoreProject(name: string): Promise<void> {
+  const r = await fetch(`${BASE}/projects/${name}/restore`, { method: "POST" });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.detail ?? "Failed to restore project");
   }
 }
 
@@ -373,22 +319,11 @@ export async function browseStartDir(project?: string): Promise<string> {
   return data.path ?? "";
 }
 
-export async function browseDirs(path: string = ""): Promise<{ path: string; parent: string | null; dirs: string[]; files: string[] }> {
-  const r = await fetch(`${BASE}/browse/dirs?path=${encodeURIComponent(path)}`);
+export async function browseDirs(path: string = "", fileExt?: string): Promise<{ path: string; parent: string | null; dirs: string[]; files: string[] }> {
+  const params = new URLSearchParams({ path });
+  if (fileExt) params.set("file_ext", fileExt);
+  const r = await fetch(`${BASE}/browse/dirs?${params}`);
   if (!r.ok) throw new Error("Failed to list directory");
-  return r.json();
-}
-
-export async function importMarkdowns(path: string): Promise<{ name: string; title: string }> {
-  const r = await fetch(`${BASE}/projects/import-markdowns`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ path }),
-  });
-  if (!r.ok) {
-    const err = await r.json().catch(() => ({}));
-    throw new Error(err.detail ?? "Failed to import markdowns");
-  }
   return r.json();
 }
 

@@ -17,6 +17,8 @@ export interface FileInfo {
 export interface ProjectInfo {
   name: string;
   title: string;
+  archived?: boolean;
+  markdowns_dir?: string;
 }
 
 export type OverlayType = "editor" | "yaml" | "project-md" | null;

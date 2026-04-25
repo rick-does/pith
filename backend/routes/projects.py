@@ -12,7 +12,7 @@ from ..utils import (
     archive_project,
     create_project,
     delete_project,
-    import_markdowns,
+    restore_project,
     extract_title,
     project_exists,
     rename_project,
@@ -26,23 +26,6 @@ router = APIRouter()
 @router.get("/api/projects")
 async def api_list_projects():
     return list_projects()
-
-
-@router.post("/api/projects/import-markdowns")
-async def api_import_markdowns(request: Request):
-    data = await request.json()
-    path = data.get("path", "").strip()
-    if not path:
-        raise HTTPException(400, "Path is required")
-    try:
-        name = import_markdowns(path)
-    except ValueError as e:
-        raise HTTPException(400, str(e))
-    title = name
-    t = extract_title(read_project_md_body(name))
-    if t:
-        title = t
-    return {"name": name, "title": title}
 
 
 @router.post("/api/projects/import-files")
@@ -90,8 +73,13 @@ async def api_import_files(request: Request):
 
 
 @router.post("/api/projects/{name}")
-async def api_create_project(name: str):
-    create_project(name)
+async def api_create_project(name: str, request: Request):
+    data = await request.json()
+    markdowns_dir = data.get("markdowns_dir", "").strip()
+    if not markdowns_dir:
+        raise HTTPException(400, "markdowns_dir is required")
+    tree_yaml = data.get("tree_yaml", "").strip() or None
+    create_project(name, markdowns_dir, tree_yaml)
     return {"status": "created", "name": name}
 
 
@@ -120,6 +108,14 @@ async def api_archive_project(name: str):
     return {"status": "archived"}
 
 
+@router.post("/api/projects/{name}/restore")
+async def api_restore_project(name: str):
+    if not project_exists(name):
+        raise HTTPException(404, "Project not found")
+    restore_project(name)
+    return {"status": "restored"}
+
+
 @router.delete("/api/projects/{name}")
 async def api_delete_project(name: str):
     if not project_exists(name):
@@ -142,7 +138,7 @@ async def api_browse_start_dir(project: str = ""):
 
 
 @router.get("/api/browse/dirs")
-async def api_browse_dirs(path: str = ""):
+async def api_browse_dirs(path: str = "", file_ext: str = "md"):
     if not path:
         if os.name == "nt":
             drives = [f"{d}:\\" for d in _string.ascii_uppercase if os.path.exists(f"{d}:\\")]
@@ -160,7 +156,10 @@ async def api_browse_dirs(path: str = ""):
         for e in os.scandir(path):
             if e.is_dir(follow_symlinks=False):
                 dirs.append(os.path.join(path, e.name))
-            elif e.name.lower().endswith(".md"):
+            elif file_ext in ("yaml", "yml"):
+                if e.name.lower().endswith((".yaml", ".yml")):
+                    files.append(e.name)
+            elif e.name.lower().endswith(f".{file_ext}"):
                 files.append(e.name)
         dirs.sort(key=lambda p: os.path.basename(p).lower())
         files.sort(key=str.lower)

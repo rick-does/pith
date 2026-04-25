@@ -1,5 +1,5 @@
 from __future__ import annotations
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class FileNode(BaseModel):
@@ -7,6 +7,7 @@ class FileNode(BaseModel):
     title: str
     order: int = 0
     children: list[FileNode] = []
+    extra: dict = Field(default_factory=dict, exclude=True)
 
 
 class CollectionStructure(BaseModel):

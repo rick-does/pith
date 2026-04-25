@@ -4,7 +4,7 @@ The hierarchy pane shows your files as a tree. Files can be nested to any depth.
 
 ## Adding a file
 
-Click **⋮** on the project chip, then **File → New file**. The file is created in `markdowns/` and added to the bottom of the hierarchy. To create a new file in the [Unlinked pane](unlinked-files.md) instead, use **⋮** on the Unlinked chip. If the project has a file template set, the new file is pre-populated from it — see [Template](editing.md#template).
+Click **⋮** on the project chip, then **File → New file**. The file is created in the project's markdowns directory and added to the bottom of the hierarchy. To create a new file in the [Unlinked pane](unlinked-files.md) instead, use **⋮** on the Unlinked chip. If the project has a file template set, the new file is pre-populated from it — see [Template](editing.md#template).
 
 To add a child of an existing file, click **⋮** on that file chip and choose **New sub-page**. The child is added at the bottom of the parent's children and is also pre-populated from the file template if one is set.
 
@@ -35,7 +35,7 @@ Click **⋮** on a file chip and choose **Rename** to rename it inline. Spaces a
 
 ## Deleting a file
 
-Click **⋮** on a file chip and choose **Delete**. The file is moved to `markdowns/_archive/` rather than permanently deleted. To recover it, move it back to `markdowns/` by hand. The app detects file changes automatically within a few seconds.
+Click **⋮** on a file chip and choose **Delete**. The file is moved to `_archive/` inside the markdowns directory rather than permanently deleted. To recover it, move it back by hand. The app detects file changes automatically within a few seconds.
 
 ## Flatten and restore
 

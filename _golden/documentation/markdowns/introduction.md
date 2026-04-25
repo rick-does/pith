@@ -8,7 +8,7 @@ If you maintain a documentation site built with a static site generator — MkDo
 
 ## What PiTH does
 
-PiTH keeps your markdown files in a project folder and maintains the hierarchy in a `tree.yaml` file alongside them. You interact with the hierarchy visually: drag files to [reorder and nest them](hierarchy.md), and promote [unlinked files](unlinked-files.md) into the tree. The YAML is always up to date; you never touch it directly.
+PiTH maintains a hierarchy for your markdown files and lets you interact with it visually: drag files to [reorder and nest them](hierarchy.md), and promote [unlinked files](unlinked-files.md) into the tree. The hierarchy lives in a YAML file — PiTH can create one, or you can point it at an existing file (`mkdocs.yml`, a custom nav config, anything) and PiTH will read and write it in place without changing its format.
 
 Opening a file launches a multi-tab editor with a live rendered preview, vi keybindings, and syntax highlighting. Mermaid diagram code blocks render as actual diagrams in the preview. Multiple files can be open simultaneously as tabs; they persist across sessions.
 
@@ -21,7 +21,7 @@ PiTH also includes:
 - Image management — store images alongside your project, browse thumbnails, and insert them at the cursor
 - [Import and export](import-export.md) — read MkDocs or Docusaurus configs, export back when ready to publish
 
-Projects can be stored anywhere on disk using [project roots](projects.md).
+Projects point to files wherever they already live — PiTH stores only lightweight metadata in `~/.pith/projects/` and never moves your files unless you ask it to. See [Managing Projects](projects.md).
 
 ## How this documentation works
 

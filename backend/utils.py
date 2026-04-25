@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import os
 import re
-import time
 import shutil
 from pathlib import Path
 
@@ -12,16 +11,11 @@ import yaml
 logger = logging.getLogger(__name__)
 
 from .models import FileNode, CollectionStructure
-from .config import get_active_projects_dir, get_project_meta_dir, get_root_meta_dir, get_default_template_path, load_config
+from .config import PROJECTS_META_DIR, get_project_meta_dir, get_default_template_path, load_config
 
 _pkg_golden = Path(__file__).parent / "golden"
 _source_golden = Path(__file__).parent.parent / "_golden"
 GOLDEN_DIR = _source_golden if _source_golden.exists() else _pkg_golden
-
-
-def get_projects_dir() -> Path:
-    """Active root path — where project content (markdowns, images) lives."""
-    return get_active_projects_dir()
 
 
 def _read_project_meta(project: str) -> dict:
@@ -41,11 +35,11 @@ def get_markdowns_dir(project: str) -> Path:
     override = meta.get("markdowns_dir")
     if override:
         return Path(str(override))
-    return get_projects_dir() / project / "markdowns"
+    return Path.home() / "pith-projects" / project / "markdowns"
 
 
 def get_images_dir(project: str) -> Path:
-    return get_projects_dir() / project / "images"
+    return get_markdowns_dir(project).parent / "images"
 
 
 def get_collection_file(project: str) -> Path:
@@ -77,7 +71,7 @@ def read_project_md_body(project: str) -> str:
     return body
 
 
-def format_project_md(body: str, tree_yaml: Path, markdowns_dir: Path, template: Path | None = None) -> str:
+def format_project_md(body: str, tree_yaml: Path, markdowns_dir: Path, template: Path | None = None, archived: bool = False) -> str:
     body = body.lstrip("\n")
     fm_lines = [
         f"tree_yaml: {tree_yaml}",
@@ -85,6 +79,8 @@ def format_project_md(body: str, tree_yaml: Path, markdowns_dir: Path, template:
     ]
     if template is not None:
         fm_lines.append(f"template: {template}")
+    if archived:
+        fm_lines.append("archived: true")
     return "---\n" + "\n".join(fm_lines) + "\n---\n" + body
 
 
@@ -104,41 +100,42 @@ def extract_title(content: str) -> str:
 
 
 def list_projects() -> list[dict]:
-    """Enumerate projects registered under the active root's meta dir.
-
-    Does NOT scan the content dir — a project exists only when it has been
-    explicitly created (meta dir with .pith-project). This keeps a project root
-    strictly as a target location; existing directories there are ignored.
-    """
-    meta_root = get_root_meta_dir()
-    if not meta_root.exists():
+    """Enumerate all projects under ~/.pith/projects/, including archived."""
+    if not PROJECTS_META_DIR.exists():
         return []
     result = []
-    for entry in sorted(meta_root.iterdir(), key=lambda p: p.name):
+    for entry in sorted(PROJECTS_META_DIR.iterdir(), key=lambda p: p.name):
         if not entry.is_dir() or entry.name.startswith("_"):
             continue
         pmd = entry / ".pith-project"
         if not pmd.exists():
             continue
+        meta, body = parse_frontmatter(pmd.read_text(encoding="utf-8"))
         title = entry.name
-        _meta, body = parse_frontmatter(pmd.read_text(encoding="utf-8"))
         t = extract_title(body)
         if t:
             title = t
-        result.append({"name": entry.name, "title": title})
+        result.append({
+            "name": entry.name,
+            "title": title,
+            "archived": bool(meta.get("archived", False)),
+            "markdowns_dir": str(meta.get("markdowns_dir", "")),
+        })
     return result
 
 
-def create_project(name: str) -> None:
+def create_project(name: str, markdowns_dir: str, tree_yaml: str | None = None) -> None:
     meta_dir = get_project_meta_dir(name)
     meta_dir.mkdir(parents=True, exist_ok=True)
 
-    content_dir = get_projects_dir() / name
-    md_dir = content_dir / "markdowns"
+    md_dir = Path(markdowns_dir)
     md_dir.mkdir(parents=True, exist_ok=True)
-    (content_dir / "images").mkdir(exist_ok=True)
 
-    tree_file = meta_dir / "tree.yaml"
+    if tree_yaml:
+        tree_file = Path(tree_yaml)
+    else:
+        tree_file = meta_dir / "tree.yaml"
+
     if not tree_file.exists():
         seed_new_project_guide_if_enabled(md_dir, tree_file)
 
@@ -211,7 +208,109 @@ def sync_collection(project: str, collection: CollectionStructure) -> Collection
     return collection
 
 
+def _detect_yaml_format(data: object) -> str:
+    if not isinstance(data, dict):
+        return "generic"
+    if "root" in data and isinstance(data.get("root"), list):
+        return "pith"
+    if "nav" in data and isinstance(data.get("nav"), list):
+        return "mkdocs"
+    return "generic"
+
+
+def _find_md_list(data: object) -> tuple[list | None, str | None, str | None]:
+    """Find the first top-level list containing .md references.
+    Returns (items, path_field, top_key).
+    path_field is '__str__' for plain string lists, or the dict key whose value ends in .md.
+    """
+    if not isinstance(data, dict):
+        return None, None, None
+    for key, value in data.items():
+        if not isinstance(value, list) or not value:
+            continue
+        field = _detect_path_field(value)
+        if field is not None:
+            return value, field, key
+    return None, None, None
+
+
+def _detect_path_field(items: list) -> str | None:
+    for item in items[:10]:
+        if isinstance(item, str) and item.lower().endswith(".md"):
+            return "__str__"
+        if isinstance(item, dict):
+            for k, v in item.items():
+                if isinstance(v, str) and v.lower().endswith(".md"):
+                    return k
+    return None
+
+
+def _generic_yaml_to_nodes(items: list, path_field: str) -> list[FileNode]:
+    nodes = []
+    for i, item in enumerate(items):
+        if path_field == "__str__":
+            if isinstance(item, str) and item.lower().endswith(".md"):
+                nodes.append(FileNode(path=item, title=Path(item).stem, order=i))
+        elif isinstance(item, dict):
+            raw_path = item.get(path_field, "")
+            if not isinstance(raw_path, str) or not raw_path.lower().endswith(".md"):
+                continue
+            title = item.get("title") or item.get("name") or Path(raw_path).stem
+            extra = {k: v for k, v in item.items() if k not in (path_field, "title", "name", "children")}
+            node = FileNode(path=raw_path, title=str(title), order=i)
+            node.extra = extra
+            nodes.append(node)
+    return nodes
+
+
+def _rebuild_generic_list(data: object, top_key: str | None, path_field: str | None, collection: CollectionStructure) -> None:
+    if path_field is None:
+        path_field = "__str__"
+    items = data[top_key] if top_key and isinstance(data, dict) else data
+
+    # Build path → original entry map
+    entry_map: dict[str, object] = {}
+    schema_keys: list[str] = []
+    for item in items:
+        if path_field == "__str__":
+            if isinstance(item, str) and item.lower().endswith(".md"):
+                entry_map[item] = item
+        elif isinstance(item, dict):
+            p = item.get(path_field, "")
+            if isinstance(p, str) and p:
+                entry_map[p] = item
+                if not schema_keys:
+                    schema_keys = [k for k in item.keys() if k != path_field]
+
+    def nodes_to_entries(nodes: list[FileNode]) -> list:
+        result = []
+        for node in nodes:
+            if path_field == "__str__":
+                result.append(node.path)
+            else:
+                if node.path in entry_map and isinstance(entry_map[node.path], dict):
+                    entry = dict(entry_map[node.path])
+                    entry[path_field] = node.path
+                else:
+                    entry = {path_field: node.path}
+                    for k in schema_keys:
+                        entry[k] = node.extra.get(k, "")
+                result.append(entry)
+            result.extend(nodes_to_entries(node.children))
+        return result
+
+    new_entries = nodes_to_entries(collection.root)
+    if top_key and isinstance(data, dict):
+        data[top_key] = new_entries
+    elif isinstance(data, list):
+        data.clear()
+        data.extend(new_entries)
+
+
 def load_collection(project: str) -> CollectionStructure:
+    from .converters import _mkdocs_nav_to_nodes
+    from ruamel.yaml import YAML
+
     tree_file = get_collection_file(project)
     if not tree_file.exists():
         files = get_all_md_files(project)
@@ -220,18 +319,66 @@ def load_collection(project: str) -> CollectionStructure:
             for i, f in enumerate(files)
         ]
         return CollectionStructure(root=nodes)
-    data = yaml.safe_load(tree_file.read_text(encoding="utf-8"))
-    if not data or "root" not in data:
+
+    ryaml = YAML()
+    ryaml.preserve_quotes = True
+    data = ryaml.load(tree_file.read_text(encoding="utf-8"))
+    if not data:
         return CollectionStructure(root=[])
-    collection = CollectionStructure(**data)
+
+    fmt = _detect_yaml_format(data)
+
+    if fmt == "pith":
+        if "root" not in data:
+            return CollectionStructure(root=[])
+        collection = CollectionStructure(**yaml.safe_load(tree_file.read_text(encoding="utf-8")))
+    elif fmt == "mkdocs":
+        nodes = _mkdocs_nav_to_nodes(list(data.get("nav", [])))
+        collection = CollectionStructure(root=nodes)
+    else:
+        items, path_field, _ = _find_md_list(data)
+        nodes = _generic_yaml_to_nodes(items or [], path_field or "__str__")
+        collection = CollectionStructure(root=nodes)
+
     return sync_collection(project, collection)
 
 
 def save_collection(project: str, collection: CollectionStructure) -> None:
+    from .converters import _nodes_to_mkdocs_nav
+    from ruamel.yaml import YAML
+
     tree_file = get_collection_file(project)
     tree_file.parent.mkdir(parents=True, exist_ok=True)
-    data = {"root": [node.model_dump() for node in collection.root]}
-    tree_file.write_text(yaml.dump(data, default_flow_style=False), encoding="utf-8")
+
+    if not tree_file.exists():
+        data = {"root": [node.model_dump() for node in collection.root]}
+        tree_file.write_text(yaml.dump(data, default_flow_style=False), encoding="utf-8")
+        if collection.root:
+            backup = get_hierarchy_backup_file(project)
+            if backup.exists():
+                backup.unlink()
+        return
+
+    ryaml = YAML()
+    ryaml.preserve_quotes = True
+    with open(tree_file, encoding="utf-8") as f:
+        existing = ryaml.load(f)
+
+    fmt = _detect_yaml_format(existing)
+
+    if fmt == "pith":
+        data = {"root": [node.model_dump() for node in collection.root]}
+        tree_file.write_text(yaml.dump(data, default_flow_style=False), encoding="utf-8")
+    elif fmt == "mkdocs":
+        existing["nav"] = _nodes_to_mkdocs_nav(collection.root)
+        with open(tree_file, "w", encoding="utf-8") as f:
+            ryaml.dump(existing, f)
+    else:
+        _, path_field, top_key = _find_md_list(existing)
+        _rebuild_generic_list(existing, top_key, path_field, collection)
+        with open(tree_file, "w", encoding="utf-8") as f:
+            ryaml.dump(existing, f)
+
     if collection.root:
         backup = get_hierarchy_backup_file(project)
         if backup.exists():
@@ -245,6 +392,7 @@ def get_orphans(project: str, collection: CollectionStructure) -> list[dict]:
 
 
 def archive_file(project: str, rel_path: str) -> str:
+    import time
     md_dir = get_markdowns_dir(project)
     src = safe_path(project, rel_path)
     rel = Path(rel_path)
@@ -265,31 +413,34 @@ def rename_file(project: str, old_path: str, new_path: str) -> None:
     shutil.move(str(src), str(dest))
 
 
-def archive_project(name: str) -> None:
-    ts = int(time.time())
-    content_src = get_projects_dir() / name
-    if content_src.exists():
-        archive_dir = get_projects_dir() / "_archive"
-        archive_dir.mkdir(exist_ok=True)
-        dest = archive_dir / name
-        if dest.exists():
-            dest = archive_dir / f"{name}-{ts}"
-        shutil.move(str(content_src), str(dest))
+def _set_project_archived(name: str, archived: bool) -> None:
+    pmd = get_project_md(name)
+    if not pmd.exists():
+        return
+    meta, body = parse_frontmatter(pmd.read_text(encoding="utf-8"))
+    tree_yaml_val = meta.get("tree_yaml")
+    markdowns_dir_val = meta.get("markdowns_dir")
+    pmd.write_text(
+        format_project_md(
+            body=body,
+            tree_yaml=Path(str(tree_yaml_val)) if tree_yaml_val else get_project_meta_dir(name) / "tree.yaml",
+            markdowns_dir=Path(str(markdowns_dir_val)) if markdowns_dir_val else Path.home(),
+            template=Path(str(meta["template"])) if meta.get("template") else None,
+            archived=archived,
+        ),
+        encoding="utf-8",
+    )
 
-    meta_src = get_project_meta_dir(name)
-    if meta_src.exists():
-        meta_archive = get_root_meta_dir() / "_archive"
-        meta_archive.mkdir(exist_ok=True)
-        meta_dest = meta_archive / name
-        if meta_dest.exists():
-            meta_dest = meta_archive / f"{name}-{ts}"
-        shutil.move(str(meta_src), str(meta_dest))
+
+def archive_project(name: str) -> None:
+    _set_project_archived(name, True)
+
+
+def restore_project(name: str) -> None:
+    _set_project_archived(name, False)
 
 
 def delete_project(name: str) -> None:
-    content_dir = get_projects_dir() / name
-    if content_dir.exists():
-        shutil.rmtree(content_dir)
     meta_dir = get_project_meta_dir(name)
     if meta_dir.exists():
         shutil.rmtree(meta_dir)
@@ -297,15 +448,11 @@ def delete_project(name: str) -> None:
 
 def rename_project(old_name: str, new_name: str) -> None:
     meta_src = get_project_meta_dir(old_name)
-    content_src = get_projects_dir() / old_name
     meta_dest = get_project_meta_dir(new_name)
-    content_dest = get_projects_dir() / new_name
 
-    if meta_dest.exists() or content_dest.exists():
+    if meta_dest.exists():
         raise ValueError("Target project already exists")
 
-    if content_src.exists():
-        content_src.rename(content_dest)
     if meta_src.exists():
         meta_src.rename(meta_dest)
 
@@ -313,11 +460,8 @@ def rename_project(old_name: str, new_name: str) -> None:
     if pmd.exists():
         meta, body = parse_frontmatter(pmd.read_text(encoding="utf-8"))
         old_tree = str(meta_src / "tree.yaml")
-        old_md = str(content_src / "markdowns")
-        if str(meta.get("tree_yaml", "")) in (old_tree, ""):
+        if str(meta.get("tree_yaml", "")) == old_tree:
             meta["tree_yaml"] = str(meta_dest / "tree.yaml")
-        if str(meta.get("markdowns_dir", "")) in (old_md, ""):
-            meta["markdowns_dir"] = str(content_dest / "markdowns")
         template_val = meta.get("template")
         pmd.write_text(
             format_project_md(
@@ -325,60 +469,10 @@ def rename_project(old_name: str, new_name: str) -> None:
                 tree_yaml=Path(str(meta["tree_yaml"])),
                 markdowns_dir=Path(str(meta["markdowns_dir"])),
                 template=Path(str(template_val)) if template_val else None,
+                archived=bool(meta.get("archived", False)),
             ),
             encoding="utf-8",
         )
-
-
-def import_markdowns(path: str) -> str:
-    """Copy all .md files from path into a new local project. Returns the project name."""
-    src = Path(path).resolve()
-    if not src.exists() or not src.is_dir():
-        raise ValueError(f"Directory not found: {path}")
-
-    base_name = re.sub(r"[^\w\-]", "-", src.name).strip("-") or "imported"
-    base_name = base_name.lower()
-    name = base_name
-    i = 1
-    while project_exists(name):
-        name = f"{base_name}-{i}"
-        i += 1
-
-    content_dir = get_projects_dir() / name
-    md_dir = content_dir / "markdowns"
-    md_dir.mkdir(parents=True, exist_ok=True)
-    (content_dir / "images").mkdir(exist_ok=True)
-
-    import glob as _glob
-    pattern = os.path.join(str(src), "**", "*.md")
-    found = _glob.glob(pattern, recursive=True)
-    if not found:
-        shutil.rmtree(str(content_dir))
-        raise ValueError(f"No .md files found in: {src}")
-    for src_file_str in found:
-        src_file = Path(src_file_str)
-        rel = src_file.relative_to(src)
-        dest = md_dir / rel
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src_file_str, str(dest))
-
-    meta_dir = get_project_meta_dir(name)
-    meta_dir.mkdir(parents=True, exist_ok=True)
-    tree_file = meta_dir / "tree.yaml"
-    tree_file.write_text("root: []\n", encoding="utf-8")
-
-    pmd = get_project_md(name)
-    pmd.write_text(
-        format_project_md(
-            body=f"# {src.name}\n",
-            tree_yaml=tree_file,
-            markdowns_dir=md_dir,
-            template=get_default_template_path(),
-        ),
-        encoding="utf-8",
-    )
-
-    return name
 
 
 LINK_RE = re.compile(r"\[([^\]]*)\]\(([^)]+)\)")
@@ -546,9 +640,7 @@ def scan_unified_compliance(project: str) -> list[dict]:
 def _extract_template_sections(template_body: str) -> dict:
     """Return {heading_title: full_section_text} for each h2+ heading in template body."""
     sections = {}
-    # Split on h2+ headings; capturing group means parts alternates [pre, heading, body, heading, body, ...]
     parts = re.split(r'(^#{2,}\s+.+$)', template_body, flags=re.MULTILINE)
-    # parts[0] is pre-heading text; headings start at index 1 and step by 2
     i = 1
     while i < len(parts):
         heading_line = parts[i].strip()
@@ -626,13 +718,11 @@ def set_frontmatter(content: str, metadata: dict) -> str:
     lines = content.split("\n")
     body_start = 0
 
-    # Standard format
     if lines[0].strip() == "---":
         for i in range(1, len(lines)):
             if lines[i].strip() == "---":
                 body_start = i + 1
                 break
-    # Jekyll-style: key: value at top, terminated by ---
     elif re.match(r"^\w[\w\s]*:", lines[0]):
         for i, line in enumerate(lines):
             if line.strip() == "---":
@@ -652,5 +742,3 @@ def set_frontmatter(content: str, metadata: dict) -> str:
             yaml_lines.append(f"{key}: {value}")
     yaml_str = "\n".join(yaml_lines)
     return f"---\n{yaml_str}\n---\n{body}"
-
-

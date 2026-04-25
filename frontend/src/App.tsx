@@ -11,8 +11,8 @@ import TemplateEditor from "./components/TemplateEditor";
 import ComplianceReport from "./components/ComplianceReport";
 import LinkReport from "./components/LinkReport";
 import NewProjectDialog from "./components/NewProjectDialog";
+import OpenProjectDialog from "./components/OpenProjectDialog";
 import AddFileDialog from "./components/AddFileDialog";
-import AddRootDialog from "./components/AddRootDialog";
 import { useEditorTabs, TAB_STYLES, TABS_KEY, ACTIVE_TAB_KEY } from "./hooks/useEditorTabs";
 import {
   listProjects, createProject, archiveProject, renameProject,
@@ -24,12 +24,12 @@ import {
   validateProjectLinks, validateFileLinks,
   importFromFormat, exportToFormat,
   flattenHierarchy, restoreHierarchy, checkHierarchyBackup,
-  fetchConfig, fetchRoots, removeRoot, restoreRoot, switchRoot, setLastProject,
+  fetchConfig, setLastProject,
   openImagesFolder,
   fetchPrefs, savePrefs,
 } from "./api";
 import type { CollectionStructure, FileInfo, FileNode, ProjectInfo, EditorTab, OverlayType } from "./types";
-import type { TemplateComplianceItem, FileLinkReport, BrokenLink, RootInfo } from "./api";
+import type { TemplateComplianceItem, FileLinkReport, BrokenLink } from "./api";
 import { insertAsLastChild, reorder } from "./treeHelpers";
 
 const LAST_FILE_KEY = "pith_selected_file";
@@ -92,18 +92,16 @@ export default function App() {
   const [reportPreview, setReportPreview] = useState<string | null>(null);
   const [hasHierarchyBackup, setHasHierarchyBackup] = useState(false);
 
-  // Root/project settings
-  const [roots, setRoots] = useState<RootInfo[]>([]);
-  const [currentRoot, setCurrentRoot] = useState("");
+  // Project settings
+  const [recentProjectNames, setRecentProjectNames] = useState<string[]>([]);
   const [titleMode, setTitleMode] = useState(true);
   const [editorTheme, setEditorTheme] = useState<string>("one-dark");
   const [showNewProjectFile, setShowNewProjectFile] = useState(true);
 
   // Dialog open flags
   const [newProjectOpen, setNewProjectOpen] = useState(false);
-  const [newProjectExpand, setNewProjectExpand] = useState(false);
+  const [openProjectOpen, setOpenProjectOpen] = useState(false);
   const [addFileDialogOpen, setAddFileDialogOpen] = useState(false);
-  const [newRootOpen, setNewRootOpen] = useState(false);
 
   // Refs that the hook and tab handlers share
   const editorContentRef = useRef(editorContent);
@@ -120,11 +118,11 @@ export default function App() {
 
   // Tab persistence (stays here to read overlayType without passing it to the hook)
   useEffect(() => {
-    if (!currentProject || !currentRoot || loading || !tabsRestoredRef.current) return;
-    localStorage.setItem(TABS_KEY(currentRoot, currentProject), JSON.stringify(tabs));
-    localStorage.setItem(TABS_KEY(currentRoot, currentProject) + "_overlay", overlayType ?? "");
-    if (activeTabId) localStorage.setItem(ACTIVE_TAB_KEY(currentRoot, currentProject), activeTabId);
-  }, [tabs, activeTabId, overlayType, currentProject, currentRoot, loading]);
+    if (!currentProject || loading || !tabsRestoredRef.current) return;
+    localStorage.setItem(TABS_KEY(currentProject), JSON.stringify(tabs));
+    localStorage.setItem(TABS_KEY(currentProject) + "_overlay", overlayType ?? "");
+    if (activeTabId) localStorage.setItem(ACTIVE_TAB_KEY(currentProject), activeTabId);
+  }, [tabs, activeTabId, overlayType, currentProject, loading]);
 
   const markdownEditorRef = useRef<MarkdownEditorHandle>(null);
   const htmlIframeRef = useRef<HTMLIFrameElement>(null);
@@ -199,14 +197,13 @@ export default function App() {
           if ("editor_theme" in prefs && typeof prefs.editor_theme === "string") setEditorTheme(prefs.editor_theme);
           if ("show_new_project_file" in prefs) setShowNewProjectFile(Boolean(prefs.show_new_project_file));
         }
-        const rootList = cfg.roots.map((r: RootInfo) => ({ ...r, active: r.path === cfg.active_root, is_default: r.path === cfg.default_root }));
-        setRoots(rootList);
-        setCurrentRoot(cfg.active_root);
-        setProjects(ps);
-        if (ps.length === 0) { setLoading(false); return; }
-        const activeRoot = rootList.find((r: RootInfo) => r.active);
-        const lastProject = activeRoot?.last_project;
-        const project = (lastProject && ps.some((p: ProjectInfo) => p.name === lastProject)) ? lastProject : ps[0].name;
+        const activeProjects = ps.filter((p: ProjectInfo) => !p.archived);
+        const recents: string[] = cfg.recent_projects ?? [];
+        setProjects(activeProjects);
+        setRecentProjectNames(recents);
+        if (activeProjects.length === 0) { setLoading(false); return; }
+        const firstRecent = recents.find((n: string) => activeProjects.some((p: ProjectInfo) => p.name === n));
+        const project = firstRecent ?? activeProjects[0].name;
         setCurrentProject(project);
         await loadCollection(project);
       } catch {
@@ -219,16 +216,16 @@ export default function App() {
 
   // Tab restoration (stays here because it needs handleSelect, defined below)
   useEffect(() => {
-    if (loading || !currentProject || !currentRoot) return;
+    if (loading || !currentProject) return;
     let hadStoredTabs = false;
     try {
-      const stored = localStorage.getItem(TABS_KEY(currentRoot, currentProject));
+      const stored = localStorage.getItem(TABS_KEY(currentProject));
       if (stored) {
         hadStoredTabs = true;
         const parsedTabs: EditorTab[] = JSON.parse(stored).map((t: any, i: number) => ({ ...t, colorIndex: typeof t.colorIndex === "number" ? t.colorIndex : i % 2 }));
         if (parsedTabs.length > 0) {
-          const storedActiveId = localStorage.getItem(ACTIVE_TAB_KEY(currentRoot, currentProject));
-          const storedOverlay = localStorage.getItem(TABS_KEY(currentRoot, currentProject) + "_overlay") ?? "";
+          const storedActiveId = localStorage.getItem(ACTIVE_TAB_KEY(currentProject));
+          const storedOverlay = localStorage.getItem(TABS_KEY(currentProject) + "_overlay") ?? "";
           const activeTab = parsedTabs.find(t => t.id === storedActiveId) ?? parsedTabs[0];
           setTabs(parsedTabs);
           setActiveTabId(activeTab.id);
@@ -287,6 +284,7 @@ export default function App() {
     setActiveTabId(null);
     setCurrentProject(name);
     setLastProject(name).catch(() => {});
+    setRecentProjectNames(prev => [name, ...prev.filter(n => n !== name)].slice(0, 5));
     localStorage.removeItem(LAST_FILE_KEY);
     setSelectedPath(null);
     setOverlayType(null);
@@ -299,11 +297,13 @@ export default function App() {
   const handleArchiveProject = useCallback(async (name: string) => {
     await archiveProject(name);
     const ps = await listProjects();
-    setProjects(ps);
+    const activeProjects = ps.filter((p: ProjectInfo) => !p.archived);
+    setProjects(activeProjects);
+    setRecentProjectNames(prev => prev.filter(n => n !== name));
     window.alert(`"${name}" is now archived`);
     if (name === currentProject) {
-      if (ps.length > 0) {
-        await handleSwitchProject(ps[0].name);
+      if (activeProjects.length > 0) {
+        await handleSwitchProject(activeProjects[0].name);
       } else {
         setCurrentProject(null);
         setCollection({ root: [] });
@@ -626,54 +626,9 @@ export default function App() {
   const handleRefresh = useCallback(async () => {
     if (!currentProject) return;
     const ps = await listProjects();
-    setProjects(ps);
+    setProjects(ps.filter((p: ProjectInfo) => !p.archived));
     await loadCollection(currentProject);
   }, [currentProject, loadCollection]);
-
-  const handleSwitchRoot = useCallback(async (path: string) => {
-    try {
-      const result = await switchRoot(path);
-      setCurrentRoot(path);
-      setRoots(prev => prev.map(r => ({ ...r, active: r.path === path })));
-      tabsRestoredRef.current = false;
-      setTabs([]);
-      setActiveTabId(null);
-      setSelectedPath(null);
-      setOverlayType(null);
-      localStorage.removeItem(LAST_FILE_KEY);
-      setProjects(result.projects);
-      if (result.active_project) {
-        setCurrentProject(result.active_project);
-        await loadCollection(result.active_project);
-      } else {
-        setCurrentProject(null);
-        setCollection({ root: [] });
-        setOrphans([]);
-      }
-    } catch {}
-  }, [loadCollection]);
-
-  const handleRemoveRoot = useCallback(async (path: string) => {
-    try {
-      await removeRoot(path);
-      const updatedRoots = await fetchRoots();
-      setRoots(updatedRoots);
-      const active = updatedRoots.find(r => r.active);
-      if (active && active.path !== currentRoot) await handleSwitchRoot(active.path);
-    } catch (e: any) {
-      alert(e.message ?? "Failed to remove root");
-    }
-  }, [currentRoot, handleSwitchRoot]);
-
-  const handleRestoreRoot = useCallback(async (path: string) => {
-    try {
-      await restoreRoot(path);
-      const updatedRoots = await fetchRoots();
-      setRoots(updatedRoots);
-    } catch (e: any) {
-      alert(e.message ?? "Failed to restore root");
-    }
-  }, []);
 
   const overlayOpen = overlayType !== null;
 
@@ -743,11 +698,12 @@ export default function App() {
           chip={{
             currentProject: currentProject ?? "",
             currentProjectTitle: projects.find(p => p.name === currentProject)?.title ?? currentProject ?? "",
-            projects,
+            recentProjects: recentProjectNames.map(n => projects.find(p => p.name === n)).filter(Boolean) as ProjectInfo[],
             titleMode,
             setTitleMode: (mode: boolean) => { setTitleMode(mode); savePrefs({ title_mode: mode }).catch(() => {}); },
             onSwitchProject: handleSwitchProject,
-            onNewProject: (expand) => { setNewProjectExpand(expand); setNewProjectOpen(true); },
+            onNewProject: () => setNewProjectOpen(true),
+            onOpenProject: () => setOpenProjectOpen(true),
             onArchiveProject: handleArchiveProject,
             onOpenProjectMd: handleOpenProjectMd,
             onCreateFile: handleCreateFile,
@@ -777,12 +733,6 @@ export default function App() {
             onToggleIndicators: handleToggleIndicators,
             showNewProjectFile,
             onToggleNewProjectFile: handleToggleNewProjectFile,
-            roots,
-            currentRoot,
-            onSwitchRoot: handleSwitchRoot,
-            onAddRoot: () => setNewRootOpen(true),
-            onRemoveRoot: handleRemoveRoot,
-            onRestoreRoot: handleRestoreRoot,
             onBrowseImages: () => { setImageBrowserTriggerAdd(false); setImageBrowserOpen(true); },
             onAddImages: () => { setImageBrowserTriggerAdd(true); setImageBrowserOpen(true); },
             onOpenImagesFolder: () => { if (currentProject) openImagesFolder(currentProject); },
@@ -877,7 +827,8 @@ export default function App() {
                 try {
                   await renameProject(currentProject, dirName);
                   const ps = await listProjects();
-                  setProjects(ps);
+                  setProjects(ps.filter((p: ProjectInfo) => !p.archived));
+                  setRecentProjectNames(prev => prev.map(n => n === currentProject ? dirName : n));
                   setCurrentProject(dirName);
                   setLastProject(dirName).catch(() => {});
                   const text = await fetchProjectMd(dirName);
@@ -1008,14 +959,24 @@ export default function App() {
       {newProjectOpen && (
         <NewProjectDialog
           currentProject={currentProject}
-          initialExpand={newProjectExpand}
           onCreated={async (dirName) => {
             const ps = await listProjects();
-            setProjects(ps);
+            setProjects(ps.filter((p: ProjectInfo) => !p.archived));
             await handleSwitchProject(dirName);
             setNewProjectOpen(false);
           }}
           onClose={() => setNewProjectOpen(false)}
+        />
+      )}
+
+      {openProjectOpen && (
+        <OpenProjectDialog
+          currentProject={currentProject}
+          onOpen={async (name) => {
+            setOpenProjectOpen(false);
+            await handleSwitchProject(name);
+          }}
+          onClose={() => setOpenProjectOpen(false)}
         />
       )}
 
@@ -1024,29 +985,6 @@ export default function App() {
           currentProject={currentProject}
           onAdded={() => { setAddFileDialogOpen(false); handleRefresh(); }}
           onClose={() => setAddFileDialogOpen(false)}
-        />
-      )}
-
-      {newRootOpen && (
-        <AddRootDialog
-          onAdded={async (rootPath) => {
-            setNewRootOpen(false);
-            const updatedRoots = await fetchRoots();
-            setRoots(updatedRoots);
-            const result = await switchRoot(rootPath);
-            setCurrentRoot(rootPath);
-            setRoots(prev => prev.map(r => ({ ...r, active: r.path === rootPath })));
-            setProjects(result.projects);
-            if (result.active_project) {
-              setCurrentProject(result.active_project);
-              await loadCollection(result.active_project);
-            } else {
-              setCurrentProject(null);
-              setCollection({ root: [] });
-              setOrphans([]);
-            }
-          }}
-          onClose={() => setNewRootOpen(false)}
         />
       )}
     </div>

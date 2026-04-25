@@ -24,16 +24,28 @@ mkdocs.yml        MkDocs Material config for GitHub Pages
 - **Desktop:** pywebview — packages frontend + backend as a local desktop app
 - **CLI:** pith-cli (`pth` command) — separate repo (rick-does/pith-cli), not a dependency of pith
 - **Distribution:** PyPI (`pip install pith-md`) + standalone executable (PyInstaller, Win/Mac/Linux)
-- **User data:** `~/.pith/` holds config (`config.json`), per-root and per-project metadata (`project-roots/<root>/<project>/`), templates (`templates/`), and the personal dictionary. Project content (markdowns, images, exported site configs) lives in the root's content path — `~/pith-projects/` by default, or any user-added root.
+- **User data:** `~/.pith/` holds config (`config.json`), per-project metadata (`projects/<project>/`), templates (`templates/`), and the personal dictionary. Project content (markdowns, images, exported site configs) lives wherever the user chose when creating the project — there is no enforced root directory.
+- **YAML handling:** `pyyaml` for PiTH-native tree.yaml; `ruamel.yaml` for round-tripping MkDocs and generic YAML formats with formatting/comment preservation.
 
 No hosted backend. Runs entirely on the user's machine.
 
 ## Project Metadata Layout
 
-- Per-root metadata: `~/.pith/project-roots/<root-name>/` where `<root-name>` is the path's basename. Contains `.pith-project-root` marker and one subdirectory per project.
-- Per-project metadata: `~/.pith/project-roots/<root-name>/<project-name>/` containing `.pith-project` (YAML frontmatter with `tree_yaml`, `markdowns_dir`, `template:` + markdown body), `tree.yaml`, and `tree-backup.yaml` when flattening.
+- Per-project metadata: `~/.pith/projects/<project-name>/` containing `.pith-project` (YAML frontmatter with `tree_yaml`, `markdowns_dir`, `template:`, optional `archived: true` + markdown body), `tree.yaml` (when not using a custom yaml path), and `tree-backup.yaml` when flattening.
 - Templates are shared across projects in `~/.pith/templates/`. Each project's `.pith-project` `template:` field points at the template file it uses. `default-template.md` is the shared default; multi-template management is future UI work.
-- Project content (markdowns/, images/, exported mkdocs.yml, sidebars.js) stays at the root's content path, resolved via the `markdowns_dir` frontmatter field.
+- Project content (markdowns/, images/, exported mkdocs.yml, sidebars.js) lives at whatever path the user specified at project creation, resolved via the `markdowns_dir` frontmatter field. No enforced directory structure.
+- `tree_yaml` in `.pith-project` can point to any file on disk — a PiTH-native `tree.yaml`, an existing `mkdocs.yml`, or any custom YAML. PiTH detects the format on every load and writes back in the same format.
+
+## Config Schema
+
+`~/.pith/config.json`:
+```json
+{
+  "recent_projects": ["proj-a", "proj-b"],
+  "prefs": { "apply_fm": true, "remove_extra": true, "append_body": false, "show_indicators": true, "title_mode": true, "editor_theme": "one-dark", "show_new_project_file": true }
+}
+```
+`recent_projects` is a global recency list capped at 5. Updated via `PUT /api/config/last-project` which calls `push_recent_project()` in `config.py`.
 
 ## Asset Resolution
 

@@ -35,7 +35,6 @@ import { GAP, COL_W, TOP_SENTINEL } from "./SortableItemConstants";
 import { SortableItem } from "./SortableItem";
 import OrphanPane from "./OrphanPane";
 import ProjectChip, { type ProjectChipProps } from "./ProjectChip";
-import type { RootInfo } from "../api";
 
 const DPAD_BTN: React.CSSProperties = {
   background: "transparent", border: "1px solid #d0e8f7", cursor: "pointer",
@@ -489,7 +488,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
               {!chip.currentProject && (
                 <div style={{ color: "#aaa", padding: "16px", fontSize: "13px", textAlign: "center" }}>
                   No projects yet.{" "}
-                  <span onClick={() => chip.onNewProject(false)} style={{ color: "#1a6fa8", cursor: "pointer", textDecoration: "underline" }}>
+                  <span onClick={() => chip.onNewProject()} style={{ color: "#1a6fa8", cursor: "pointer", textDecoration: "underline" }}>
                     Create one
                   </span>
                 </div>
