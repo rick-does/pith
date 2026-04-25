@@ -88,9 +88,7 @@ async def api_add_external_files(name: str, request: Request):
 @router.post("/api/projects/{name}")
 async def api_create_project(name: str, request: Request):
     data = await request.json()
-    markdowns_dir = data.get("markdowns_dir", "").strip()
-    if not markdowns_dir:
-        raise HTTPException(400, "markdowns_dir is required")
+    markdowns_dir = data.get("markdowns_dir", "").strip() or None
     tree_yaml = data.get("tree_yaml", "").strip() or None
     create_project(name, markdowns_dir, tree_yaml)
     return {"status": "created", "name": name}
@@ -190,7 +188,7 @@ async def api_browse_dirs(path: str = "", file_ext: str = "md"):
                 files.append(e.name)
         dirs.sort(key=lambda p: os.path.basename(p).lower())
         files.sort(key=str.lower)
-    except PermissionError:
+    except (PermissionError, FileNotFoundError, NotADirectoryError):
         dirs = []
         files = []
     return {"path": path, "parent": parent, "dirs": dirs, "files": files}

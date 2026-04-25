@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { createProject, saveProjectMd, browseStartDir, browseDirs, browseMkdir } from "../api";
+import { createProject, saveProjectMd, browseStartDir, browseDirs } from "../api";
 
 interface Props {
   currentProject: string | null;
@@ -7,7 +7,7 @@ interface Props {
   onClose: () => void;
 }
 
-type BrowserTarget = "project" | "markdowns" | "yaml";
+type BrowserTarget = "markdowns" | "yaml";
 
 function joinPath(dir: string, name: string): string {
   const sep = dir.includes("\\") ? "\\" : "/";
@@ -20,7 +20,6 @@ export default function NewProjectDialog({ currentProject, onCreated, onClose }:
   const [dirEdited, setDirEdited] = useState(false);
   const [error, setError] = useState("");
 
-  const [projectDir, setProjectDir] = useState("");
   const [mdPath, setMdPath] = useState("");
   const [mdSuggested, setMdSuggested] = useState(false);
   const [yamlFile, setYamlFile] = useState("");
@@ -32,31 +31,34 @@ export default function NewProjectDialog({ currentProject, onCreated, onClose }:
   const [browserParent, setBrowserParent] = useState<string | null>(null);
   const [newFolderName, setNewFolderName] = useState<string | null>(null);
   const [selectedDir, setSelectedDir] = useState<string | null>(null);
+  const [createdFolders, setCreatedFolders] = useState<string[]>([]);
 
   const navigate = useCallback(async (path: string, ext?: string) => {
     try {
       const result = await browseDirs(path, ext);
+      const realDirs = new Set(result.dirs);
+      const virtualChildren = createdFolders.filter(f => {
+        const sep = f.includes("\\") ? "\\" : "/";
+        const idx = f.lastIndexOf(sep);
+        if (idx < 0) return false;
+        return f.substring(0, idx) === result.path && !realDirs.has(f);
+      });
       setBrowserPath(result.path);
-      setBrowserDirs(result.dirs);
+      setBrowserDirs([...result.dirs, ...virtualChildren]);
       setBrowserFiles(result.files);
       setBrowserParent(result.parent);
       setSelectedDir(null);
     } catch {}
-  }, []);
+  }, [createdFolders]);
 
   const openBrowser = useCallback(async (target: BrowserTarget) => {
     setBrowserTarget(target);
     setNewFolderName(null);
-    let startPath = "";
-    if (target === "project") {
-      startPath = projectDir || await browseStartDir(currentProject ?? undefined).catch(() => "");
-    } else if (target === "markdowns") {
-      startPath = mdPath || projectDir || await browseStartDir(currentProject ?? undefined).catch(() => "");
-    } else {
-      startPath = mdPath ? mdPath : await browseStartDir(currentProject ?? undefined).catch(() => "");
-    }
+    const startPath = target === "markdowns"
+      ? (mdPath || await browseStartDir(currentProject ?? undefined).catch(() => ""))
+      : (mdPath || await browseStartDir(currentProject ?? undefined).catch(() => ""));
     await navigate(startPath, target === "yaml" ? "yaml" : "md");
-  }, [currentProject, projectDir, mdPath, yamlFile, navigate]);
+  }, [currentProject, mdPath, navigate]);
 
   const autoNameFromPath = (path: string) => {
     if (!title && !dirEdited) {
@@ -64,17 +66,6 @@ export default function NewProjectDialog({ currentProject, onCreated, onClose }:
       setTitle(leaf);
       setDir(leaf.replace(/\s+/g, "-").replace(/[/\\<>:"|?*\0]/g, "").toLowerCase());
     }
-  };
-
-  const selectProjectDir = () => {
-    const chosen = selectedDir ?? browserPath;
-    if (!chosen) return;
-    setProjectDir(chosen);
-    setMdPath(joinPath(chosen, "markdowns"));
-    setMdSuggested(true);
-    autoNameFromPath(chosen);
-    setSelectedDir(null);
-    setBrowserTarget(null);
   };
 
   const selectMarkdownsDir = () => {
@@ -102,15 +93,14 @@ export default function NewProjectDialog({ currentProject, onCreated, onClose }:
     setBrowserTarget(null);
   };
 
-  const submitNewFolder = async () => {
+  const submitNewFolder = () => {
     const name = (newFolderName ?? "").trim();
     if (!name || !browserPath) return;
-    try {
-      const newPath = await browseMkdir(browserPath, name);
-      setNewFolderName(null);
-      await navigate(browserPath, browserTarget === "yaml" ? "yaml" : "md");
-      setSelectedDir(newPath);
-    } catch {}
+    const newPath = joinPath(browserPath, name);
+    setNewFolderName(null);
+    setCreatedFolders(prev => prev.includes(newPath) ? prev : [...prev, newPath]);
+    setBrowserDirs(prev => prev.includes(newPath) ? prev : [...prev, newPath]);
+    setSelectedDir(newPath);
   };
 
   const handleTitleChange = (val: string) => {
@@ -128,9 +118,8 @@ export default function NewProjectDialog({ currentProject, onCreated, onClose }:
   const handleSubmit = async () => {
     const dirName = dir.trim().replace(/\s+/g, "-").replace(/[/\\<>:"|?*\0]/g, "").toLowerCase();
     if (!dirName || dirName === "." || dirName === "..") { setError("Invalid project name"); return; }
-    if (!mdPath.trim()) { setError("Select a markdowns directory"); return; }
     try {
-      await createProject(dirName, mdPath.trim(), yamlFile.trim() || undefined);
+      await createProject(dirName, mdPath.trim() || undefined, yamlFile.trim() || undefined);
       if (title.trim()) await saveProjectMd(dirName, `# ${title.trim()}\n`);
       await onCreated(dirName);
     } catch (e: any) {
@@ -155,9 +144,8 @@ export default function NewProjectDialog({ currentProject, onCreated, onClose }:
   // Browser overlay
   if (browserTarget) {
     const isYaml = browserTarget === "yaml";
-    const isProject = browserTarget === "project";
     const ext = isYaml ? "yaml" : "md";
-    const label = isProject ? "Select project directory" : isYaml ? "Select YAML file" : "Select markdowns directory";
+    const label = isYaml ? "Select YAML file" : "Select markdowns directory";
 
     return (
       <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -185,7 +173,6 @@ export default function NewProjectDialog({ currentProject, onCreated, onClose }:
                   value={newFolderName}
                   onChange={e => setNewFolderName(e.target.value)}
                   onKeyDown={e => {
-                    if (e.key === "Escape") { setNewFolderName(null); return; }
                     if (e.key === "Enter") submitNewFolder();
                   }}
                   placeholder="New folder name"
@@ -234,7 +221,7 @@ export default function NewProjectDialog({ currentProject, onCreated, onClose }:
           <div style={{ padding: "10px 20px", borderTop: "1px solid #e8e8e8", display: "flex", gap: 8, justifyContent: "flex-end" }}>
             <button onClick={() => setBrowserTarget(null)} style={{ padding: "6px 16px", border: "1px solid #ccc", borderRadius: 4, background: "#f5f5f5", cursor: "pointer", fontSize: 13 }}>Cancel</button>
             {!isYaml && (
-              <button onClick={isProject ? selectProjectDir : selectMarkdownsDir} disabled={!browserPath}
+              <button onClick={selectMarkdownsDir} disabled={!browserPath}
                 style={{ ...primaryBtn, background: browserPath ? "#1a6fa8" : "#a0c4e8", cursor: browserPath ? "pointer" : "default" }}>
                 Select this directory
               </button>
@@ -245,7 +232,7 @@ export default function NewProjectDialog({ currentProject, onCreated, onClose }:
     );
   }
 
-  const canSubmit = dir.trim() && mdPath.trim();
+  const canSubmit = !!dir.trim();
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -261,29 +248,20 @@ export default function NewProjectDialog({ currentProject, onCreated, onClose }:
                 style={{ ...inputStyle, width: "100%" }} />
             </div>
             <div>
-              <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>Project name</div>
+              <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>Project directory name</div>
               <input value={dir} onChange={e => handleDirChange(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") handleSubmit(); }}
                 placeholder="my-documentation"
                 style={{ ...inputStyle, width: "100%", fontFamily: "monospace" }} />
             </div>
             <div>
-              <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>Project directory</div>
-              <div style={{ display: "flex", gap: 6 }}>
-                <input value={projectDir} onChange={e => { setProjectDir(e.target.value); setError(""); }}
-                  placeholder="Browse to select or create a project folder…"
-                  style={{ ...inputStyle, fontFamily: "monospace" }} />
-                <button onClick={() => openBrowser("project")} style={browseBtn}>Browse</button>
-              </div>
-            </div>
-            <div>
               <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>
-                Markdowns directory <span style={{ color: "#c0392b" }}>*</span>
+                Markdowns directory <span style={{ color: "#aaa" }}>(optional)</span>
                 {mdSuggested && <span style={{ color: "#aaa", marginLeft: 6 }}>— suggested, browse to change</span>}
               </div>
               <div style={{ display: "flex", gap: 6 }}>
                 <input value={mdPath} onChange={e => { setMdPath(e.target.value); setMdSuggested(false); setError(""); }}
-                  placeholder="Browse to select a markdowns directory…"
+                  placeholder="Leave blank to use default location"
                   style={{
                     ...inputStyle, fontFamily: "monospace",
                     color: mdSuggested ? "#aaa" : undefined,

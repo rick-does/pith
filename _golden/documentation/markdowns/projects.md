@@ -14,8 +14,8 @@ The orange chip at the top of the hierarchy pane shows the current project name.
 
 1. Click **⋮** on the project chip
 2. Click **Projects → New project**
-3. Enter a project title and a project name (auto-derived from the title; you can edit it independently)
-4. Browse to the **markdowns directory** — the folder where your `.md` files live or will live. This is required.
+3. Enter a project title and a project directory name (auto-derived from the title; you can edit it independently)
+4. Optionally browse to a **markdowns directory** — the folder where your `.md` files live or will live. If left blank, PiTH creates a directory at `~/pith-projects/projects/<project-name>/markdowns`.
 5. Optionally browse to a **YAML file** — an existing `.yaml` or `.yml` file to use as the project's hierarchy. See [Using an existing YAML](#using-an-existing-yaml) below.
 6. Click **Create**
 

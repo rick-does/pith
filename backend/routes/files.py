@@ -14,12 +14,14 @@ from ..utils import (
     get_images_dir,
     get_markdowns_dir,
     get_project_md,
+    get_unlinked_nodes,
     load_collection,
     load_unified_template,
     project_exists,
     rename_file,
     safe_path,
     save_collection,
+    save_unlinked_nodes,
 )
 
 router = APIRouter()
@@ -36,10 +38,6 @@ async def api_get_markdown(project: str, file_path: str):
 
 @router.post("/api/projects/{project}/markdown/{file_path:path}")
 async def api_create_markdown(project: str, file_path: str):
-    if "/" not in file_path and "\\" not in file_path:
-        markdowns_sub = get_markdowns_dir(project) / "markdowns"
-        if markdowns_sub.exists() and markdowns_sub.is_dir():
-            file_path = f"markdowns/{file_path}"
     fp = safe_path(project, file_path)
     if fp.exists():
         raise HTTPException(409, "File already exists")
@@ -92,6 +90,8 @@ async def api_archive_markdown(project: str, file_path: str):
 
     collection.root = remove_from(collection.root)
     save_collection(project, collection)
+    if new_path is None:
+        save_unlinked_nodes(project, [n for n in get_unlinked_nodes(project) if n.path != file_path])
     return {"path": file_path, "archived_as": new_path}
 
 
@@ -134,22 +134,23 @@ async def api_save_project_md(project: str, request: Request):
     pmd = get_project_md(project)
     pmd.parent.mkdir(parents=True, exist_ok=True)
     data = await request.json()
-    new_body = data.get("content", "")
+    new_content = data.get("content", "")
     if pmd.exists():
         meta, _ = parse_frontmatter(pmd.read_text(encoding="utf-8"))
         if meta:
             from pathlib import Path as _Path
+            _, new_body = parse_frontmatter(new_content)
             tree_yaml_val = meta.get("tree_yaml")
             markdowns_dir_val = meta.get("markdowns_dir")
             template_val = meta.get("template")
-            new_body = format_project_md(
+            new_content = format_project_md(
                 body=new_body,
                 tree_yaml=_Path(str(tree_yaml_val)) if tree_yaml_val else get_collection_file(project),
                 markdowns_dir=_Path(str(markdowns_dir_val)) if markdowns_dir_val else get_markdowns_dir(project),
                 template=_Path(str(template_val)) if template_val else None,
                 archived=bool(meta.get("archived", False)),
             )
-    pmd.write_text(new_body, encoding="utf-8")
+    pmd.write_text(new_content, encoding="utf-8")
     return {"status": "saved"}
 
 

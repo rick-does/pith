@@ -16,27 +16,27 @@ PiTH supports:
 
 ## Importing from MkDocs
 
-Use **Import from… → MkDocs** to rebuild the PiTH hierarchy from a `mkdocs.yml` that already lives in your project folder. This replaces the current hierarchy.
+Use **Import from… → MkDocs** to rebuild the PiTH hierarchy from a `mkdocs.yml` that already lives alongside your markdowns. This replaces the current hierarchy.
 
-1. Place your `mkdocs.yml` in the project's content directory (the parent of `markdowns/`)
+1. Place your `mkdocs.yml` in the parent folder of your markdowns directory
 2. Click **⋮ → Import from... → MkDocs**
 
 The hierarchy is built from the `nav:` section of the file. Markdown files referenced in the nav must already exist in your markdowns directory — import does not copy files.
 
 ## Importing from Docusaurus
 
-1. Place your `sidebars.js` (or `sidebars.ts`) in the project's content directory
+1. Place your `sidebars.js` (or `sidebars.ts`) in the parent folder of your markdowns directory
 2. Click **⋮ → Import from... → Docusaurus**
 
 If neither `sidebars.js` nor `sidebars.ts` is found, you are prompted for the filename.
 
 ## Exporting to MkDocs
 
-Click **⋮ → Export to... → MkDocs**. The exported `mkdocs.yml` is written to the project's content directory (the parent of your markdowns folder). Copy it back to your MkDocs project to use it.
+Click **⋮ → Export to... → MkDocs**. The exported `mkdocs.yml` is written to the parent folder of your markdowns directory. Copy it back to your MkDocs project to use it.
 
 ## Exporting to Docusaurus
 
-Click **⋮ → Export to... → Docusaurus**. The exported `sidebars.js` is written to the project's content directory. Copy it back to your Docusaurus project.
+Click **⋮ → Export to... → Docusaurus**. The exported `sidebars.js` is written to the parent folder of your markdowns directory. Copy it back to your Docusaurus project.
 
 ## Exporting as HTML / PDF
 

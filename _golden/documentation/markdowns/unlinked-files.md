@@ -1,6 +1,6 @@
 # Unlinked Files
 
-The **Unlinked** pane shows files that exist in the project's markdowns directory but are not yet part of the [hierarchy](hierarchy.md). This happens when you add files directly to the folder, [import](import-export.md) a batch of files, or remove a file from the hierarchy without deleting it.
+The **Unlinked** pane shows markdown files that are registered with the project but not yet part of the [hierarchy](hierarchy.md). This includes files discovered in the markdowns directory and files added by reference from outside it. Files end up here when you add files directly to the folder, [import](import-export.md) a batch of files, add an external file by reference, or remove a file from the hierarchy without deleting it.
 
 ## The Unlinked chip
 

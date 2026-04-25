@@ -75,11 +75,11 @@ export async function renameProject(name: string, newName: string): Promise<{ ne
   return r.json();
 }
 
-export async function createProject(name: string, markdownsDir: string, treeYaml?: string): Promise<void> {
+export async function createProject(name: string, markdownsDir?: string, treeYaml?: string): Promise<void> {
   const r = await fetch(`${BASE}/projects/${name}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ markdowns_dir: markdownsDir, tree_yaml: treeYaml ?? "" }),
+    body: JSON.stringify({ markdowns_dir: markdownsDir ?? "", tree_yaml: treeYaml ?? "" }),
   });
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));

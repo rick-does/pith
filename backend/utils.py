@@ -35,7 +35,7 @@ def get_markdowns_dir(project: str) -> Path:
     override = meta.get("markdowns_dir")
     if override:
         return Path(str(override))
-    return Path.home() / "pith-projects" / project
+    return Path.home() / "pith-projects" / "projects" / project / "markdowns"
 
 
 def get_images_dir(project: str) -> Path:
@@ -73,15 +73,16 @@ def read_project_md_body(project: str) -> str:
 
 def format_project_md(body: str, tree_yaml: Path, markdowns_dir: Path, template: Path | None = None, archived: bool = False) -> str:
     body = body.lstrip("\n")
-    fm_lines = [
-        f"tree_yaml: {tree_yaml}",
-        f"markdowns_dir: {markdowns_dir}",
-    ]
+    meta: dict = {
+        "tree_yaml": str(tree_yaml),
+        "markdowns_dir": str(markdowns_dir),
+    }
     if template is not None:
-        fm_lines.append(f"template: {template}")
+        meta["template"] = str(template)
     if archived:
-        fm_lines.append("archived: true")
-    return "---\n" + "\n".join(fm_lines) + "\n---\n" + body
+        meta["archived"] = True
+    yaml_str = yaml.dump(meta, default_flow_style=False, allow_unicode=True, sort_keys=False).rstrip()
+    return f"---\n{yaml_str}\n---\n{body}"
 
 
 def safe_path(project: str, rel_path: str) -> Path:
@@ -91,8 +92,7 @@ def safe_path(project: str, rel_path: str) -> Path:
         target.relative_to(base)
         return target
     except ValueError:
-        # Allow absolute paths that are registered in unlinked.yaml
-        if str(target) in get_unlinked_files(project):
+        if any(Path(u).resolve() == target for u in get_unlinked_files(project)):
             return target
         raise ValueError("Path traversal detected")
 
@@ -127,11 +127,11 @@ def list_projects() -> list[dict]:
     return result
 
 
-def create_project(name: str, markdowns_dir: str, tree_yaml: str | None = None) -> None:
+def create_project(name: str, markdowns_dir: str | None = None, tree_yaml: str | None = None) -> None:
     meta_dir = get_project_meta_dir(name)
     meta_dir.mkdir(parents=True, exist_ok=True)
 
-    md_dir = Path(markdowns_dir)
+    md_dir = Path(markdowns_dir) if markdowns_dir else Path.home() / "pith-projects" / "projects" / name / "markdowns"
     md_dir.mkdir(parents=True, exist_ok=True)
 
     if tree_yaml:
@@ -484,10 +484,12 @@ def get_orphans(project: str, collection: CollectionStructure) -> list[dict]:
     return [{"path": n.path, "title": n.title} for n in stored if n.path not in known]
 
 
-def archive_file(project: str, rel_path: str) -> str:
+def archive_file(project: str, rel_path: str) -> str | None:
     import time
     md_dir = get_markdowns_dir(project)
     src = safe_path(project, rel_path)
+    if Path(rel_path).is_absolute():
+        return None  # external file: caller removes the reference, no file move
     rel = Path(rel_path)
     archive_dir = md_dir / rel.parent / "_archive"
     archive_dir.mkdir(parents=True, exist_ok=True)
@@ -598,9 +600,10 @@ def validate_file_links(project: str, rel_path: str) -> list[dict]:
     content = fp.read_text(encoding="utf-8")
     md_dir = get_markdowns_dir(project)
     links = extract_internal_links(content)
+    base = Path(rel_path).parent if Path(rel_path).is_absolute() else md_dir / Path(rel_path).parent
     broken = []
     for link in links:
-        target_path = (md_dir / Path(rel_path).parent / link["target"]).resolve()
+        target_path = (base / link["target"]).resolve()
         if not target_path.exists():
             broken.append(link)
     return broken
@@ -621,12 +624,14 @@ def validate_project_links(project: str) -> list[dict]:
 def find_incoming_links(project: str, target_path: str) -> list[dict]:
     """Find all files that link to a given path."""
     md_dir = get_markdowns_dir(project)
+    target_abs = Path(target_path).resolve() if Path(target_path).is_absolute() else (md_dir / target_path).resolve()
     results = []
     for fp, path_str in iter_all_project_files(project):
         content = fp.read_text(encoding="utf-8")
         links = extract_internal_links(content)
+        base = Path(path_str).parent if Path(path_str).is_absolute() else md_dir / Path(path_str).parent
         matching = [l for l in links if l["target"] == target_path or
-                    (md_dir / Path(path_str).parent / l["target"]).resolve() == (md_dir / target_path).resolve()]
+                    (base / l["target"]).resolve() == target_abs]
         if matching:
             title = extract_title(content) or fp.stem
             results.append({"path": path_str, "title": title, "links": matching})
@@ -828,15 +833,5 @@ def set_frontmatter(content: str, metadata: dict) -> str:
                 break
 
     body = "\n".join(lines[body_start:])
-    yaml_lines = []
-    for key, value in metadata.items():
-        if isinstance(value, list):
-            yaml_lines.append(f"{key}: [{', '.join(str(v) for v in value)}]")
-        elif isinstance(value, bool):
-            yaml_lines.append(f"{key}: {str(value).lower()}")
-        elif value is None:
-            yaml_lines.append(f"{key}:")
-        else:
-            yaml_lines.append(f"{key}: {value}")
-    yaml_str = "\n".join(yaml_lines)
+    yaml_str = yaml.dump(metadata, default_flow_style=False, allow_unicode=True, sort_keys=False).rstrip()
     return f"---\n{yaml_str}\n---\n{body}"

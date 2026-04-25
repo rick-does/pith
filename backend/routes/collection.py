@@ -52,8 +52,13 @@ async def api_save_collection_yaml(project: str, request: Request):
     import yaml
     data = await request.json()
     content = data.get("content", "")
-    parsed = CollectionStructure(**yaml.safe_load(content))
-    save_collection(project, parsed)
+    try:
+        yaml.safe_load(content)
+    except yaml.YAMLError as e:
+        raise HTTPException(400, f"Invalid YAML: {e}")
+    tree_file = get_collection_file(project)
+    tree_file.parent.mkdir(parents=True, exist_ok=True)
+    tree_file.write_text(content, encoding="utf-8")
     return {"status": "saved"}
 
 

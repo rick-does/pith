@@ -33,7 +33,7 @@ If you've ever maintained a documentation site and found yourself hand-editing a
 
 ### Import and export
 
-- **Point at existing files** — create a project by selecting any markdowns directory; PiTH works with the files in place rather than copying them
+- **Point at existing files** — create a project by selecting any markdowns directory, or leave it blank and PiTH creates one for you; PiTH works with the files in place rather than copying them
 - **Use any YAML as your hierarchy** — point a project at an existing `mkdocs.yml`, a custom YAML file, or let PiTH create one; changes are written back preserving the original format and any extra fields
 - **MkDocs and Docusaurus** — import an existing nav config or export when ready to publish
 - **Add files from anywhere** — copy individual `.md` files into a project from any directory
