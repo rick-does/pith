@@ -90,8 +90,7 @@ async def api_archive_markdown(project: str, file_path: str):
 
     collection.root = remove_from(collection.root)
     save_collection(project, collection)
-    if new_path is None:
-        save_unlinked_nodes(project, [n for n in get_unlinked_nodes(project) if n.path != file_path])
+    save_unlinked_nodes(project, [n for n in get_unlinked_nodes(project) if n.path != file_path])
     return {"path": file_path, "archived_as": new_path}
 
 

@@ -30,12 +30,10 @@ export interface ProjectChipProps {
   onToggleIndicators: () => void;
   showNewProjectFile: boolean;
   onToggleNewProjectFile: () => void;
-  onBrowseImages: () => void;
-  onAddImages: () => void;
-  onOpenImagesFolder: () => void;
+  onQuickOpenYaml: () => void;
 }
 
-export default function ProjectChip({ currentProject, currentProjectTitle, recentProjects, titleMode, setTitleMode, onSwitchProject, onNewProject, onOpenProject, onArchiveProject, onOpenProjectMd, onCreateFile, onAddFileFromMd, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, showIndicators, onToggleIndicators, showNewProjectFile, onToggleNewProjectFile, onBrowseImages, onAddImages, onOpenImagesFolder }: ProjectChipProps) {
+export default function ProjectChip({ currentProject, currentProjectTitle, recentProjects, titleMode, setTitleMode, onSwitchProject, onNewProject, onOpenProject, onArchiveProject, onOpenProjectMd, onCreateFile, onAddFileFromMd, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, showIndicators, onToggleIndicators, showNewProjectFile, onToggleNewProjectFile, onQuickOpenYaml }: ProjectChipProps) {
 
 
 
@@ -46,7 +44,7 @@ export default function ProjectChip({ currentProject, currentProjectTitle, recen
   const [exportSubmenuOpen, setExportSubmenuOpen] = useState(false);
   const [templateSubmenuOpen, setTemplateSubmenuOpen] = useState(false);
   const [fileSubmenuOpen, setFileSubmenuOpen] = useState(false);
-  const [imagesSubmenuOpen, setImagesSubmenuOpen] = useState(false);
+  const [yamlSubmenuOpen, setYamlSubmenuOpen] = useState(false);
   const [settingsSubmenuOpen, setSettingsSubmenuOpen] = useState(false);
   const [hoverTip, setHoverTip] = useState<{ text: string; top: number; left: number } | null>(null);
   const menuRef = useRef<HTMLSpanElement>(null);
@@ -162,6 +160,11 @@ export default function ProjectChip({ currentProject, currentProjectTitle, recen
                       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
                     >Open project…</div>
+                    <div style={{ ...menuItem }}
+                      onClick={() => { onOpenProjectMd(); setMenuOpen(false); setProjectSubmenuOpen(false); }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    >Project info</div>
                     {recentProjects.length > 0 && <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />}
                     {recentProjects.map(p => (
                       <div key={p.name}
@@ -217,46 +220,29 @@ export default function ProjectChip({ currentProject, currentProjectTitle, recen
                 )}
               </div>
 
-              {/* Images flyout */}
+              {/* YAML flyout */}
               <div
                 style={{ ...menuItem, justifyContent: "space-between", position: "relative" }}
-                onMouseEnter={() => setImagesSubmenuOpen(true)}
-                onMouseLeave={() => setImagesSubmenuOpen(false)}
+                onMouseEnter={() => setYamlSubmenuOpen(true)}
+                onMouseLeave={() => setYamlSubmenuOpen(false)}
               >
-                <span>Images</span>
+                <span>YAML</span>
                 <span style={flyoutArrow}>&#9656;</span>
-                {imagesSubmenuOpen && (
+                {yamlSubmenuOpen && (
                   <div style={submenuStyle}>
                     <div style={{ ...menuItem }}
-                      onClick={() => { onBrowseImages(); setMenuOpen(false); setImagesSubmenuOpen(false); }}
+                      onClick={() => { onQuickOpenYaml(); setMenuOpen(false); setYamlSubmenuOpen(false); }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                    >Browse / Insert</div>
+                    >Quick open YAML…</div>
                     <div style={{ ...menuItem }}
-                      onClick={() => { onAddImages(); setMenuOpen(false); setImagesSubmenuOpen(false); }}
+                      onClick={() => { onOpenYaml(); setMenuOpen(false); setYamlSubmenuOpen(false); }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                    >Add images</div>
-                    <div style={{ ...menuItem }}
-                      onClick={() => { onOpenImagesFolder(); setMenuOpen(false); setImagesSubmenuOpen(false); }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                    >Open folder</div>
+                    >View YAML</div>
                   </div>
                 )}
               </div>
-
-              <div style={{ ...menuItem }}
-                onClick={() => { onOpenProjectMd(); setMenuOpen(false); }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-              >Project info</div>
-
-              <div style={{ ...menuItem }}
-                onClick={() => { onOpenYaml(); setMenuOpen(false); }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-              >View YAML</div>
 
               <div style={{ ...menuItem }}
                 onClick={() => { hasHierarchyBackup ? onRestoreHierarchy() : onFlattenHierarchy(); setMenuOpen(false); }}

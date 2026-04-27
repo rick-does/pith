@@ -35,7 +35,7 @@ def get_markdowns_dir(project: str) -> Path:
     override = meta.get("markdowns_dir")
     if override:
         return Path(str(override))
-    return Path.home() / "pith-projects" / "projects" / project / "markdowns"
+    return Path.home() / "pith-projects" /project / "markdowns"
 
 
 def get_images_dir(project: str) -> Path:
@@ -131,7 +131,7 @@ def create_project(name: str, markdowns_dir: str | None = None, tree_yaml: str |
     meta_dir = get_project_meta_dir(name)
     meta_dir.mkdir(parents=True, exist_ok=True)
 
-    md_dir = Path(markdowns_dir) if markdowns_dir else Path.home() / "pith-projects" / "projects" / name / "markdowns"
+    md_dir = Path(markdowns_dir) if markdowns_dir else Path.home() / "pith-projects" /name / "markdowns"
     md_dir.mkdir(parents=True, exist_ok=True)
 
     if tree_yaml:
@@ -489,7 +489,11 @@ def archive_file(project: str, rel_path: str) -> str | None:
     md_dir = get_markdowns_dir(project)
     src = safe_path(project, rel_path)
     if Path(rel_path).is_absolute():
-        return None  # external file: caller removes the reference, no file move
+        return None  # external file: remove the reference, no file move
+    try:
+        get_collection_file(project).resolve().relative_to(get_project_meta_dir(project).resolve())
+    except ValueError:
+        return None  # tree_yaml is user's own file (YAML quick-open): remove reference, no file move
     rel = Path(rel_path)
     archive_dir = md_dir / rel.parent / "_archive"
     archive_dir.mkdir(parents=True, exist_ok=True)

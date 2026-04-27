@@ -2,7 +2,7 @@
 
 **PiTH** is a full-featured markdown workspace. Visual hierarchy editor + prose analysis + live preview + full-text search. Fully local, no hosted backend.
 
-See `ARCHITECTURE.md` for repo structure and stack. See `FEATURES.md` for implementation details of shipped features.
+See `clods/architecture.md` for repo structure and stack. See `clods/features.md` for implementation details of shipped features. See `clods/commands.md` for build and dev commands. See `clods/key-files.md` for the most important files to know.
 
 ---
 
@@ -27,3 +27,4 @@ Always run frontend with `--watch` (Vite) and backend with `--reload` (uvicorn).
 - Never add comments or docstrings to code that wasn't changed
 - Never add features beyond what was asked
 - Don't create new files to document changes — edit existing files or nothing
+- Side files (architecture, feature notes, to do list) go in `clods/`

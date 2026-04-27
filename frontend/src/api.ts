@@ -432,3 +432,17 @@ export async function fetchIncomingLinks(project: string, path: string): Promise
   if (!r.ok) throw new Error("Failed to fetch incoming links");
   return r.json();
 }
+
+
+export async function quickOpenYaml(yamlPath: string): Promise<{ project_name: string }> {
+  const r = await fetch(`${BASE}/quick-open/yaml`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ yaml_path: yamlPath }),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error((err as any).detail ?? "Failed to open YAML");
+  }
+  return r.json();
+}

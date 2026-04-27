@@ -16,6 +16,7 @@ from .routes.collection import router as collection_router
 from .routes.files import router as files_router
 from .routes.analysis import router as analysis_router
 from .routes.export import router as export_router
+from .routes.quick_open import router as quick_open_router
 
 
 @asynccontextmanager
@@ -39,6 +40,7 @@ app.include_router(collection_router)
 app.include_router(files_router)
 app.include_router(analysis_router)
 app.include_router(export_router)
+app.include_router(quick_open_router)
 
 
 @app.get("/health")

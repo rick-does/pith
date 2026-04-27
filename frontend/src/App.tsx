@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Sidebar from "./components/Sidebar";
 import MarkdownEditor from "./components/MarkdownEditor";
 import type { MarkdownEditorHandle } from "./components/MarkdownEditor";
-import ImageBrowser from "./components/ImageBrowser";
 import YAMLEditor from "./components/YAMLEditor";
 import ImportModal from "./components/ImportModal";
 import ExportModal from "./components/ExportModal";
@@ -13,6 +12,7 @@ import LinkReport from "./components/LinkReport";
 import NewProjectDialog from "./components/NewProjectDialog";
 import OpenProjectDialog from "./components/OpenProjectDialog";
 import AddFileDialog from "./components/AddFileDialog";
+import QuickOpenYamlDialog from "./components/QuickOpenYamlDialog";
 import { useEditorTabs, TAB_STYLES, TABS_KEY, ACTIVE_TAB_KEY } from "./hooks/useEditorTabs";
 import {
   listProjects, createProject, archiveProject, renameProject,
@@ -25,8 +25,8 @@ import {
   importFromFormat, exportToFormat,
   flattenHierarchy, restoreHierarchy, checkHierarchyBackup,
   fetchConfig, setLastProject,
-  openImagesFolder,
   fetchPrefs, savePrefs,
+  quickOpenYaml,
 } from "./api";
 import type { CollectionStructure, FileInfo, FileNode, ProjectInfo, EditorTab, OverlayType } from "./types";
 import type { TemplateComplianceItem, FileLinkReport, BrokenLink } from "./api";
@@ -66,8 +66,6 @@ export default function App() {
   const [importModal, setImportModal] = useState<{ format: "mkdocs" | "docusaurus" } | null>(null);
   const [exportModal, setExportModal] = useState<{ format: "mkdocs" | "docusaurus" } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [imageBrowserOpen, setImageBrowserOpen] = useState(false);
-  const [imageBrowserTriggerAdd, setImageBrowserTriggerAdd] = useState(false);
 
   // Template state
   const [templateContent, setTemplateContent] = useState("");
@@ -102,6 +100,8 @@ export default function App() {
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [openProjectOpen, setOpenProjectOpen] = useState(false);
   const [addFileDialogOpen, setAddFileDialogOpen] = useState(false);
+  const [quickOpenYamlOpen, setQuickOpenYamlOpen] = useState(false);
+  const [dragDepth, setDragDepth] = useState(0);
 
   // Refs that the hook and tab handlers share
   const editorContentRef = useRef(editorContent);
@@ -652,6 +652,29 @@ export default function App() {
     await loadCollection(currentProject);
   }, [currentProject, loadCollection]);
 
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragDepth(0);
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    if (/\.(yaml|yml)$/i.test(file.name)) {
+      window.alert("To open a YAML file, use Projects → Quick open YAML… in the menu. Drag-drop can't provide the file path needed to edit it in place.");
+      return;
+    }
+    if (!file.name.toLowerCase().endsWith(".md")) return;
+    setAddFileDialogOpen(true);
+  }, [currentProject, loadCollection]);
+
+  const handleQuickOpenYaml = useCallback(async (yamlPath: string) => {
+    setQuickOpenYamlOpen(false);
+    try {
+      const { project_name } = await quickOpenYaml(yamlPath);
+      const ps = await listProjects();
+      setProjects(ps.filter((p: ProjectInfo) => !p.archived));
+      await handleSwitchProject(project_name);
+    } catch {}
+  }, [handleSwitchProject]);
+
   const overlayOpen = overlayType !== null;
 
   if (loading) {
@@ -663,7 +686,18 @@ export default function App() {
   }
 
   return (
-    <div style={{ position: "relative", height: "100vh", width: "100vw", overflow: "hidden", background: "#ffffff", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", display: "flex", flexDirection: "column" }}>
+    <div
+      style={{ position: "relative", height: "100vh", width: "100vw", overflow: "hidden", background: "#ffffff", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", display: "flex", flexDirection: "column" }}
+      onDragEnter={e => { if (e.dataTransfer.types.includes("Files")) setDragDepth(d => d + 1); }}
+      onDragLeave={e => { if (e.dataTransfer.types.includes("Files")) setDragDepth(d => Math.max(0, d - 1)); }}
+      onDragOver={e => { if (e.dataTransfer.types.includes("Files")) e.preventDefault(); }}
+      onDrop={handleDrop}
+    >
+      {dragDepth > 0 && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(26,111,168,0.15)", border: "4px dashed #1a6fa8", display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+          <div style={{ background: "rgba(255,255,255,0.92)", padding: "20px 36px", borderRadius: 12, fontSize: 18, fontWeight: 600, color: "#1a6fa8" }}>Drop markdown to open</div>
+        </div>
+      )}
       <div style={{ height: "50px", flexShrink: 0, background: "#1a6fa8", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 1in" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ color: "#fff", fontWeight: "bold", fontSize: "20px", lineHeight: 1 }}>Pi<span style={{ color: "#f90" }}>T</span>H</span>
@@ -757,9 +791,7 @@ export default function App() {
             onToggleIndicators: handleToggleIndicators,
             showNewProjectFile,
             onToggleNewProjectFile: handleToggleNewProjectFile,
-            onBrowseImages: () => { setImageBrowserTriggerAdd(false); setImageBrowserOpen(true); },
-            onAddImages: () => { setImageBrowserTriggerAdd(true); setImageBrowserOpen(true); },
-            onOpenImagesFolder: () => { if (currentProject) openImagesFolder(currentProject); },
+            onQuickOpenYaml: () => setQuickOpenYamlOpen(true),
           }}
         />
       </div>
@@ -827,7 +859,6 @@ export default function App() {
               onViewCompliance={handleShowCompliance}
               onClose={handleCloseOverlay}
               onReport={handleReport}
-              onOpenImageBrowser={() => { setImageBrowserTriggerAdd(false); setImageBrowserOpen(true); }}
               brokenLinks={fileBrokenLinks}
               editorTheme={editorTheme}
               onEditorThemeChange={handleEditorThemeChange}
@@ -846,6 +877,7 @@ export default function App() {
               viMode={viMode}
               onViModeChange={setViMode}
               onSave={async (_path, content) => { await saveProjectMd(currentProject, content); }}
+              onSaved={async () => { const ps = await listProjects(); setProjects(ps.filter((p: ProjectInfo) => !p.archived)); }}
               onRename={async (_oldName, newName) => {
                 const dirName = newName.trim().replace(/\s+/g, "-").replace(/[/\\<>:"|?*\0]/g, "").toLowerCase();
                 if (!dirName || dirName === currentProject) return;
@@ -909,16 +941,6 @@ export default function App() {
         />
       )}
 
-      {imageBrowserOpen && currentProject && (
-        <ImageBrowser
-          project={currentProject}
-          editorOpen={overlayType === "editor" && selectedPath !== null}
-          selectedPath={selectedPath}
-          onInsert={(markdown) => { markdownEditorRef.current?.insertText(markdown); }}
-          onClose={() => { setImageBrowserOpen(false); setImageBrowserTriggerAdd(false); }}
-          triggerAdd={imageBrowserTriggerAdd}
-        />
-      )}
 
       {searchOpen && currentProject && (
         <SearchPanel currentProject={currentProject} onOpen={(path) => { setSearchOpen(false); handleSelect(path); }} onClose={() => setSearchOpen(false)} />
@@ -1010,6 +1032,13 @@ export default function App() {
           currentProject={currentProject}
           onAdded={() => { setAddFileDialogOpen(false); handleRefresh(); }}
           onClose={() => setAddFileDialogOpen(false)}
+        />
+      )}
+
+      {quickOpenYamlOpen && (
+        <QuickOpenYamlDialog
+          onOpen={handleQuickOpenYaml}
+          onClose={() => setQuickOpenYamlOpen(false)}
         />
       )}
     </div>

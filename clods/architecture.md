@@ -21,10 +21,12 @@ mkdocs.yml        MkDocs Material config for GitHub Pages
 
 - **Frontend:** React/TypeScript — visual hierarchy editor, live markdown preview
 - **Backend:** FastAPI — file I/O, project management, analysis endpoints
-- **Desktop:** pywebview — packages frontend + backend as a local desktop app
+- **Desktop:** pywebview — packages frontend + backend as a local desktop app (Win/Mac/Linux)
+- **Browser-based:** first-class deployment target — WSL, headless Linux, or any platform where pywebview can't run; user runs the backend and opens `localhost:8002` in a browser
 - **CLI:** pith-cli (`pth` command) — separate repo (rick-does/pith-cli), not a dependency of pith
 - **Distribution:** PyPI (`pip install pith-md`) + standalone executable (PyInstaller, Win/Mac/Linux)
-- **User data:** `~/.pith/` holds config (`config.json`), per-project metadata (`projects/<project>/`), templates (`templates/`), and the personal dictionary. Project content (markdowns, exported site configs) lives wherever the user chose when creating the project. Default markdowns location when none is specified: `~/pith-projects/projects/<project>/markdowns`. There is no parent "project directory" concept — the markdowns dir is the content root.
+- **Platform matrix:** Win / WSL / Linux / macOS; pywebview where available, browser otherwise; feature parity maintained across both modes; pywebview-specific behaviors (file dialogs, `window.open` replacement via overlays) gated on pywebview detection
+- **User data:** `~/.pith/` holds config (`config.json`), per-project metadata (`projects/<project>/`), templates (`templates/`), and the personal dictionary. Project content (markdowns, exported site configs) lives wherever the user chose when creating the project. Default markdowns location when none is specified: `~/pith-projects/<project>/markdowns`. There is no parent "project directory" concept — the markdowns dir is the content root.
 - **YAML handling:** `pyyaml` for PiTH-native tree.yaml; `ruamel.yaml` for round-tripping MkDocs and generic YAML formats with formatting/comment preservation.
 
 No hosted backend. Runs entirely on the user's machine.
@@ -34,7 +36,7 @@ No hosted backend. Runs entirely on the user's machine.
 - Per-project metadata: `~/.pith/projects/<project-name>/` containing `.pith-project` (YAML frontmatter with `tree_yaml`, `markdowns_dir`, `template:`, optional `archived: true` + markdown body), `tree.yaml` (when not using a custom yaml path), `tree-backup.yaml` when flattening, and `unlinked.yaml`.
 - `unlinked.yaml` stores unlinked files as a flat list of `FileNode` objects (same schema as tree.yaml entries: `path`, `title`, `children: []`, `order: 0`). Moves between hierarchy and unlinked list are explicit writes to both files — `PUT /api/projects/{project}/unlinked` persists the unlinked list; `GET /api/projects/{project}/orphans` only adds newly discovered md_dir files not yet in either list, never overwrites explicit registrations. External (absolute-path) files survive round-trips through the tree and back.
 - Templates are shared across projects in `~/.pith/templates/`. Each project's `.pith-project` `template:` field points at the template file it uses. `default-template.md` is the shared default. Multiple named templates are supported; the Apply/Use-as-template UI shows a dropdown picker.
-- Project content (markdowns/, exported mkdocs.yml, sidebars.js) lives at whatever path the user specified at project creation, resolved via the `markdowns_dir` frontmatter field. If `markdowns_dir` is not set, defaults to `~/pith-projects/projects/<project>/markdowns`. No enforced directory structure and no parent project directory — the markdowns dir is the sole content root.
+- Project content (markdowns/, exported mkdocs.yml, sidebars.js) lives at whatever path the user specified at project creation, resolved via the `markdowns_dir` frontmatter field. If `markdowns_dir` is not set, defaults to `~/pith-projects/<project>/markdowns`. No enforced directory structure and no parent project directory — the markdowns dir is the sole content root.
 - `tree_yaml` in `.pith-project` can point to any file on disk — a PiTH-native `tree.yaml`, an existing `mkdocs.yml`, or any custom YAML. PiTH detects the format on every load and writes back in the same format.
 
 ## Config Schema
