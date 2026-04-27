@@ -35,7 +35,13 @@ Click **⋮** on a file chip and choose **Rename** to rename it inline. Spaces a
 
 ## Deleting a file
 
-Click **⋮** on a file chip and choose **Delete**. For files inside the markdowns directory, the file is moved to `_archive/` inside the markdowns directory rather than permanently deleted — to recover it, move it back by hand. For files that were added by reference from outside the markdowns directory, only the reference is removed; the file itself is not touched. The app detects file changes automatically within a few seconds.
+Click **⋮** on a file chip and choose **Delete**. The behavior depends on what kind of project you're in and where the file lives:
+
+- **Standard project, file in the markdowns directory** — the file is moved to `_archive/` inside the markdowns directory rather than permanently deleted. To recover it, move it back by hand.
+- **File added by reference from outside the markdowns directory** — only the reference is removed; the file itself is not touched.
+- **Quick Open YAML project (or any project pointed at your own YAML file)** — only the reference is removed from the YAML and unlinked list. The file is never moved. PiTH treats the YAML's directory as your space, not its own, so it doesn't create an `_archive/` folder there.
+
+The app detects file changes automatically within a few seconds.
 
 ## Flatten and restore
 

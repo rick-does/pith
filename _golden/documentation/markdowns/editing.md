@@ -46,7 +46,7 @@ Vi-specific save commands:
 
 ## Editor tab bar
 
-Below the editor toolbar is a bar with the following tabs: **Template**, **Stats**, **Issues**, **Structure**, and **Scan Project**, and on the right side a **Themes** button and an **Images** button. Click any tab header to expand it; clicking an open tab collapses it. Only one tab can be open at a time. The Stats, Issues, and Structure panels open as floating overlays so they don't push the editor down.
+Below the editor toolbar is a bar with the following tabs: **Template**, **Stats**, **Issues**, **Structure**, and **Scan Project**, and on the right side a **Themes** button. Click any tab header to expand it; clicking an open tab collapses it. Only one tab can be open at a time. The Stats, Issues, and Structure panels open as floating overlays so they don't push the editor down.
 
 ## Template
 
@@ -104,22 +104,6 @@ Available themes:
 
 - **One Dark**, **Monokai**, **Andromeda**, **Gruvbox Dark**, **Xcode Dark** — dark themes
 - **Xcode Light**, **Solarized Light** — light themes
-
-## Images
-
-The **Images** button on the right of the tab bar opens the Project images dialog, which shows all images in the project's `images/` folder (a sibling directory of `markdowns/`).
-
-From this dialog you can:
-
-- **Browse** — view thumbnails of all images in the project
-- **Insert** — click any thumbnail to insert it at the cursor position in the editor as a markdown image link (the path is relative to the file's location in the project)
-- **Add images** — click **Add images** in the dialog header to open a file picker and copy images into the project's `images/` folder
-- **Open folder** — click **Open folder** to open the `images/` directory in your file manager
-- **Delete** — hover over a thumbnail and click **✕** to delete an image (with confirmation)
-
-The Images button is only visible when a file is open in the editor. To manage images without opening a file, use **⋮ → Images** on the project chip.
-
-If you click a thumbnail while the editor is open, the image is inserted at the current cursor position and the dialog closes. If you open the dialog from the project chip menu (not the editor), clicking thumbnails does nothing — use it to browse or manage images only.
 
 ## Scan Project
 
@@ -181,4 +165,4 @@ If the syntax is invalid, the preview shows an error message instead of the diag
 
 ## Project notes
 
-The project notes file can also be opened for editing via **⋮ → Project info** on the project chip. This file does not appear in the hierarchy and cannot be renamed.
+The project notes file can also be opened for editing via **⋮ → Projects → Project info** on the project chip. This file does not appear in the hierarchy and cannot be renamed.

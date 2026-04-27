@@ -169,9 +169,10 @@ export async function deleteFile(project: string, path: string): Promise<void> {
   if (!r.ok) throw new Error("Failed to delete file");
 }
 
-export async function archiveFile(project: string, path: string): Promise<void> {
+export async function archiveFile(project: string, path: string): Promise<{ archived_as: string | null }> {
   const r = await fetch(`${BASE}/projects/${project}/archive-markdown/${path}`, { method: "POST" });
   if (!r.ok) throw new Error("Failed to archive file");
+  return r.json();
 }
 
 export async function renameFile(project: string, oldPath: string, newPath: string): Promise<{ new_path: string }> {

@@ -22,7 +22,7 @@ Title: <add title>
 # Title
 ```
 
-New files created in the project are pre-populated from the template, with the title heading automatically set to the filename. Multi-template management (creating and switching templates per project) is planned but not yet exposed in the UI.
+New files created in the project are pre-populated from the template, with the title heading automatically set to the filename. PiTH supports multiple named templates — every `.md` file in `~/.pith/templates/` is available. The **Apply template** button shows a dropdown to pick which template to apply, and **Use as template** lets you save the current file as a new named template.
 
 ## Managing the template
 

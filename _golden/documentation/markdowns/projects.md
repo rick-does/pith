@@ -15,7 +15,7 @@ The orange chip at the top of the hierarchy pane shows the current project name.
 1. Click **⋮** on the project chip
 2. Click **Projects → New project**
 3. Enter a project title and a project directory name (auto-derived from the title; you can edit it independently)
-4. Optionally browse to a **markdowns directory** — the folder where your `.md` files live or will live. If left blank, PiTH creates a directory at `~/pith-projects/projects/<project-name>/markdowns`.
+4. Optionally browse to a **markdowns directory** — the folder where your `.md` files live or will live. If left blank, PiTH creates a directory at `~/pith-projects/<project-name>/markdowns`.
 5. Optionally browse to a **YAML file** — an existing `.yaml` or `.yml` file to use as the project's hierarchy. See [Using an existing YAML](#using-an-existing-yaml) below.
 6. Click **Create**
 
@@ -45,7 +45,7 @@ Double-click the project chip to open the project notes editor. Double-click the
 
 ## Project notes
 
-Each project has a notes file for a description or anything else you want to keep alongside it. Open it with **⋮ → Project info**, or double-click the project chip.
+Each project has a notes file for a description or anything else you want to keep alongside it. Open it with **⋮ → Projects → Project info**, or double-click the project chip.
 
 ## Archiving a project
 
@@ -73,7 +73,23 @@ Files are copied into the project's markdowns directory. If a file with the same
 
 ## Viewing the hierarchy file
 
-To see the raw YAML for the current project's hierarchy, click **⋮ → View YAML**. This is a read-only view.
+To see the raw YAML for the current project's hierarchy, click **⋮ → YAML → View YAML**. This is a read-only view.
+
+## Quick Open YAML
+
+If you have a YAML file you want to open with PiTH right now — without going through the New Project dialog — use **⋮ → YAML → Quick open YAML…**. Browse to the `.yaml` or `.yml` file and click **Open**.
+
+PiTH creates a project automatically with an auto-generated memorable name (e.g. `573-witty-finch`) and points its hierarchy at the file you selected. The markdowns directory is inferred — a sibling `markdowns/` folder if one exists next to the YAML, otherwise the YAML file's parent directory. The original YAML file is not copied or moved; PiTH reads and writes it in place.
+
+If a project already points at the same YAML file, that project is reopened instead of creating a duplicate.
+
+You can also drag a `.yaml` or `.yml` file from your file manager onto the PiTH window for the same result.
+
+## Drag-drop files
+
+Drag any `.md` file from your file manager onto PiTH to add it to the current project's [Unlinked pane](unlinked-files.md) as a reference — the file is not copied; PiTH simply tracks its absolute path.
+
+Drag a `.yaml`/`.yml` file to trigger the same behavior as Quick Open YAML.
 
 ## Settings
 

@@ -6,31 +6,9 @@ from fastapi import APIRouter, HTTPException, Request
 
 from ..config import PROJECTS_META_DIR, push_recent_project
 from ..names import memorable_name
-from ..utils import create_project, project_exists, get_markdowns_dir, get_collection_file
+from ..utils import create_project, project_exists, get_collection_file
 
 router = APIRouter()
-
-
-@router.post("/api/quick-open/markdown")
-async def api_quick_open_markdown(request: Request):
-    data = await request.json()
-    filename = data.get("filename", "").strip()
-    content = data.get("content", "")
-    if not filename:
-        raise HTTPException(400, "filename required")
-    if not filename.lower().endswith(".md"):
-        raise HTTPException(400, "Only .md files supported")
-
-    name = memorable_name()
-    while project_exists(name):
-        name = memorable_name()
-
-    create_project(name)
-    md_dir = get_markdowns_dir(name)
-    md_dir.mkdir(parents=True, exist_ok=True)
-    (md_dir / filename).write_text(content, encoding="utf-8")
-    push_recent_project(name)
-    return {"project_name": name, "file_path": filename}
 
 
 @router.post("/api/quick-open/yaml")

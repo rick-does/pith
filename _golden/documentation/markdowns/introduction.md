@@ -18,7 +18,7 @@ PiTH also includes:
 - [Internal link validation](link-validation.md) — scan for broken links project-wide or per file
 - [Frontmatter template management](frontmatter.md) — define expected YAML keys, check compliance, and batch-update files
 - [File structure templates](editing.md#template) — define required headings; new files are pre-populated automatically
-- Image management — store images alongside your project, browse thumbnails, and insert them at the cursor
+- [Quick Open YAML](projects.md#quick-open-yaml) — point PiTH at any `mkdocs.yml`, custom nav config, or YAML with markdown paths and start working immediately
 - [Import and export](import-export.md) — read MkDocs or Docusaurus configs, export back when ready to publish
 
 Projects point to files wherever they already live — PiTH stores only lightweight metadata in `~/.pith/projects/` and never moves your files unless you ask it to. See [Managing Projects](projects.md).

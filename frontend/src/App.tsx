@@ -27,6 +27,7 @@ import {
   fetchConfig, setLastProject,
   fetchPrefs, savePrefs,
   quickOpenYaml,
+  addExternalFiles,
 } from "./api";
 import type { CollectionStructure, FileInfo, FileNode, ProjectInfo, EditorTab, OverlayType } from "./types";
 import type { TemplateComplianceItem, FileLinkReport, BrokenLink } from "./api";
@@ -567,7 +568,7 @@ export default function App() {
 
   const handleDeleteFile = useCallback(async (path: string) => {
     if (!currentProject) return;
-    await archiveFile(currentProject, path);
+    const { archived_as } = await archiveFile(currentProject, path);
     const tabToClose = tabsRef.current.find(t => t.path === path);
     if (tabToClose) {
       const next = tabsRef.current.filter(t => t.path !== path);
@@ -592,7 +593,7 @@ export default function App() {
       setSelectedPath(null);
     }
     await loadCollection(currentProject);
-    window.alert(`"${path}" is now archived`);
+    window.alert(archived_as ? `"${path}" is now archived` : `"${path}" removed from this project`);
   }, [currentProject, selectedPath, loadCollection]);
 
   const handleCreateChildFile = useCallback(async (parentPath: string, filename: string) => {
@@ -652,19 +653,6 @@ export default function App() {
     await loadCollection(currentProject);
   }, [currentProject, loadCollection]);
 
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragDepth(0);
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
-    if (/\.(yaml|yml)$/i.test(file.name)) {
-      window.alert("To open a YAML file, use Projects → Quick open YAML… in the menu. Drag-drop can't provide the file path needed to edit it in place.");
-      return;
-    }
-    if (!file.name.toLowerCase().endsWith(".md")) return;
-    setAddFileDialogOpen(true);
-  }, [currentProject, loadCollection]);
-
   const handleQuickOpenYaml = useCallback(async (yamlPath: string) => {
     setQuickOpenYamlOpen(false);
     try {
@@ -674,6 +662,45 @@ export default function App() {
       await handleSwitchProject(project_name);
     } catch {}
   }, [handleSwitchProject]);
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragDepth(0);
+
+    const fileUriToPath = (uri: string): string => {
+      if (!uri.startsWith("file://")) return "";
+      let p = decodeURIComponent(uri.slice("file://".length));
+      if (/^\/[A-Za-z]:/.test(p)) p = p.slice(1);
+      return p;
+    };
+
+    const uriList = e.dataTransfer.getData("text/uri-list");
+    const paths = uriList
+      .split("\n")
+      .map(l => l.trim())
+      .filter(l => l && !l.startsWith("#"))
+      .map(fileUriToPath)
+      .filter(Boolean);
+
+    if (paths.length === 0) {
+      const file = e.dataTransfer.files[0];
+      if (file && file.name.toLowerCase().endsWith(".md")) setAddFileDialogOpen(true);
+      return;
+    }
+
+    const yamlPath = paths.find(p => /\.(yaml|yml)$/i.test(p));
+    if (yamlPath) {
+      await handleQuickOpenYaml(yamlPath);
+      return;
+    }
+
+    const mdPaths = paths.filter(p => p.toLowerCase().endsWith(".md"));
+    if (mdPaths.length === 0 || !currentProject) return;
+    try {
+      await addExternalFiles(currentProject, mdPaths);
+      await loadCollection(currentProject);
+    } catch {}
+  }, [currentProject, loadCollection, handleQuickOpenYaml]);
 
   const overlayOpen = overlayType !== null;
 
@@ -695,7 +722,7 @@ export default function App() {
     >
       {dragDepth > 0 && (
         <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(26,111,168,0.15)", border: "4px dashed #1a6fa8", display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-          <div style={{ background: "rgba(255,255,255,0.92)", padding: "20px 36px", borderRadius: 12, fontSize: 18, fontWeight: 600, color: "#1a6fa8" }}>Drop markdown to open</div>
+          <div style={{ background: "rgba(255,255,255,0.92)", padding: "20px 36px", borderRadius: 12, fontSize: 18, fontWeight: 600, color: "#1a6fa8" }}>Drop file to add</div>
         </div>
       )}
       <div style={{ height: "50px", flexShrink: 0, background: "#1a6fa8", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 1in" }}>
