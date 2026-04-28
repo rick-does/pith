@@ -7,6 +7,7 @@ import type { CodeEditorHandle } from "./CodeEditor";
 import MermaidBlock from "./MermaidBlock";
 import type { BrokenLink } from "../api";
 import { initSpellWorker, addWordToWorker } from "../spellcheck";
+import { basename, fullPath } from "../treeHelpers";
 
 export interface MarkdownEditorHandle {
   insertText: (text: string) => void;
@@ -15,6 +16,7 @@ export interface MarkdownEditorHandle {
 interface Props {
   project?: string;
   path: string;
+  markdownsDir?: string;
   content: string;
   savedContent?: string;
   onContentChange: (c: string) => void;
@@ -36,7 +38,7 @@ interface Props {
   onEditorThemeChange: (id: string) => void;
 }
 
-const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function MarkdownEditor({ project, path, content, savedContent, onContentChange, viMode, onViModeChange, onSaved, onSave, onRename, onUseAsTemplate, onApplyTemplate, onFetchTemplateList, onEditTemplate, onViewCompliance, onClose, onReport, onOpenImageBrowser, brokenLinks, editorTheme, onEditorThemeChange }, ref) {
+const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function MarkdownEditor({ project, path, markdownsDir, content, savedContent, onContentChange, viMode, onViModeChange, onSaved, onSave, onRename, onUseAsTemplate, onApplyTemplate, onFetchTemplateList, onEditTemplate, onViewCompliance, onClose, onReport, onOpenImageBrowser, brokenLinks, editorTheme, onEditorThemeChange }, ref) {
   const [view, setView] = useState<"edit" | "preview" | "split">("split");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
@@ -121,19 +123,19 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function Markdown
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") { e.stopPropagation(); setRenaming(false); const n = renameValue.trim(); if (n && n !== path) onRename?.(path, n); }
+                if (e.key === "Enter") { e.stopPropagation(); setRenaming(false); const n = renameValue.trim(); if (n && n !== basename(path)) onRename?.(path, n); }
               }}
-              onBlur={() => { setRenaming(false); const n = renameValue.trim(); if (n && n !== path) onRename?.(path, n); }}
+              onBlur={() => { setRenaming(false); const n = renameValue.trim(); if (n && n !== basename(path)) onRename?.(path, n); }}
               onClick={(e) => e.stopPropagation()}
               style={{ background: "#222", border: "1px solid #6b8cff", borderRadius: "3px", color: "#ccc", fontSize: "14px", padding: "1px 6px", outline: "none", width: "180px" }}
             />
           ) : (
             <span
               style={{ color: "#888", fontSize: "14px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: onRename ? "text" : "default" }}
-              onDoubleClick={() => { if (onRename) { setRenameValue(path); setRenaming(true); } }}
-              title={onRename ? "Double-click to rename" : undefined}
+              onDoubleClick={() => { if (onRename) { setRenameValue(basename(path)); setRenaming(true); } }}
+              title={onRename ? `${fullPath(path, markdownsDir)}\nDouble-click to rename` : fullPath(path, markdownsDir)}
             >
-              {path}
+              {basename(path)}
             </span>
           )}
           <label style={{ color: "#888", fontSize: "13px", display: "flex", alignItems: "center", gap: "4px", cursor: "pointer", flexShrink: 0 }}>

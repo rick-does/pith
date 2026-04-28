@@ -1,6 +1,6 @@
 # Unlinked Files
 
-The **Unlinked** pane shows markdown files that are registered with the project but not yet part of the [hierarchy](hierarchy.md). This includes files discovered in the markdowns directory and files added by reference from outside it. Files end up here when you add files directly to the folder, [import](import-export.md) a batch of files, add an external file by reference, drag a `.md` file from your file manager onto PiTH, or remove a file from the hierarchy without deleting it.
+The **Unlinked** pane shows markdown files that are registered with the project but not yet part of the [hierarchy](hierarchy.md). This includes files discovered in the markdowns directory and files added by reference from outside it. Files end up here when you add files directly to the folder, [import](import-export.md) a batch of files, add an external file by reference, or remove a file from the hierarchy without deleting it.
 
 ## The Unlinked chip
 
@@ -23,6 +23,8 @@ There are four ways to move unlinked files into the hierarchy:
 **Note**: Double-clicking an unlinked file opens it in the editor.
 
 **Alt+click** on a file chip shows a preview of the file's contents without opening the editor. The preview tooltip shows the opposite of the current label mode — if labels show filenames, the tooltip shows the title, and vice versa.
+
+Hovering over any chip shows the full file path. In filename mode, the tooltip also shows the title above the path. Files added by reference from outside the project appear in *italics*.
 
 To select multiple files:
 

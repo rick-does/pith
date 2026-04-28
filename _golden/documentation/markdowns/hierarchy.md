@@ -53,6 +53,12 @@ After flattening, the menu item changes to **Restore hierarchy**. Click it to br
 
 Click the triangle next to any file that has children to expand or collapse it. See [Keyboard Shortcuts](keyboard-shortcuts.md) for the full list of navigation keys.
 
+## File chip labels and tooltips
+
+The **Labels** setting (⋮ → Settings) controls whether chips show the file title or the filename. Whichever mode is active, hovering over any chip shows the full file path. In filename mode, the tooltip also includes the title above the path.
+
+Files added from outside the project by reference are shown in *italics* to indicate they are external — the file lives somewhere else and PiTH will never move or copy it without your instruction.
+
 ## Previewing a file
 
 **Alt+click** any file chip to preview its contents without opening the editor. The tooltip shows the opposite of the current label mode — if chips show filenames, the tooltip shows the title, and vice versa.

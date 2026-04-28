@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, CSSProperties } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { fetchMarkdown } from "../api";
+import { basename, fullPath, isAbsolute } from "../treeHelpers";
 
 export interface OrphanItemProps {
   path: string;
@@ -13,6 +14,7 @@ export interface OrphanItemProps {
   onDelete: (path: string) => void;
   onAddToHierarchy: (path: string) => void;
   currentProject: string;
+  markdownsDir?: string;
   setChipRef: (el: HTMLElement | null) => void;
   activeId: string | null;
   brokenLinkMap?: Record<string, number>;
@@ -22,14 +24,15 @@ export interface OrphanItemProps {
   forceShowIndicators?: boolean;
 }
 
-export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSelect, onAddToSelection, onOpen, onDelete, onAddToHierarchy, currentProject, setChipRef, activeId, brokenLinkMap, frontmatterIssueMap, templateIssueMap, showIndicators, forceShowIndicators }: OrphanItemProps) {
+export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSelect, onAddToSelection, onOpen, onDelete, onAddToHierarchy, currentProject, markdownsDir, setChipRef, activeId, brokenLinkMap, frontmatterIssueMap, templateIssueMap, showIndicators, forceShowIndicators }: OrphanItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: path });
   const [hovered, setHovered] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [previewContent, setPreviewContent] = useState<string | null>(null);
   const [previewFixed, setPreviewFixed] = useState<{ left: number; top: number } | null>(null);
-  const label = titleMode ? title : path;
-  const tooltip = titleMode ? path : title;
+  const label = titleMode ? title : basename(path);
+  const fullP = fullPath(path, markdownsDir);
+  const tooltip = titleMode ? fullP : `${title}\n${fullP}`;
   const menuRef = useRef<HTMLDivElement>(null);
   const menuTriggerRef = useRef<HTMLSpanElement>(null);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -105,7 +108,7 @@ export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSel
           onMouseLeave={() => { setHovered(false); setPreviewContent(null); setPreviewFixed(null); }}
         >
           <div style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0, padding: `5px ${(isMultiSelected || hovered || forceShowIndicators || indicatorOpen) ? "50px" : "10px"} 5px 12px`, position: "relative" }}>
-            <span style={{ fontSize: "15px", fontWeight: 500, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }} title={tooltip}>
+            <span style={{ fontSize: "15px", fontWeight: 500, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, fontStyle: isAbsolute(path) ? "italic" : "normal" }} title={tooltip}>
               {label}
             </span>
           </div>

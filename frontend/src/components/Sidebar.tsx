@@ -30,6 +30,8 @@ import {
   findSiblingList,
   findParent,
   swapSiblings,
+  basename,
+  isAbsolute,
 } from "../treeHelpers";
 import { GAP, COL_W, TOP_SENTINEL } from "./SortableItemConstants";
 import { SortableItem } from "./SortableItem";
@@ -86,12 +88,13 @@ interface SidebarProps {
   onRemoveFromUnlinked: (paths: string[], newCollection: CollectionStructure) => void;
   orphans: FileInfo[];
   onRefresh: () => Promise<void>;
+  markdownsDir?: string;
   treeOps: TreeOps;
   indicators: Indicators;
   chip: ProjectChipProps;
 }
 
-export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onMoveToUnlinked, onRemoveFromUnlinked, orphans, onRefresh, treeOps, indicators, chip }: SidebarProps) {
+export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onMoveToUnlinked, onRemoveFromUnlinked, orphans, onRefresh, markdownsDir, treeOps, indicators, chip }: SidebarProps) {
   const [orphanSort, setOrphanSort] = useState<"recent" | "alpha" | "custom">("recent");
   const [orphanOrder, setOrphanOrder] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(flatIds(collection.root)));
@@ -459,9 +462,9 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
 
   const activeLabel = activeId ? (() => {
     const orphan = orphans.find(o => o.path === activeId);
-    if (orphan) return chip.titleMode ? orphan.title : orphan.path;
+    if (orphan) return chip.titleMode ? orphan.title : basename(orphan.path);
     const [, node] = removeNode(collection.root, activeId);
-    return node ? (chip.titleMode ? node.title : node.path) : activeId;
+    return node ? (chip.titleMode ? node.title : basename(node.path)) : basename(activeId);
   })() : "";
 
   return (
@@ -527,6 +530,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
                   activeLabel={activeLabel}
                   dragDeltaX={dragDeltaX}
                   currentProject={chip.currentProject}
+                  markdownsDir={markdownsDir}
                   brokenLinkMap={indicators.brokenLinkMap}
                   frontmatterIssueMap={indicators.frontmatterIssueMap}
                   templateIssueMap={indicators.templateIssueMap}
@@ -542,7 +546,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
             </div>
 
             <OrphanPane
-              orphans={orphans} titleMode={chip.titleMode} activeId={activeId} currentProject={chip.currentProject}
+              orphans={orphans} titleMode={chip.titleMode} activeId={activeId} currentProject={chip.currentProject} markdownsDir={markdownsDir}
               selectedOrphans={selectedOrphans} onOrphanSelect={handleOrphanSelect}
               onAddToSelection={(path) => setSelectedOrphans(prev => { const next = new Set(prev); next.add(path); return next; })}
               orphanSort={orphanSort} setOrphanSort={setOrphanSort} orphanOrder={orphanOrder}
@@ -560,33 +564,74 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
         <DragOverlay dropAnimation={{ duration: 150, easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)" }}>
           {activeId ? (() => {
             const isOrphanDrag = orphans.some(o => o.path === activeId);
-            const isMultiOrphanDrag = isOrphanDrag && selectedOrphans.has(activeId) && selectedOrphans.size > 1;
-            const labels = isMultiOrphanDrag
-              ? [...selectedOrphans].map(p => {
-                  const o = orphans.find(x => x.path === p);
-                  return o ? (chip.titleMode ? o.title : o.path) : p;
-                })
-              : [activeLabel];
-            return (
-              <div style={{ marginLeft: activeDepth > 0 ? `${(activeDepth + 1) * COL_W}px` : 0 }}>
-                {labels.map((label, i) => (
-                  <div key={i} style={{
-                    display: "inline-flex", alignItems: "center",
-                    width: "2.5in", borderRadius: "6px",
-                    border: "1.5px solid #1a6fa8",
-                    background: !isOrphanDrag ? "#e8f4fd" : "#fff",
-                    boxShadow: i === 0
-                      ? (!isOrphanDrag
-                          ? "inset 5px 0 0 0 #1a6fa8, 0 6px 20px rgba(0,0,0,0.22)"
-                          : "0 6px 20px rgba(0,0,0,0.22)")
-                      : "none",
-                    opacity: 0.97, userSelect: "none",
-                    padding: "5px 10px 5px 12px",
-                    marginTop: i > 0 ? "4px" : 0,
-                  }}>
-                    <span style={{ fontSize: "15px", fontWeight: 500, color: "#1a1a1a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+
+            const indicatorIcon = (path: string) => {
+              const bc = indicators.brokenLinkMap?.[path] ?? 0;
+              const fm = indicators.frontmatterIssueMap?.[path] ?? false;
+              const tm = indicators.templateIssueMap?.[path] ?? false;
+              const level = bc > 0 ? "red" : (fm || tm) ? "yellow" : "green";
+              return level === "green"
+                ? <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#3a7d44", flexShrink: 0, marginTop: "2px" }} />
+                : <span style={{ fontSize: "13px", lineHeight: 1, fontWeight: "bold", color: level === "red" ? "#c00" : "#cc8800", userSelect: "none" }}>&#9888;</span>;
+            };
+
+            const renderHierarchyChip = (node: import("../types").FileNode, selected: boolean, indent: number): React.ReactNode => {
+              const label = chip.titleMode ? node.title : basename(node.path);
+              const hasChildren = (node.children ?? []).length > 0;
+              const isExpanded = expanded.has(node.path);
+              const pad = chip.showIndicators ? "45px" : "31px";
+              return (
+                <React.Fragment key={node.path}>
+                  <div style={{ display: "flex", alignItems: "stretch", margin: `${GAP}px 0`, marginLeft: `${indent * COL_W}px` }}>
+                    <div style={{ minWidth: 0, position: "relative" }}>
+                      <div style={{ display: "inline-flex", alignItems: "stretch", width: "2.5in", overflow: "visible", borderRadius: "6px", border: "1.5px solid #1a6fa8", background: selected ? "#e8f4fd" : "#fff", boxShadow: selected ? "inset 5px 0 0 0 #1a6fa8" : "none", userSelect: "none" }}>
+                        <div style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0, gap: "2px", padding: `5px ${pad} 5px 12px`, position: "relative" }}>
+                          {hasChildren
+                            ? <span style={{ width: "16px", flexShrink: 0, marginTop: "-5px", marginBottom: "-5px", marginRight: "3px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                                <svg width="9" height="13" viewBox="0 0 11 16" fill="none" stroke="#888" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isExpanded ? "rotate(90deg)" : "none", transition: "transform 0.15s", flexShrink: 0 }}><polyline points="2,2 9,8 2,14"/></svg>
+                              </span>
+                            : <span style={{ width: "16px", marginRight: "3px", flexShrink: 0 }} />
+                          }
+                          <span style={{ fontSize: "15px", fontWeight: 500, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, fontStyle: isAbsolute(node.path) ? "italic" : "normal" }}>{label}</span>
+                          {chip.showIndicators && <span style={{ position: "absolute", right: "31px", top: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center", width: "14px" }}>{indicatorIcon(node.path)}</span>}
+                        </div>
+                        <span style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "31px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", fontWeight: "bold", color: "#bbb" }}>&#8942;</span>
+                      </div>
+                    </div>
                   </div>
-                ))}
+                  {hasChildren && isExpanded && (node.children ?? []).map(child => renderHierarchyChip(child, false, indent + 1))}
+                </React.Fragment>
+              );
+            };
+
+            if (isOrphanDrag) {
+              const paths = selectedOrphans.has(activeId) && selectedOrphans.size > 1 ? [...selectedOrphans] : [activeId];
+              return (
+                <div>
+                  {paths.map((p, i) => {
+                    const o = orphans.find(x => x.path === p);
+                    const label = o ? (chip.titleMode ? o.title : basename(o.path)) : basename(p);
+                    return (
+                      <div key={p} style={{ margin: i === 0 ? "8px 0" : "4px 0" }}>
+                        <div style={{ position: "relative", display: "inline-flex", alignItems: "stretch", width: "2.5in", overflow: "visible", background: "#fff3e0", boxShadow: "inset 5px 0 0 0 #ff8c00", borderRadius: "4px", userSelect: "none" }}>
+                          <div style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0, padding: `5px ${chip.showIndicators ? "50px" : "36px"} 5px 12px`, position: "relative" }}>
+                            <span style={{ fontSize: "15px", fontWeight: 500, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, fontStyle: isAbsolute(p) ? "italic" : "normal" }}>{label}</span>
+                            {chip.showIndicators && <span style={{ position: "absolute", right: "36px", top: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center", width: "14px" }}>{indicatorIcon(p)}</span>}
+                          </div>
+                          <span style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "36px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", fontWeight: "bold", color: "#bbb" }}>&#8942;</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            }
+
+            const [, activeNode] = removeNode(collection.root, activeId);
+            if (!activeNode) return null;
+            return (
+              <div style={{ marginLeft: activeDepth > 0 ? `${activeDepth * COL_W}px` : 0 }}>
+                {renderHierarchyChip(activeNode, true, 0)}
               </div>
             );
           })() : null}

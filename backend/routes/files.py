@@ -73,10 +73,33 @@ async def api_delete_markdown(project: str, file_path: str):
 
 @router.post("/api/projects/{project}/archive-markdown/{file_path:path}")
 async def api_archive_markdown(project: str, file_path: str):
-    fp = safe_path(project, file_path)
-    if not fp.exists():
-        raise HTTPException(404, "File not found")
-    new_path = archive_file(project, file_path)
+    fp_norm = Path(file_path)
+
+    # If an absolute path turns out to be inside the project's markdowns dir,
+    # treat it as an internal file so it gets properly archived (not just dereferenced).
+    if fp_norm.is_absolute():
+        try:
+            md_dir = get_markdowns_dir(project).resolve()
+            rel = fp_norm.resolve().relative_to(md_dir)
+            file_path = rel.as_posix()
+            fp_norm = Path(file_path)
+        except (ValueError, OSError):
+            pass  # truly external
+
+    if fp_norm.is_absolute():
+        archived_as = None
+    else:
+        fp = safe_path(project, file_path)
+        if not fp.exists():
+            raise HTTPException(404, "File not found")
+        archived_as = archive_file(project, file_path)
+
+    def same_path(stored: str) -> bool:
+        try:
+            return Path(stored) == fp_norm
+        except Exception:
+            return stored == file_path
+
     collection = load_collection(project)
 
     def remove_from(nodes: list[FileNode]) -> list[FileNode]:
@@ -85,29 +108,48 @@ async def api_archive_markdown(project: str, file_path: str):
                 path=n.path, title=n.title, order=n.order,
                 children=remove_from(n.children),
             )
-            for n in nodes if n.path != file_path
+            for n in nodes if not same_path(n.path)
         ]
 
     collection.root = remove_from(collection.root)
     save_collection(project, collection)
-    save_unlinked_nodes(project, [n for n in get_unlinked_nodes(project) if n.path != file_path])
-    return {"path": file_path, "archived_as": new_path}
+    save_unlinked_nodes(project, [n for n in get_unlinked_nodes(project) if not same_path(n.path)])
+    return {"path": file_path, "archived_as": archived_as}
 
 
 @router.post("/api/projects/{project}/rename/{file_path:path}")
 async def api_rename_markdown(project: str, file_path: str, request: Request):
     data = await request.json()
-    new_path = data.get("new_path", "").strip()
-    if not new_path:
+    new_name = data.get("new_path", "").strip()
+    if not new_name:
         raise HTTPException(400, "new_path required")
-    rename_file(project, file_path, new_path)
 
+    old = Path(file_path)
+    is_external = old.is_absolute()
+
+    # Load collection BEFORE renaming so sync_collection still finds the file at its old path
     collection = load_collection(project)
+
+    if is_external:
+        new_abs = old.parent / new_name
+        old.rename(new_abs)
+        resolved_new = str(new_abs)
+    else:
+        rename_file(project, file_path, new_name)
+        resolved_new = new_name
+
+    old_norm = Path(file_path)
+
+    def same_path(stored: str) -> bool:
+        try:
+            return Path(stored) == old_norm
+        except Exception:
+            return stored == file_path
 
     def update_paths(nodes: list[FileNode]) -> list[FileNode]:
         result = []
         for n in nodes:
-            path = new_path if n.path == file_path else n.path
+            path = resolved_new if same_path(n.path) else n.path
             result.append(FileNode(
                 path=path, title=n.title, order=n.order,
                 children=update_paths(n.children),
@@ -116,7 +158,15 @@ async def api_rename_markdown(project: str, file_path: str, request: Request):
 
     collection.root = update_paths(collection.root)
     save_collection(project, collection)
-    return {"old_path": file_path, "new_path": new_path}
+
+    if is_external:
+        unlinked = get_unlinked_nodes(project)
+        for n in unlinked:
+            if same_path(n.path):
+                n.path = resolved_new
+        save_unlinked_nodes(project, unlinked)
+
+    return {"old_path": file_path, "new_path": resolved_new}
 
 
 @router.get("/api/projects/{project}/project-md")

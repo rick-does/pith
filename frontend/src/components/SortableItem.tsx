@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, CSSProperties } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import type { FileNode } from "../types";
 import { fetchMarkdown } from "../api";
+import { basename, fullPath, isAbsolute } from "../treeHelpers";
 import { LINE, COL_W, CHILD_INDENT, GAP } from "./SortableItemConstants";
 
 function RenameInput({ currentPath, onCommit, onCancel }: {
@@ -83,13 +84,14 @@ export interface ItemProps {
   dragDeltaX: number;
   showTopIndicator?: boolean;
   currentProject: string;
+  markdownsDir?: string;
   brokenLinkMap?: Record<string, number>;
   frontmatterIssueMap?: Record<string, boolean>;
   templateIssueMap?: Record<string, boolean>;
   showIndicators?: boolean;
 }
 
-export function SortableItem({ node, depth, isLast, ancestors, selectedPath, titleMode, onSelect, onOpen, onDelete, onRename, onCreateChild, onCopyToChild, expanded, toggleExpand, overId, activeId, activeLabel, dragDeltaX, showTopIndicator, currentProject, brokenLinkMap, frontmatterIssueMap, templateIssueMap, showIndicators }: ItemProps) {
+export function SortableItem({ node, depth, isLast, ancestors, selectedPath, titleMode, onSelect, onOpen, onDelete, onRename, onCreateChild, onCopyToChild, expanded, toggleExpand, overId, activeId, activeLabel, dragDeltaX, showTopIndicator, currentProject, markdownsDir, brokenLinkMap, frontmatterIssueMap, templateIssueMap, showIndicators }: ItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: node.path });
   const [renaming, setRenaming] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -130,8 +132,9 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
   const hasChildren = (node.children ?? []).length > 0;
   const isSelected = selectedPath === node.path;
   const isOver = activeId !== null && overId === node.path && activeId !== node.path;
-  const label = titleMode ? node.title : node.path;
-  const tooltip = titleMode ? node.path : node.title;
+  const label = titleMode ? node.title : basename(node.path);
+  const fullP = fullPath(node.path, markdownsDir);
+  const tooltip = titleMode ? fullP : `${node.title}\n${fullP}`;
   const brokenCount = brokenLinkMap?.[node.path] ?? 0;
   const hasFmIssue = frontmatterIssueMap?.[node.path] ?? false;
   const hasTmplIssue = templateIssueMap?.[node.path] ?? false;
@@ -213,7 +216,7 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
                 />
               ) : (
                 <span
-                  style={{ fontSize: "15px", fontWeight: 500, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}
+                  style={{ fontSize: "15px", fontWeight: 500, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, fontStyle: isAbsolute(node.path) ? "italic" : "normal" }}
                   title={tooltip}
                 >
                   {label}
@@ -353,6 +356,7 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
             activeLabel={activeLabel}
             dragDeltaX={dragDeltaX}
             currentProject={currentProject}
+            markdownsDir={markdownsDir}
             brokenLinkMap={brokenLinkMap}
             frontmatterIssueMap={frontmatterIssueMap}
             templateIssueMap={templateIssueMap}

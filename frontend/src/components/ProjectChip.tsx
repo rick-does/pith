@@ -5,6 +5,7 @@ import { GAP } from "./SortableItemConstants";
 export interface ProjectChipProps {
   currentProject: string;
   currentProjectTitle: string;
+  currentProjectPath?: string;
   recentProjects: ProjectInfo[];
   titleMode: boolean;
   setTitleMode: (mode: boolean) => void;
@@ -33,7 +34,7 @@ export interface ProjectChipProps {
   onQuickOpenYaml: () => void;
 }
 
-export default function ProjectChip({ currentProject, currentProjectTitle, recentProjects, titleMode, setTitleMode, onSwitchProject, onNewProject, onOpenProject, onArchiveProject, onOpenProjectMd, onCreateFile, onAddFileFromMd, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, showIndicators, onToggleIndicators, showNewProjectFile, onToggleNewProjectFile, onQuickOpenYaml }: ProjectChipProps) {
+export default function ProjectChip({ currentProject, currentProjectTitle, currentProjectPath, recentProjects, titleMode, setTitleMode, onSwitchProject, onNewProject, onOpenProject, onArchiveProject, onOpenProjectMd, onCreateFile, onAddFileFromMd, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, showIndicators, onToggleIndicators, showNewProjectFile, onToggleNewProjectFile, onQuickOpenYaml }: ProjectChipProps) {
 
 
 
@@ -113,7 +114,7 @@ export default function ProjectChip({ currentProject, currentProjectTitle, recen
       }}>
         <span
           style={{ fontSize: "15px", fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, cursor: "pointer" }}
-          title={titleMode ? currentProjectTitle : currentProject}
+          title={currentProjectPath ? (titleMode ? currentProjectPath : `${currentProjectTitle}\n${currentProjectPath}`) : (titleMode ? currentProject : currentProjectTitle)}
           onDoubleClick={() => { onOpenProjectMd(); }}
         >
           {titleMode ? currentProjectTitle : currentProject}
@@ -215,7 +216,7 @@ export default function ProjectChip({ currentProject, currentProjectTitle, recen
                       onClick={() => { onAddFileFromMd(); setMenuOpen(false); setFileSubmenuOpen(false); }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                    >Add File from Markdown</div>
+                    >Add Existing File</div>
                   </div>
                 )}
               </div>

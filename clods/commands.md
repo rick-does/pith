@@ -9,4 +9,6 @@ Backend only: `uvicorn backend.main:app --reload --port 8002`
 Build frontend: `cd frontend && npm run build`
 Build wheel: `python build_pkg.py && python -m build`
 
+pywebview standalone (dev): `python app.py`
+
 No test suite. CI only checks `/health` and `/api/projects` endpoints.

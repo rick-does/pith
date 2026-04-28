@@ -9,7 +9,7 @@ Welcome to your new PiTH project. A quick tour of what you can do.
 ## Add files
 
 - **⋮ → File → New file** — create a fresh `.md` file
-- **⋮ → File → Add File from Markdown** — pick existing `.md` files from anywhere on disk
+- **⋮ → File → Add Existing File** — pick existing `.md` files from anywhere on disk
 - Files not yet placed in the hierarchy appear in the **Unlinked** pane; drag them into the tree to organize
 
 ## Organize

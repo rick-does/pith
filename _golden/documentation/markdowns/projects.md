@@ -61,15 +61,20 @@ To permanently remove a project from PiTH, delete its metadata folder at `~/.pit
 
 ## Adding files from another directory
 
-To copy individual markdown files from another location into the current project:
+To add markdown files from outside the current project:
 
 1. Click **⋮** on the project chip
-2. Click **File → Add Files from Markdown**
-3. Browse to the directory containing the files
+2. Click **File → Add Existing File**
+3. Browse to the directory containing the files (PiTH remembers where you last browsed)
 4. Select or deselect files (all are selected by default)
-5. Click **Add**
+5. Choose whether to reference the files in place or copy them (see below)
+6. Click **Add**
 
-Files are copied into the project's markdowns directory. If a file with the same name already exists, an index is appended (e.g. `notes-1.md`, `notes-2.md`).
+**Reference in place (default):** Files are added to the Unlinked pane as external references. PiTH tracks the original file wherever it lives. The file chip appears in italics to indicate it is external. Archiving or removing the reference does not touch the file on disk.
+
+**Copy to project:** Check **Copy to current project** to copy the files into the project's markdowns directory instead. If a file with the same name already exists, an index is appended (e.g. `notes-1.md`, `notes-2.md`).
+
+PiTH warns you and disables the Add button if you navigate into the project's own markdowns directory — files there are already tracked by the project automatically.
 
 ## Viewing the hierarchy file
 
@@ -79,17 +84,9 @@ To see the raw YAML for the current project's hierarchy, click **⋮ → YAML �
 
 If you have a YAML file you want to open with PiTH right now — without going through the New Project dialog — use **⋮ → YAML → Quick open YAML…**. Browse to the `.yaml` or `.yml` file and click **Open**.
 
-PiTH creates a project automatically with an auto-generated memorable name (e.g. `573-witty-finch`) and points its hierarchy at the file you selected. The markdowns directory is inferred — a sibling `markdowns/` folder if one exists next to the YAML, otherwise the YAML file's parent directory. The original YAML file is not copied or moved; PiTH reads and writes it in place.
+PiTH creates a project automatically with an auto-generated memorable name (e.g. `573-witty-finch`) and points its hierarchy at the file you selected. The markdowns directory is inferred — a sibling `markdowns/` folder if one exists next to the YAML; otherwise a new `markdowns/` folder is created inside `~/pith-projects/573-witty-finch/`. The original YAML file is not copied or moved; PiTH reads and writes it in place.
 
 If a project already points at the same YAML file, that project is reopened instead of creating a duplicate.
-
-You can also drag a `.yaml` or `.yml` file from your file manager onto the PiTH window for the same result.
-
-## Drag-drop files
-
-Drag any `.md` file from your file manager onto PiTH to add it to the current project's [Unlinked pane](unlinked-files.md) as a reference — the file is not copied; PiTH simply tracks its absolute path.
-
-Drag a `.yaml`/`.yml` file to trigger the same behavior as Quick Open YAML.
 
 ## Settings
 

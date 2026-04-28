@@ -1,5 +1,19 @@
 import type { FileNode } from "./types";
 
+export function basename(path: string): string {
+  return path.split(/[\\/]/).pop() || path;
+}
+
+export function isAbsolute(p: string): boolean {
+  return /^([a-zA-Z]:[\\/]|\/|\\\\)/.test(p);
+}
+
+export function fullPath(p: string, markdownsDir?: string): string {
+  if (isAbsolute(p) || !markdownsDir) return p;
+  const sep = markdownsDir.includes("\\") ? "\\" : "/";
+  return markdownsDir.replace(/[\\/]+$/, "") + sep + p;
+}
+
 export function flatIds(nodes: FileNode[]): string[] {
   return nodes.flatMap((n) => [n.path, ...flatIds(n.children ?? [])]);
 }

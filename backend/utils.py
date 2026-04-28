@@ -122,7 +122,7 @@ def list_projects() -> list[dict]:
             "name": entry.name,
             "title": title,
             "archived": bool(meta.get("archived", False)),
-            "markdowns_dir": str(meta.get("markdowns_dir", "")),
+            "markdowns_dir": str(get_markdowns_dir(entry.name)),
         })
     return result
 
@@ -263,13 +263,21 @@ def sync_collection(project: str, collection: CollectionStructure) -> Collection
     def sync_nodes(nodes: list[FileNode]) -> list[FileNode]:
         result = []
         for node in nodes:
+            p = Path(node.path)
+            if p.is_absolute():
+                # External file: keep if it exists; never touch the path
+                if p.exists():
+                    node.children = sync_nodes(node.children)
+                    result.append(node)
+                continue
             fp = md_dir / node.path
             if not fp.exists():
                 continue
-            title = extract_title(fp.read_text(encoding="utf-8"))
-            if not title:
-                title = fp.stem
-            node.title = title
+            try:
+                title = extract_title(fp.read_text(encoding="utf-8"))
+            except OSError:
+                title = ""
+            node.title = title or fp.stem
             try:
                 node.path = fp.relative_to(md_dir).as_posix()
             except ValueError:
@@ -469,10 +477,20 @@ def save_collection(project: str, collection: CollectionStructure) -> None:
 
 
 def get_orphans(project: str, collection: CollectionStructure) -> list[dict]:
+    md_dir = get_markdowns_dir(project)
     known = flatten_paths(collection.root)
     stored = get_unlinked_nodes(project)
+
+    def _exists(path_str: str) -> bool:
+        p = Path(path_str)
+        return p.exists() if p.is_absolute() else (md_dir / path_str).exists()
+
+    live = [n for n in stored if _exists(n.path)]
+    if len(live) < len(stored):
+        stored = live
+        save_unlinked_nodes(project, stored)
+
     stored_paths = {n.path for n in stored}
-    # Add any new files from md_dir not yet tracked in either list
     new_nodes = [
         FileNode(path=f["path"], title=f["title"])
         for f in get_all_md_files(project)
@@ -485,7 +503,6 @@ def get_orphans(project: str, collection: CollectionStructure) -> list[dict]:
 
 
 def archive_file(project: str, rel_path: str) -> str | None:
-    import time
     md_dir = get_markdowns_dir(project)
     src = safe_path(project, rel_path)
     if Path(rel_path).is_absolute():
@@ -498,9 +515,7 @@ def archive_file(project: str, rel_path: str) -> str | None:
     archive_dir = md_dir / rel.parent / "_archive"
     archive_dir.mkdir(parents=True, exist_ok=True)
     dest = archive_dir / rel.name
-    if dest.exists():
-        stem = dest.stem
-        dest = archive_dir / f"{stem}-{int(time.time())}{dest.suffix}"
+    dest.unlink(missing_ok=True)
     shutil.move(str(src), str(dest))
     return dest.relative_to(md_dir).as_posix()
 

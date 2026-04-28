@@ -27,11 +27,10 @@ import {
   fetchConfig, setLastProject,
   fetchPrefs, savePrefs,
   quickOpenYaml,
-  addExternalFiles,
 } from "./api";
 import type { CollectionStructure, FileInfo, FileNode, ProjectInfo, EditorTab, OverlayType } from "./types";
 import type { TemplateComplianceItem, FileLinkReport, BrokenLink } from "./api";
-import { insertAsLastChild, reorder } from "./treeHelpers";
+import { insertAsLastChild, reorder, basename, fullPath } from "./treeHelpers";
 
 const LAST_FILE_KEY = "pith_selected_file";
 
@@ -102,7 +101,6 @@ export default function App() {
   const [openProjectOpen, setOpenProjectOpen] = useState(false);
   const [addFileDialogOpen, setAddFileDialogOpen] = useState(false);
   const [quickOpenYamlOpen, setQuickOpenYamlOpen] = useState(false);
-  const [dragDepth, setDragDepth] = useState(0);
 
   // Refs that the hook and tab handlers share
   const editorContentRef = useRef(editorContent);
@@ -663,46 +661,8 @@ export default function App() {
     } catch {}
   }, [handleSwitchProject]);
 
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragDepth(0);
-
-    const fileUriToPath = (uri: string): string => {
-      if (!uri.startsWith("file://")) return "";
-      let p = decodeURIComponent(uri.slice("file://".length));
-      if (/^\/[A-Za-z]:/.test(p)) p = p.slice(1);
-      return p;
-    };
-
-    const uriList = e.dataTransfer.getData("text/uri-list");
-    const paths = uriList
-      .split("\n")
-      .map(l => l.trim())
-      .filter(l => l && !l.startsWith("#"))
-      .map(fileUriToPath)
-      .filter(Boolean);
-
-    if (paths.length === 0) {
-      const file = e.dataTransfer.files[0];
-      if (file && file.name.toLowerCase().endsWith(".md")) setAddFileDialogOpen(true);
-      return;
-    }
-
-    const yamlPath = paths.find(p => /\.(yaml|yml)$/i.test(p));
-    if (yamlPath) {
-      await handleQuickOpenYaml(yamlPath);
-      return;
-    }
-
-    const mdPaths = paths.filter(p => p.toLowerCase().endsWith(".md"));
-    if (mdPaths.length === 0 || !currentProject) return;
-    try {
-      await addExternalFiles(currentProject, mdPaths);
-      await loadCollection(currentProject);
-    } catch {}
-  }, [currentProject, loadCollection, handleQuickOpenYaml]);
-
   const overlayOpen = overlayType !== null;
+  const currentMarkdownsDir = projects.find(p => p.name === currentProject)?.markdowns_dir || undefined;
 
   if (loading) {
     return (
@@ -713,18 +673,7 @@ export default function App() {
   }
 
   return (
-    <div
-      style={{ position: "relative", height: "100vh", width: "100vw", overflow: "hidden", background: "#ffffff", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", display: "flex", flexDirection: "column" }}
-      onDragEnter={e => { if (e.dataTransfer.types.includes("Files")) setDragDepth(d => d + 1); }}
-      onDragLeave={e => { if (e.dataTransfer.types.includes("Files")) setDragDepth(d => Math.max(0, d - 1)); }}
-      onDragOver={e => { if (e.dataTransfer.types.includes("Files")) e.preventDefault(); }}
-      onDrop={handleDrop}
-    >
-      {dragDepth > 0 && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(26,111,168,0.15)", border: "4px dashed #1a6fa8", display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-          <div style={{ background: "rgba(255,255,255,0.92)", padding: "20px 36px", borderRadius: 12, fontSize: 18, fontWeight: 600, color: "#1a6fa8" }}>Drop file to add</div>
-        </div>
-      )}
+    <div style={{ position: "relative", height: "100vh", width: "100vw", overflow: "hidden", background: "#ffffff", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", display: "flex", flexDirection: "column" }}>
       <div style={{ height: "50px", flexShrink: 0, background: "#1a6fa8", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 1in" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ color: "#fff", fontWeight: "bold", fontSize: "20px", lineHeight: 1 }}>Pi<span style={{ color: "#f90" }}>T</span>H</span>
@@ -773,6 +722,7 @@ export default function App() {
           onRemoveFromUnlinked={handleRemoveFromUnlinked}
           orphans={orphans}
           onRefresh={handleRefresh}
+          markdownsDir={currentMarkdownsDir}
           treeOps={{
             onDelete: handleDeleteFile,
             onRename: handleRenameFile,
@@ -783,6 +733,7 @@ export default function App() {
           chip={{
             currentProject: currentProject ?? "",
             currentProjectTitle: projects.find(p => p.name === currentProject)?.title ?? currentProject ?? "",
+            currentProjectPath: currentMarkdownsDir,
             recentProjects: recentProjectNames.map(n => projects.find(p => p.name === n)).filter(Boolean) as ProjectInfo[],
             titleMode,
             setTitleMode: (mode: boolean) => { setTitleMode(mode); savePrefs({ title_mode: mode }).catch(() => {}); },
@@ -845,9 +796,11 @@ export default function App() {
                 const tabStyle = TAB_STYLES[tab.colorIndex % TAB_STYLES.length];
                 const isActive = tab.id === activeTabId;
                 const isDirty = tab.id === activeTabId ? editorContent !== savedContent : tab.content !== tab.savedContent;
-                const label = titleMode ? tab.title : tab.path.replace(/\.md$/, "");
+                const label = titleMode ? tab.title : basename(tab.path).replace(/\.md$/, "");
+                const tabFullPath = fullPath(tab.path, currentMarkdownsDir);
+                const tabTooltip = titleMode ? tabFullPath : `${tab.title}\n${tabFullPath}`;
                 return (
-                  <div key={tab.id} title={label} className="editor-tab" onClick={() => handleSwitchTab(tab.id)}
+                  <div key={tab.id} title={tabTooltip} className="editor-tab" onClick={() => handleSwitchTab(tab.id)}
                     onContextMenu={(e) => { e.preventDefault(); setTabContextMenu({ tabId: tab.id, x: e.clientX, y: e.clientY }); }}
                     style={{ width: isActive ? 35 : 32, minHeight: 120, marginLeft: isActive ? -3 : 0, paddingLeft: isActive ? 3 : 0, background: tabStyle.bg, border: `1.5px solid ${tabStyle.border}`, borderRight: "none", borderRadius: "10px 0 0 10px", boxShadow: isActive ? `inset 5px 0 0 0 ${tabStyle.border}` : "none", cursor: "pointer", userSelect: "none", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", paddingTop: 4, paddingBottom: 6, paddingRight: 1.5 }}
                   >
@@ -871,6 +824,7 @@ export default function App() {
               key={selectedPath}
               project={currentProject ?? undefined}
               path={selectedPath}
+              markdownsDir={currentMarkdownsDir}
               content={editorContent}
               savedContent={savedContent}
               onContentChange={setEditorContent}
@@ -1057,6 +1011,7 @@ export default function App() {
       {addFileDialogOpen && currentProject && (
         <AddFileDialog
           currentProject={currentProject}
+          markdownsDir={currentMarkdownsDir}
           onAdded={() => { setAddFileDialogOpen(false); handleRefresh(); }}
           onClose={() => setAddFileDialogOpen(false)}
         />

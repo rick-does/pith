@@ -74,13 +74,33 @@ async def api_import_files(request: Request):
 
 @router.post("/api/projects/{name}/external-files")
 async def api_add_external_files(name: str, request: Request):
-    from ..utils import add_unlinked_files
+    from ..utils import add_unlinked_files, get_markdowns_dir, get_unlinked_files, load_collection, flatten_paths
     if not project_exists(name):
         raise HTTPException(404, "Project not found")
     data = await request.json()
     paths = [p for p in data.get("paths", []) if isinstance(p, str)]
     if not paths:
         raise HTTPException(400, "paths required")
+
+    md_dir = get_markdowns_dir(name).resolve()
+    existing = {Path(p).resolve() for p in get_unlinked_files(name)}
+    existing.update(Path(p).resolve() for p in flatten_paths(load_collection(name).root))
+
+    conflicts = []
+    for p in paths:
+        rp = Path(p).resolve()
+        try:
+            rp.relative_to(md_dir)
+            conflicts.append(Path(p).name)
+            continue
+        except ValueError:
+            pass
+        if rp in existing:
+            conflicts.append(Path(p).name)
+
+    if conflicts:
+        raise HTTPException(409, f"Already in project: {', '.join(conflicts)}")
+
     add_unlinked_files(name, paths)
     return {"status": "added"}
 

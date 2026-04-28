@@ -52,4 +52,4 @@ When vi mode is enabled, the following ex commands are available in addition to 
 |--------|-----|
 | Rename a file chip | Double-click the chip label |
 | Rename from the editor | Double-click the filename in the editor toolbar |
-| Rename a project | Double-click the project chip label |
+| Rename a project | Double-click the project chip to open project notes, then double-click the project name in the notes editor toolbar |
