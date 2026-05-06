@@ -62,6 +62,13 @@ export async function listProjects(): Promise<ProjectInfo[]> {
   return r.json();
 }
 
+export async function discoverProjects(): Promise<string[]> {
+  const r = await fetch(`${BASE}/discover-projects`);
+  if (!r.ok) throw new Error("Failed to discover projects");
+  const { created } = await r.json();
+  return created as string[];
+}
+
 export async function renameProject(name: string, newName: string): Promise<{ new_name: string }> {
   const r = await fetch(`${BASE}/projects/${name}/rename`, {
     method: "POST",
@@ -73,6 +80,24 @@ export async function renameProject(name: string, newName: string): Promise<{ ne
     throw new Error(err.detail ?? "Failed to rename project");
   }
   return r.json();
+}
+
+export async function fetchProjectPaths(name: string): Promise<{ markdowns_dir: string; tree_yaml: string }> {
+  const r = await fetch(`${BASE}/projects/${encodeURIComponent(name)}/paths`);
+  if (!r.ok) throw new Error("Failed to fetch project paths");
+  return r.json();
+}
+
+export async function updateProjectPaths(name: string, markdownsDir: string, treeYaml: string): Promise<void> {
+  const r = await fetch(`${BASE}/projects/${encodeURIComponent(name)}/paths`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ markdowns_dir: markdownsDir, tree_yaml: treeYaml }),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.detail ?? "Failed to update project paths");
+  }
 }
 
 export async function createProject(name: string, markdownsDir?: string, treeYaml?: string): Promise<void> {

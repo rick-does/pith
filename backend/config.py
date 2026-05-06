@@ -58,6 +58,10 @@ def load_config() -> dict:
     if "recent_projects" not in cfg:
         cfg["recent_projects"] = []
         changed = True
+    for legacy_key in ("roots", "active_root"):
+        if legacy_key in cfg:
+            del cfg[legacy_key]
+            changed = True
     if changed:
         save_config(cfg)
     _config_cache = cfg

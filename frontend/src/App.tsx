@@ -10,12 +10,13 @@ import TemplateEditor from "./components/TemplateEditor";
 import ComplianceReport from "./components/ComplianceReport";
 import LinkReport from "./components/LinkReport";
 import NewProjectDialog from "./components/NewProjectDialog";
+import EditProjectPathsDialog from "./components/EditProjectPathsDialog";
 import OpenProjectDialog from "./components/OpenProjectDialog";
 import AddFileDialog from "./components/AddFileDialog";
 import QuickOpenYamlDialog from "./components/QuickOpenYamlDialog";
 import { useEditorTabs, TAB_STYLES, TABS_KEY, ACTIVE_TAB_KEY } from "./hooks/useEditorTabs";
 import {
-  listProjects, createProject, archiveProject, renameProject,
+  listProjects, createProject, archiveProject, deleteProject, renameProject,
   fetchProjectMd, saveProjectMd,
   fetchCollection, saveCollection, fetchMarkdown, saveMarkdown, fetchCollectionYaml,
   fetchOrphans, saveUnlinked, createFile, archiveFile, renameFile,
@@ -27,6 +28,7 @@ import {
   fetchConfig, setLastProject,
   fetchPrefs, savePrefs,
   quickOpenYaml,
+  discoverProjects,
 } from "./api";
 import type { CollectionStructure, FileInfo, FileNode, ProjectInfo, EditorTab, OverlayType } from "./types";
 import type { TemplateComplianceItem, FileLinkReport, BrokenLink } from "./api";
@@ -99,6 +101,7 @@ export default function App() {
   // Dialog open flags
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [openProjectOpen, setOpenProjectOpen] = useState(false);
+  const [editProjectPathsOpen, setEditProjectPathsOpen] = useState(false);
   const [addFileDialogOpen, setAddFileDialogOpen] = useState(false);
   const [quickOpenYamlOpen, setQuickOpenYamlOpen] = useState(false);
 
@@ -269,6 +272,20 @@ export default function App() {
     return () => clearInterval(interval);
   }, [currentProject, loadCollection]);
 
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        await discoverProjects();
+        const ps = await listProjects();
+        const active = ps.filter((p: ProjectInfo) => !p.archived);
+        setProjects(active);
+        const activeNames = new Set(active.map((p: ProjectInfo) => p.name));
+        setRecentProjectNames(prev => prev.filter(n => activeNames.has(n)));
+      } catch {}
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleCloseOverlay = useCallback(() => {
     if (activeTabIdRef.current) {
       setTabs(prev => prev.map(t => t.id === activeTabIdRef.current ? { ...t, content: editorContentRef.current } : t));
@@ -294,12 +311,12 @@ export default function App() {
   }, [loadCollection]);
 
   const handleArchiveProject = useCallback(async (name: string) => {
-    await archiveProject(name);
+    setRecentProjectNames(prev => prev.filter(n => n !== name));
+    setProjects(prev => prev.filter(p => p.name !== name));
+    await deleteProject(name);
     const ps = await listProjects();
     const activeProjects = ps.filter((p: ProjectInfo) => !p.archived);
     setProjects(activeProjects);
-    setRecentProjectNames(prev => prev.filter(n => n !== name));
-    window.alert(`"${name}" is now archived`);
     if (name === currentProject) {
       if (activeProjects.length > 0) {
         await handleSwitchProject(activeProjects[0].name);
@@ -770,6 +787,7 @@ export default function App() {
             showNewProjectFile,
             onToggleNewProjectFile: handleToggleNewProjectFile,
             onQuickOpenYaml: () => setQuickOpenYamlOpen(true),
+            onEditProjectPaths: () => setEditProjectPathsOpen(true),
           }}
         />
       </div>
@@ -1005,6 +1023,24 @@ export default function App() {
             await handleSwitchProject(name);
           }}
           onClose={() => setOpenProjectOpen(false)}
+        />
+      )}
+
+      {editProjectPathsOpen && currentProject && (
+        <EditProjectPathsDialog
+          project={currentProject}
+          onSaved={async (newName) => {
+            setEditProjectPathsOpen(false);
+            const ps = await listProjects();
+            setProjects(ps.filter((p: ProjectInfo) => !p.archived));
+            if (newName !== currentProject) {
+              setRecentProjectNames(prev => prev.map(n => n === currentProject ? newName : n));
+              await handleSwitchProject(newName);
+            } else {
+              await loadCollection(currentProject);
+            }
+          }}
+          onClose={() => setEditProjectPathsOpen(false)}
         />
       )}
 

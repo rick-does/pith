@@ -25,9 +25,18 @@ PiTH creates the markdowns directory if it does not exist. If you selected a YAM
 
 If you already have a YAML file that describes your file structure — a `mkdocs.yml`, a custom nav config, or any YAML with a list of `.md` paths — you can point PiTH directly at it when creating a project. PiTH reads the file, builds the hierarchy from it, and writes any changes back to the same file in the original format. Your file structure, formatting, and any extra fields per entry are preserved.
 
-When you select a YAML file first, PiTH suggests `<yaml-dir>/markdowns/` as the markdowns directory. You can accept the suggestion or browse to any other location.
+When you select a YAML file first, PiTH suggests `<yaml-dir>/markdowns/` as the markdowns directory — this is where new files will be created. You can accept the suggestion or browse to any other location.
 
 Supported formats: PiTH native (`root:` key), MkDocs (`nav:` key), and any generic YAML with a list of `.md` paths.
+
+## Auto-discovery
+
+Any directory you place inside `~/pith-projects/` is picked up automatically — no dialog required. PiTH scans that folder every few seconds and registers any new directory that contains at least one `.md` file.
+
+- If the directory contains a YAML file, PiTH uses it as the hierarchy. New files are created in a `markdowns/` subdirectory next to the YAML.
+- If there is no YAML file, PiTH creates a `tree.yaml` in the directory, populates it with the `.md` files it finds, and creates a `markdowns/` subdirectory for new files.
+
+The project appears in the Projects flyout automatically once discovered. It is assigned a memorable auto-generated name. You can rename it or change any of its paths via **Edit project paths**.
 
 ## Switching projects
 
@@ -39,6 +48,17 @@ The **Projects** flyout shows the five most recently opened projects. Click any 
 
 Archived projects are hidden by default. Click **Archived** at the bottom to expand the list; each archived project has a **Restore** button.
 
+## Editing project paths
+
+To change any of a project's core settings after it has been created, click **⋮ → Projects → Edit project paths**. The dialog lets you update:
+
+- **Project title** — the display name shown in the chip and project lists
+- **Project directory name** — the internal ID used for the metadata folder; renaming this renames `~/.pith/projects/<name>/`
+- **Markdowns directory** — where new files are created; if the new path does not exist and the old one does, PiTH moves the directory
+- **YAML file** — the hierarchy file; if the new path does not exist and the old one does, PiTH moves the file
+
+Click **Save** to apply. If the directory name changed, the current project is reloaded under the new name.
+
 ## Renaming a project
 
 Double-click the project chip to open the project notes editor. Double-click the project name in the editor toolbar to rename it. The metadata directory is renamed to match; your markdown files are not moved.
@@ -47,17 +67,11 @@ Double-click the project chip to open the project notes editor. Double-click the
 
 Each project has a notes file for a description or anything else you want to keep alongside it. Open it with **⋮ → Projects → Project info**, or double-click the project chip.
 
-## Archiving a project
+## Removing a project from PiTH
 
-Archiving hides a project from the Projects flyout and the recents list. Your markdown files are not touched. To archive:
+Clicking the trash icon next to a project in the Projects flyout removes it from PiTH — the metadata folder at `~/.pith/projects/<project-name>/` is deleted and the project disappears from all lists. Your markdown files are never touched.
 
-1. Click **⋮** on the project chip
-2. Click **Projects**
-3. Click the trash icon next to the project you want to archive
-
-To restore an archived project, open **Open project…** and expand the **Archived** section. Click **Restore** next to the project.
-
-To permanently remove a project from PiTH, delete its metadata folder at `~/.pith/projects/<project-name>/` by hand. This does not delete your markdown files.
+If you want to keep a project registered but hidden from the flyout, use **Open project…** instead: the full project list has an archive/restore flow in the Archived section.
 
 ## Adding files from another directory
 
@@ -84,7 +98,7 @@ To see the raw YAML for the current project's hierarchy, click **⋮ → YAML �
 
 If you have a YAML file you want to open with PiTH right now — without going through the New Project dialog — use **⋮ → YAML → Quick open YAML…**. Browse to the `.yaml` or `.yml` file and click **Open**.
 
-PiTH creates a project automatically with an auto-generated memorable name (e.g. `573-witty-finch`) and points its hierarchy at the file you selected. The markdowns directory is inferred — a sibling `markdowns/` folder if one exists next to the YAML; otherwise a new `markdowns/` folder is created inside `~/pith-projects/573-witty-finch/`. The original YAML file is not copied or moved; PiTH reads and writes it in place.
+PiTH creates a project automatically with an auto-generated memorable name (e.g. `573-witty-finch`) and points its hierarchy at the file you selected. New files are always created in a `markdowns/` folder next to the YAML file — PiTH creates it if it does not exist. The original YAML file is not copied or moved; PiTH reads and writes it in place.
 
 If a project already points at the same YAML file, that project is reopened instead of creating a duplicate.
 

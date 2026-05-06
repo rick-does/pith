@@ -35,8 +35,7 @@ async def api_quick_open_yaml(request: Request):
                 except Exception:
                     pass
 
-    sibling = p.parent / "markdowns"
-    markdowns_dir = str(sibling) if sibling.exists() else None
+    markdowns_dir = str(p.parent / "markdowns")
 
     name = memorable_name()
     while project_exists(name):

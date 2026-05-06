@@ -2,6 +2,13 @@ import { useState, useRef, useEffect, CSSProperties, KeyboardEvent } from "react
 import type { ProjectInfo } from "../types";
 import { GAP } from "./SortableItemConstants";
 
+function projectDirName(path: string, fallback: string): string {
+  const parts = path.split(/[\\/]/).filter(Boolean);
+  const last = parts[parts.length - 1];
+  if (last?.toLowerCase() === "markdowns" && parts.length > 1) return parts[parts.length - 2];
+  return last || fallback;
+}
+
 export interface ProjectChipProps {
   currentProject: string;
   currentProjectTitle: string;
@@ -32,9 +39,10 @@ export interface ProjectChipProps {
   showNewProjectFile: boolean;
   onToggleNewProjectFile: () => void;
   onQuickOpenYaml: () => void;
+  onEditProjectPaths: () => void;
 }
 
-export default function ProjectChip({ currentProject, currentProjectTitle, currentProjectPath, recentProjects, titleMode, setTitleMode, onSwitchProject, onNewProject, onOpenProject, onArchiveProject, onOpenProjectMd, onCreateFile, onAddFileFromMd, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, showIndicators, onToggleIndicators, showNewProjectFile, onToggleNewProjectFile, onQuickOpenYaml }: ProjectChipProps) {
+export default function ProjectChip({ currentProject, currentProjectTitle, currentProjectPath, recentProjects, titleMode, setTitleMode, onSwitchProject, onNewProject, onOpenProject, onArchiveProject, onOpenProjectMd, onCreateFile, onAddFileFromMd, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, showIndicators, onToggleIndicators, showNewProjectFile, onToggleNewProjectFile, onQuickOpenYaml, onEditProjectPaths }: ProjectChipProps) {
 
 
 
@@ -117,7 +125,7 @@ export default function ProjectChip({ currentProject, currentProjectTitle, curre
           title={currentProjectPath ? (titleMode ? currentProjectPath : `${currentProjectTitle}\n${currentProjectPath}`) : (titleMode ? currentProject : currentProjectTitle)}
           onDoubleClick={() => { onOpenProjectMd(); }}
         >
-          {titleMode ? currentProjectTitle : currentProject}
+          {titleMode ? currentProjectTitle : (currentProjectPath ? projectDirName(currentProjectPath, currentProject) : currentProject)}
         </span>
         <span ref={menuRef} style={{ position: "relative", flexShrink: 0 }}>
           <span
@@ -166,6 +174,11 @@ export default function ProjectChip({ currentProject, currentProjectTitle, curre
                       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
                     >Project info</div>
+                    <div style={{ ...menuItem }}
+                      onClick={() => { onEditProjectPaths(); setMenuOpen(false); setProjectSubmenuOpen(false); }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    >Edit project paths</div>
                     {recentProjects.length > 0 && <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />}
                     {recentProjects.map(p => (
                       <div key={p.name}

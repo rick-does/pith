@@ -21,8 +21,12 @@ PERSONAL_DIC = CONFIG_DIR / "personal.dic"
 @router.get("/api/config")
 async def get_config():
     cfg = load_config()
+    recents = [p for p in cfg.get("recent_projects", []) if get_markdowns_dir(p).exists()]
+    if recents != cfg.get("recent_projects", []):
+        cfg["recent_projects"] = recents
+        save_config(cfg)
     return {
-        "recent_projects": cfg.get("recent_projects", []),
+        "recent_projects": recents,
         "prefs": cfg.get("prefs", {}),
     }
 

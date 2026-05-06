@@ -12,6 +12,9 @@ from ..utils import (
     archive_project,
     create_project,
     delete_project,
+    discover_pith_projects,
+    get_project_paths,
+    update_project_paths,
     restore_project,
     extract_title,
     project_exists,
@@ -22,10 +25,23 @@ from ..utils import (
 
 router = APIRouter()
 
+_PITH_PROJECTS = (Path.home() / "pith-projects").resolve()
+
+
+def _guard_markdowns_dir(markdowns_dir: str) -> None:
+    if Path(markdowns_dir).resolve() == _PITH_PROJECTS:
+        raise HTTPException(400, "Cannot use ~/pith-projects itself as the markdowns directory")
+
 
 @router.get("/api/projects")
 async def api_list_projects():
     return list_projects()
+
+
+@router.get("/api/discover-projects")
+async def api_discover_projects():
+    created = discover_pith_projects()
+    return {"created": created}
 
 
 @router.post("/api/projects/import-files")
@@ -105,11 +121,34 @@ async def api_add_external_files(name: str, request: Request):
     return {"status": "added"}
 
 
+@router.get("/api/projects/{name}/paths")
+async def api_get_project_paths(name: str):
+    if not project_exists(name):
+        raise HTTPException(404, "Project not found")
+    return get_project_paths(name)
+
+
+@router.put("/api/projects/{name}/paths")
+async def api_update_project_paths(name: str, request: Request):
+    if not project_exists(name):
+        raise HTTPException(404, "Project not found")
+    data = await request.json()
+    markdowns_dir = data.get("markdowns_dir", "").strip()
+    tree_yaml = data.get("tree_yaml", "").strip()
+    if not markdowns_dir or not tree_yaml:
+        raise HTTPException(400, "markdowns_dir and tree_yaml are required")
+    _guard_markdowns_dir(markdowns_dir)
+    update_project_paths(name, markdowns_dir, tree_yaml)
+    return {"status": "updated"}
+
+
 @router.post("/api/projects/{name}")
 async def api_create_project(name: str, request: Request):
     data = await request.json()
     markdowns_dir = data.get("markdowns_dir", "").strip() or None
     tree_yaml = data.get("tree_yaml", "").strip() or None
+    if markdowns_dir:
+        _guard_markdowns_dir(markdowns_dir)
     create_project(name, markdowns_dir, tree_yaml)
     return {"status": "created", "name": name}
 

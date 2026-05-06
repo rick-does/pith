@@ -19,7 +19,7 @@ If you've ever maintained a documentation site and found yourself hand-editing a
 - **Visual hierarchy** — drag and drop files to reorder and nest them; keyboard shortcuts for fine-grained control
 - **Unlinked file management** — files not in the hierarchy surface automatically; rubber-band, shift-click, and ctrl-click multi-select; multi-drag to hierarchy
 - **Flatten / restore** — flatten the tree to start fresh; restore the saved hierarchy if you change your mind
-- **Multiple projects** — switch between doc sets without losing your place; quick access to the last 5 opened, full searchable list via Open Project
+- **Multiple projects** — switch between doc sets without losing your place; quick access to the last 5 opened, full searchable list via Open Project; edit a project's title, directory name, markdowns location, and YAML path at any time via Edit Project Paths
 
 ### Edit and analyze
 
@@ -33,7 +33,7 @@ If you've ever maintained a documentation site and found yourself hand-editing a
 
 ### Import and export
 
-- **Point at existing files** — create a project by selecting any markdowns directory, or leave it blank and PiTH creates one for you; PiTH works with the files in place rather than copying them
+- **Point at existing files** — create a project by selecting any markdowns directory, or leave it blank and PiTH creates one for you; PiTH works with the files in place rather than copying them; drop a directory into `~/pith-projects` and PiTH picks it up automatically within seconds
 - **Use any YAML as your hierarchy** — point a project at an existing `mkdocs.yml`, a custom YAML file, or let PiTH create one; changes are written back preserving the original format and any extra fields
 - **MkDocs and Docusaurus** — import an existing nav config or export when ready to publish
 - **Add files from anywhere** — copy individual `.md` files into a project from any directory

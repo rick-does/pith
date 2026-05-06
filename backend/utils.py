@@ -114,6 +114,10 @@ def list_projects() -> list[dict]:
         if not pmd.exists():
             continue
         meta, body = parse_frontmatter(pmd.read_text(encoding="utf-8"))
+        md_dir = get_markdowns_dir(entry.name)
+        if not md_dir.exists():
+            shutil.rmtree(entry)
+            continue
         title = entry.name
         t = extract_title(body)
         if t:
@@ -122,9 +126,71 @@ def list_projects() -> list[dict]:
             "name": entry.name,
             "title": title,
             "archived": bool(meta.get("archived", False)),
-            "markdowns_dir": str(get_markdowns_dir(entry.name)),
+            "markdowns_dir": str(md_dir),
         })
     return result
+
+
+def discover_pith_projects() -> list[str]:
+    """Scan ~/pith-projects for dirs not yet registered as projects and auto-register them."""
+    from .names import memorable_name
+
+    base = Path.home() / "pith-projects"
+    if not base.exists():
+        return []
+
+    known_md_dirs: set[str] = set()
+    if PROJECTS_META_DIR.exists():
+        for entry in PROJECTS_META_DIR.iterdir():
+            if entry.is_dir() and not entry.name.startswith("_"):
+                try:
+                    known_md_dirs.add(str(get_markdowns_dir(entry.name).resolve()))
+                except Exception:
+                    pass
+
+    created: list[str] = []
+    for subdir in sorted(base.iterdir()):
+        if not subdir.is_dir() or subdir.name.startswith(("_", ".")):
+            continue
+        subdir_resolved = subdir.resolve()
+        if any(
+            Path(md) == subdir_resolved or subdir_resolved in Path(md).parents
+            for md in known_md_dirs
+        ):
+            continue
+        if not any(True for _ in iter_md_files(subdir)):
+            continue
+
+        yaml_file: Path | None = None
+        for suffix in (".yaml", ".yml"):
+            candidates = sorted(subdir.glob(f"*{suffix}"))
+            if candidates:
+                preferred = next((c for c in candidates if c.stem in ("tree", "collection")), candidates[0])
+                yaml_file = preferred
+                break
+
+        if yaml_file is None:
+            yaml_file = subdir / "tree.yaml"
+            nodes = [
+                {"path": rel, "title": Path(rel).stem, "children": [], "order": i}
+                for i, (_, rel) in enumerate(iter_md_files(subdir))
+            ]
+            yaml_file.write_text(
+                yaml.dump({"root": nodes}, default_flow_style=False),
+                encoding="utf-8",
+            )
+            md_dir = str(subdir / "markdowns")
+        else:
+            md_dir = str(subdir / "markdowns")
+
+        name = memorable_name()
+        while project_exists(name):
+            name = memorable_name()
+
+        create_project(name, markdowns_dir=md_dir, tree_yaml=str(yaml_file))
+        created.append(name)
+
+    return created
 
 
 def create_project(name: str, markdowns_dir: str | None = None, tree_yaml: str | None = None) -> None:
@@ -558,6 +624,46 @@ def delete_project(name: str) -> None:
     meta_dir = get_project_meta_dir(name)
     if meta_dir.exists():
         shutil.rmtree(meta_dir)
+
+
+def get_project_paths(name: str) -> dict:
+    return {
+        "markdowns_dir": str(get_markdowns_dir(name)),
+        "tree_yaml": str(get_collection_file(name)),
+    }
+
+
+def update_project_paths(name: str, new_markdowns_dir: str, new_tree_yaml: str) -> None:
+    old_md = get_markdowns_dir(name)
+    old_yaml = get_collection_file(name)
+    new_md = Path(new_markdowns_dir)
+    new_yaml = Path(new_tree_yaml)
+
+    if new_md.resolve() != old_md.resolve() and old_md.exists() and not new_md.exists():
+        new_md.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(old_md), str(new_md))
+
+    if new_yaml.resolve() != old_yaml.resolve() and old_yaml.exists() and not new_yaml.exists():
+        new_yaml.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(old_yaml), str(new_yaml))
+
+    pmd = get_project_md(name)
+    if pmd.exists():
+        meta, body = parse_frontmatter(pmd.read_text(encoding="utf-8"))
+    else:
+        meta, body = {}, f"# {name}\n"
+
+    template_val = meta.get("template")
+    pmd.write_text(
+        format_project_md(
+            body=body,
+            tree_yaml=new_yaml,
+            markdowns_dir=new_md,
+            template=Path(str(template_val)) if template_val else None,
+            archived=bool(meta.get("archived", False)),
+        ),
+        encoding="utf-8",
+    )
 
 
 def rename_project(old_name: str, new_name: str) -> None:
