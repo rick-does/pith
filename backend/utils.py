@@ -86,15 +86,11 @@ def format_project_md(body: str, tree_yaml: Path, markdowns_dir: Path, template:
 
 
 def safe_path(project: str, rel_path: str) -> Path:
-    base = get_markdowns_dir(project).resolve()
-    target = (base / rel_path).resolve()
-    try:
-        target.relative_to(base)
-        return target
-    except ValueError:
-        if any(Path(u).resolve() == target for u in get_unlinked_files(project)):
-            return target
-        raise ValueError("Path traversal detected")
+    if Path(rel_path).is_absolute():
+        return Path(rel_path)
+    yaml_dir = get_collection_file(project).parent.resolve()
+    return (yaml_dir / rel_path).resolve()
+
 
 
 def extract_title(content: str) -> str:
@@ -127,6 +123,7 @@ def list_projects() -> list[dict]:
             "title": title,
             "archived": bool(meta.get("archived", False)),
             "markdowns_dir": str(md_dir),
+            "yaml_exists": get_collection_file(entry.name).exists(),
         })
     return result
 
@@ -285,13 +282,16 @@ def add_unlinked_files(project: str, paths: list[str], replace: bool = False) ->
 
 
 def iter_all_project_files(project: str):
-    """Yield (fp, path_str) for every file in the project: md_dir scan + external absolute paths from unlinked.yaml."""
+    """Yield (fp, path_str) for every file in the project. path_str is relative to tree.yaml's parent, or absolute."""
     md_dir = get_markdowns_dir(project)
+    yaml_dir = get_collection_file(project).parent.resolve()
     seen: set[str] = set()
     if md_dir.exists():
-        for fp, rel in iter_md_files(md_dir):
-            seen.add(str(fp.resolve()))
-            yield fp, rel
+        for fp, _ in iter_md_files(md_dir):
+            fp_res = fp.resolve()
+            seen.add(str(fp_res))
+            path_str = Path(os.path.relpath(fp_res, yaml_dir)).as_posix()
+            yield fp, path_str
     for node in get_unlinked_nodes(project):
         fp = Path(node.path)
         if fp.is_absolute() and fp.exists() and fp.suffix.lower() == ".md":
@@ -325,29 +325,34 @@ def flatten_paths(nodes: list[FileNode]) -> set[str]:
 
 def sync_collection(project: str, collection: CollectionStructure) -> CollectionStructure:
     md_dir = get_markdowns_dir(project)
+    yaml_dir = get_collection_file(project).parent.resolve()
 
     def sync_nodes(nodes: list[FileNode]) -> list[FileNode]:
         result = []
         for node in nodes:
             p = Path(node.path)
             if p.is_absolute():
-                # External file: keep if it exists; never touch the path
                 if p.exists():
                     node.children = sync_nodes(node.children)
                     result.append(node)
                 continue
-            fp = md_dir / node.path
+            fp = (yaml_dir / node.path).resolve()
             if not fp.exists():
-                continue
+                # Legacy: path was stored relative to markdowns_dir — migrate it
+                fp_legacy = (md_dir / node.path).resolve()
+                if fp_legacy.exists():
+                    fp = fp_legacy
+                    try:
+                        node.path = Path(os.path.relpath(fp, yaml_dir)).as_posix()
+                    except ValueError:
+                        node.path = str(fp)
+                else:
+                    continue
             try:
                 title = extract_title(fp.read_text(encoding="utf-8"))
             except OSError:
                 title = ""
             node.title = title or fp.stem
-            try:
-                node.path = fp.relative_to(md_dir).as_posix()
-            except ValueError:
-                pass
             node.children = sync_nodes(node.children)
             result.append(node)
         return result
@@ -543,17 +548,46 @@ def save_collection(project: str, collection: CollectionStructure) -> None:
 
 
 def get_orphans(project: str, collection: CollectionStructure) -> list[dict]:
+    yaml_dir = get_collection_file(project).parent.resolve()
     md_dir = get_markdowns_dir(project)
     known = flatten_paths(collection.root)
     stored = get_unlinked_nodes(project)
 
-    def _exists(path_str: str) -> bool:
+    def _resolve(path_str: str) -> Path | None:
         p = Path(path_str)
-        return p.exists() if p.is_absolute() else (md_dir / path_str).exists()
+        if p.is_absolute():
+            return p if p.exists() else None
+        candidate = (yaml_dir / path_str).resolve()
+        if candidate.exists():
+            return candidate
+        legacy = (md_dir / path_str).resolve()
+        return legacy if legacy.exists() else None
 
-    live = [n for n in stored if _exists(n.path)]
-    if len(live) < len(stored):
-        stored = live
+    # Migrate legacy paths and drop missing entries, deduplicating by resolved path
+    seen_abs: set[str] = set()
+    migrated: list[FileNode] = []
+    changed = False
+    for node in stored:
+        fp = _resolve(node.path)
+        if fp is None:
+            changed = True
+            continue
+        abs_str = str(fp)
+        if abs_str in seen_abs:
+            changed = True
+            continue
+        seen_abs.add(abs_str)
+        try:
+            new_path = Path(os.path.relpath(fp, yaml_dir)).as_posix()
+        except ValueError:
+            new_path = abs_str
+        if new_path != node.path:
+            node.path = new_path
+            changed = True
+        migrated.append(node)
+
+    if changed:
+        stored = migrated
         save_unlinked_nodes(project, stored)
 
     stored_paths = {n.path for n in stored}
@@ -583,7 +617,8 @@ def archive_file(project: str, rel_path: str) -> str | None:
     dest = archive_dir / rel.name
     dest.unlink(missing_ok=True)
     shutil.move(str(src), str(dest))
-    return dest.relative_to(md_dir).as_posix()
+    yaml_dir = get_collection_file(project).parent.resolve()
+    return Path(os.path.relpath(dest.resolve(), yaml_dir)).as_posix()
 
 
 def rename_file(project: str, old_path: str, new_path: str) -> None:
@@ -723,9 +758,8 @@ def validate_file_links(project: str, rel_path: str) -> list[dict]:
     if not fp.exists():
         return []
     content = fp.read_text(encoding="utf-8")
-    md_dir = get_markdowns_dir(project)
     links = extract_internal_links(content)
-    base = Path(rel_path).parent if Path(rel_path).is_absolute() else md_dir / Path(rel_path).parent
+    base = fp.parent
     broken = []
     for link in links:
         target_path = (base / link["target"]).resolve()
@@ -748,13 +782,12 @@ def validate_project_links(project: str) -> list[dict]:
 
 def find_incoming_links(project: str, target_path: str) -> list[dict]:
     """Find all files that link to a given path."""
-    md_dir = get_markdowns_dir(project)
-    target_abs = Path(target_path).resolve() if Path(target_path).is_absolute() else (md_dir / target_path).resolve()
+    target_abs = safe_path(project, target_path).resolve()
     results = []
     for fp, path_str in iter_all_project_files(project):
         content = fp.read_text(encoding="utf-8")
         links = extract_internal_links(content)
-        base = Path(path_str).parent if Path(path_str).is_absolute() else md_dir / Path(path_str).parent
+        base = fp.parent
         matching = [l for l in links if l["target"] == target_path or
                     (base / l["target"]).resolve() == target_abs]
         if matching:

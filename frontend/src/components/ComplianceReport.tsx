@@ -149,7 +149,7 @@ export default function ComplianceReport({ items, onBatchApply, onClose, onViewT
 
 const backdrop: React.CSSProperties = {
   position: "fixed", inset: 0, background: "rgba(0,0,0,.4)",
-  display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300,
+  display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "10vh", zIndex: 300,
 };
 const modal: React.CSSProperties = {
   background: "#fff", borderRadius: 8, padding: 24, minWidth: 480, maxWidth: 600,

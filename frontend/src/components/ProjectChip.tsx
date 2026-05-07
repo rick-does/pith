@@ -170,15 +170,15 @@ export default function ProjectChip({ currentProject, currentProjectTitle, curre
                       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
                     >Open project…</div>
                     <div style={{ ...menuItem }}
-                      onClick={() => { onOpenProjectMd(); setMenuOpen(false); setProjectSubmenuOpen(false); }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                    >Project info</div>
-                    <div style={{ ...menuItem }}
                       onClick={() => { onEditProjectPaths(); setMenuOpen(false); setProjectSubmenuOpen(false); }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
                     >Edit project paths</div>
+                    <div style={{ ...menuItem }}
+                      onClick={() => { onOpenProjectMd(); setMenuOpen(false); setProjectSubmenuOpen(false); }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    >Project info</div>
                     {recentProjects.length > 0 && <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />}
                     {recentProjects.map(p => (
                       <div key={p.name}

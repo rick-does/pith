@@ -33,7 +33,7 @@ export default function OpenProjectDialog({ currentProject, onOpen, onClose }: P
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "10vh" }}>
       <div style={{ background: "#fff", borderRadius: 8, width: 560, maxWidth: "92vw", maxHeight: "75vh", boxShadow: "0 8px 32px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "16px 20px 12px", borderBottom: "1px solid #e8e8e8" }}>
           <div style={{ fontSize: 15, fontWeight: 600, color: "#1a3a5c", marginBottom: 10 }}>Open Project</div>

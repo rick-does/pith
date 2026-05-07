@@ -740,6 +740,7 @@ export default function App() {
           orphans={orphans}
           onRefresh={handleRefresh}
           markdownsDir={currentMarkdownsDir}
+          yamlMissing={currentProject ? projects.find(p => p.name === currentProject)?.yaml_exists === false : false}
           treeOps={{
             onDelete: handleDeleteFile,
             onRename: handleRenameFile,

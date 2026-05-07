@@ -45,7 +45,7 @@ export default function ExportModal({ format, resultPath, onExport, onClose }: P
 
 const backdrop: React.CSSProperties = {
   position: "fixed", inset: 0, background: "rgba(0,0,0,.4)",
-  display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200,
+  display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "10vh", zIndex: 200,
 };
 const modal: React.CSSProperties = {
   background: "#fff", borderRadius: 8, padding: 24, minWidth: 320,

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, CSSProperties } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import type { FileNode } from "../types";
 import { fetchMarkdown } from "../api";
-import { basename, fullPath, isAbsolute } from "../treeHelpers";
+import { basename, fullPath, isExternal } from "../treeHelpers";
 import { LINE, COL_W, CHILD_INDENT, GAP } from "./SortableItemConstants";
 
 function RenameInput({ currentPath, onCommit, onCancel }: {
@@ -216,7 +216,7 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
                 />
               ) : (
                 <span
-                  style={{ fontSize: "15px", fontWeight: 500, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, fontStyle: isAbsolute(node.path) ? "italic" : "normal" }}
+                  style={{ fontSize: "15px", fontWeight: 500, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, fontStyle: isExternal(node.path, markdownsDir) ? "italic" : "normal" }}
                   title={tooltip}
                 >
                   {label}

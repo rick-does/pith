@@ -14,7 +14,7 @@ The orange chip at the top of the hierarchy pane shows the current project name.
 
 1. Click **⋮** on the project chip
 2. Click **Projects → New project**
-3. Enter a project title and a project directory name (auto-derived from the title; you can edit it independently)
+3. Enter a project title and a project metadata directory name (auto-derived from the title; you can edit it independently)
 4. Optionally browse to a **markdowns directory** — the folder where your `.md` files live or will live. If left blank, PiTH creates a directory at `~/pith-projects/<project-name>/markdowns`.
 5. Optionally browse to a **YAML file** — an existing `.yaml` or `.yml` file to use as the project's hierarchy. See [Using an existing YAML](#using-an-existing-yaml) below.
 6. Click **Create**
@@ -33,8 +33,10 @@ Supported formats: PiTH native (`root:` key), MkDocs (`nav:` key), and any gener
 
 Any directory you place inside `~/pith-projects/` is picked up automatically — no dialog required. PiTH scans that folder every few seconds and registers any new directory that contains at least one `.md` file.
 
-- If the directory contains a YAML file, PiTH uses it as the hierarchy. New files are created in a `markdowns/` subdirectory next to the YAML.
-- If there is no YAML file, PiTH creates a `tree.yaml` in the directory, populates it with the `.md` files it finds, and creates a `markdowns/` subdirectory for new files.
+In both cases, new files are always created in a `markdowns/` subdirectory inside the dropped directory — PiTH creates it if it does not exist.
+
+- If the directory contains a YAML file, PiTH uses it as the hierarchy.
+- If there is no YAML file, PiTH creates a `tree.yaml` in the directory and populates it with the `.md` files it finds.
 
 The project appears in the Projects flyout automatically once discovered. It is assigned a memorable auto-generated name. You can rename it or change any of its paths via **Edit project paths**.
 
@@ -53,7 +55,7 @@ Archived projects are hidden by default. Click **Archived** at the bottom to exp
 To change any of a project's core settings after it has been created, click **⋮ → Projects → Edit project paths**. The dialog lets you update:
 
 - **Project title** — the display name shown in the chip and project lists
-- **Project directory name** — the internal ID used for the metadata folder; renaming this renames `~/.pith/projects/<name>/`
+- **Project metadata directory name** — the internal ID used for the metadata folder; renaming this renames `~/.pith/projects/<name>/`
 - **Markdowns directory** — where new files are created; if the new path does not exist and the old one does, PiTH moves the directory
 - **YAML file** — the hierarchy file; if the new path does not exist and the old one does, PiTH moves the file
 
@@ -73,6 +75,10 @@ Clicking the trash icon next to a project in the Projects flyout removes it from
 
 If you want to keep a project registered but hidden from the flyout, use **Open project…** instead: the full project list has an archive/restore flow in the Archived section.
 
+## Missing YAML file
+
+If a project's hierarchy YAML file is deleted from disk while the project is still registered, PiTH shows a red **"YAML file not found"** message below the project chip. Hover over it for instructions. Use **Edit project paths** to point the project at a new or restored YAML file, or remove the project from the Projects flyout.
+
 ## Adding files from another directory
 
 To add markdown files from outside the current project:
@@ -84,7 +90,7 @@ To add markdown files from outside the current project:
 5. Choose whether to reference the files in place or copy them (see below)
 6. Click **Add**
 
-**Reference in place (default):** Files are added to the Unlinked pane as external references. PiTH tracks the original file wherever it lives. The file chip appears in italics to indicate it is external. Archiving or removing the reference does not touch the file on disk.
+**Reference in place (default):** Files are added to the Unlinked pane as external references. PiTH tracks the original file wherever it lives. The file chip appears in italics to indicate it lives outside the project's markdowns directory. Archiving or removing the reference does not touch the file on disk.
 
 **Copy to project:** Check **Copy to current project** to copy the files into the project's markdowns directory instead. If a file with the same name already exists, an index is appended (e.g. `notes-1.md`, `notes-2.md`).
 

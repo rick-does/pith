@@ -2,7 +2,7 @@
 
 **PiTH** is a full-featured markdown workspace. Visual hierarchy editor + prose analysis + live preview + full-text search. Fully local, no hosted backend.
 
-See `clods/architecture.md` for repo structure and stack. See `clods/features.md` for implementation details of shipped features. See `clods/commands.md` for build and dev commands. See `clods/key-files.md` for the most important files to know.
+See `clods/architecture.md` for repo structure and stack. See `clods/features.md` for implementation details of shipped features. See `clods/commands.md` for build and dev commands. See `clods/key-files.md` for the most important files to know. See `clods/todo.md` for open work items. See `clods/corner-cases.md` for edge cases to verify during testing. See `clods/project-matrix.md` for the full project creation path matrix.
 
 ---
 

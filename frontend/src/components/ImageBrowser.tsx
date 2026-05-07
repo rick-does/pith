@@ -74,7 +74,7 @@ export default function ImageBrowser({ project, editorOpen, selectedPath, onInse
   return (
     <div style={{
       position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 200,
-      display: "flex", alignItems: "center", justifyContent: "center",
+      display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "10vh",
     }} onClick={onClose}>
       <div style={{
         background: "#1a1a1a", border: "1px solid #333", borderRadius: "6px",

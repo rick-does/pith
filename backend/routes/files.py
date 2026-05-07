@@ -38,7 +38,9 @@ async def api_get_markdown(project: str, file_path: str):
 
 @router.post("/api/projects/{project}/markdown/{file_path:path}")
 async def api_create_markdown(project: str, file_path: str):
-    fp = safe_path(project, file_path)
+    from ..utils import get_collection_file
+    md_dir = get_markdowns_dir(project)
+    fp = (md_dir / file_path).resolve()
     if fp.exists():
         raise HTTPException(409, "File already exists")
     fp.parent.mkdir(parents=True, exist_ok=True)
@@ -48,7 +50,10 @@ async def api_create_markdown(project: str, file_path: str):
     if not re.search(r'^#\s+', content, re.MULTILINE):
         content = f"# {title}\n{content}"
     fp.write_text(content, encoding="utf-8")
-    return {"path": file_path, "status": "created"}
+    import os as _os
+    yaml_dir = get_collection_file(project).parent.resolve()
+    yaml_rel = Path(_os.path.relpath(fp, yaml_dir)).as_posix()
+    return {"path": yaml_rel, "status": "created"}
 
 
 @router.put("/api/projects/{project}/markdown/{file_path:path}")
@@ -79,8 +84,9 @@ async def api_archive_markdown(project: str, file_path: str):
     # treat it as an internal file so it gets properly archived (not just dereferenced).
     if fp_norm.is_absolute():
         try:
-            md_dir = get_markdowns_dir(project).resolve()
-            rel = fp_norm.resolve().relative_to(md_dir)
+            from ..utils import get_collection_file
+            yaml_dir = get_collection_file(project).parent.resolve()
+            rel = fp_norm.resolve().relative_to(yaml_dir)
             file_path = rel.as_posix()
             fp_norm = Path(file_path)
         except (ValueError, OSError):
@@ -135,8 +141,9 @@ async def api_rename_markdown(project: str, file_path: str, request: Request):
         old.rename(new_abs)
         resolved_new = str(new_abs)
     else:
-        rename_file(project, file_path, new_name)
-        resolved_new = new_name
+        new_path = str(Path(file_path).parent / new_name)
+        rename_file(project, file_path, new_path)
+        resolved_new = new_path
 
     old_norm = Path(file_path)
 

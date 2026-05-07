@@ -92,9 +92,10 @@ interface SidebarProps {
   treeOps: TreeOps;
   indicators: Indicators;
   chip: ProjectChipProps;
+  yamlMissing?: boolean;
 }
 
-export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onMoveToUnlinked, onRemoveFromUnlinked, orphans, onRefresh, markdownsDir, treeOps, indicators, chip }: SidebarProps) {
+export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onMoveToUnlinked, onRemoveFromUnlinked, orphans, onRefresh, markdownsDir, treeOps, indicators, chip, yamlMissing }: SidebarProps) {
   const [orphanSort, setOrphanSort] = useState<"recent" | "alpha" | "custom">("recent");
   const [orphanOrder, setOrphanOrder] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(flatIds(collection.root)));
@@ -503,6 +504,13 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
 
               {chip.currentProject && (
                 <ProjectChip {...chip} />
+              )}
+
+              {yamlMissing && (
+                <div title="YAML file not found on disk. Use Projects → Edit project paths to point to a new file, or remove this project from the Projects menu."
+                  style={{ padding: "4px 12px", fontSize: 12, color: "#c0392b", fontWeight: 600, cursor: "default" }}>
+                  YAML file not found
+                </div>
               )}
 
               <TopSentinel />

@@ -80,7 +80,7 @@ export default function EditProjectPathsDialog({ project, onSaved, onClose }: Pr
 
   const handleSubmit = async () => {
     const newDir = dir.trim().replace(/\s+/g, "-").replace(/[/\\<>:"|?*\0]/g, "").toLowerCase();
-    if (!newDir) { setError("Project directory name is required"); return; }
+    if (!newDir) { setError("Project metadata directory name is required"); return; }
     if (!mdPath.trim() || !yamlFile.trim()) { setError("Both path fields are required"); return; }
     try {
       let currentName = project;
@@ -114,7 +114,7 @@ export default function EditProjectPathsDialog({ project, onSaved, onClose }: Pr
     const isYaml = browserTarget === "yaml";
     const ext = isYaml ? "yaml" : "md";
     return (
-      <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "10vh" }}>
         <div style={{ background: "#fff", borderRadius: 8, width: 560, maxWidth: "90vw", height: 520, boxShadow: "0 8px 32px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column" }}>
           <div style={{ padding: "14px 20px 10px", borderBottom: "1px solid #e8e8e8" }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: "#1a3a5c", marginBottom: 8 }}>{isYaml ? "Select YAML file" : "Select markdowns directory"}</div>
@@ -164,7 +164,7 @@ export default function EditProjectPathsDialog({ project, onSaved, onClose }: Pr
   const canSubmit = !loading && !!dir.trim() && !!mdPath.trim() && !!yamlFile.trim();
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "10vh" }}>
       <div style={{ background: "#fff", borderRadius: 8, minWidth: 480, maxWidth: 560, width: "90vw", boxShadow: "0 8px 32px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "16px 20px 14px", borderBottom: "1px solid #e8e8e8" }}>
           <div style={{ fontSize: 15, fontWeight: 600, color: "#1a3a5c", marginBottom: 14 }}>Edit Project Paths</div>
@@ -180,7 +180,7 @@ export default function EditProjectPathsDialog({ project, onSaved, onClose }: Pr
                   style={{ ...inputStyle, width: "100%" }} />
               </div>
               <div>
-                <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>Project directory name</div>
+                <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>Project metadata directory name</div>
                 <input value={dir} onChange={e => { setDir(e.target.value); setError(""); }}
                   onKeyDown={e => { if (e.key === "Enter") handleSubmit(); }}
                   style={{ ...inputStyle, width: "100%", fontFamily: "monospace" }} />

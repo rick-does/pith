@@ -8,6 +8,15 @@ export function isAbsolute(p: string): boolean {
   return /^([a-zA-Z]:[\\/]|\/|\\\\)/.test(p);
 }
 
+export function isExternal(path: string, markdownsDir?: string): boolean {
+  if (!isAbsolute(path)) return false;
+  if (!markdownsDir) return true;
+  const norm = (s: string) => s.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase();
+  const p = norm(path);
+  const d = norm(markdownsDir);
+  return p !== d && !p.startsWith(d + "/");
+}
+
 export function fullPath(p: string, markdownsDir?: string): string {
   if (isAbsolute(p) || !markdownsDir) return p;
   const sep = markdownsDir.includes("\\") ? "\\" : "/";

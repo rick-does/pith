@@ -1,49 +1,49 @@
 root:
-- path: introduction.md
-  title: Introduction
+- children: []
   order: 0
-  children: []
-- path: getting-started.md
-  title: Getting Started
+  path: markdowns/introduction.md
+  title: Introduction
+- children: []
   order: 1
-  children: []
-- path: projects.md
-  title: Managing Projects
+  path: markdowns/getting-started.md
+  title: Getting Started
+- children: []
   order: 2
-  children: []
-- path: editing.md
-  title: Editing Files
-  order: 3
-  children:
-  - path: scan-test.md
-    title: Issues Example
+  path: markdowns/projects.md
+  title: Managing Projects
+- children:
+  - children: []
     order: 0
-    children: []
-- path: hierarchy.md
-  title: Building Your Hierarchy
+    path: markdowns/scan-test.md
+    title: Scan Example
+  order: 3
+  path: markdowns/editing.md
+  title: Editing Files
+- children: []
   order: 4
-  children: []
-- path: unlinked-files.md
-  title: Unlinked Files
+  path: markdowns/hierarchy.md
+  title: Building Your Hierarchy
+- children: []
   order: 5
-  children: []
-- path: search.md
-  title: Search
+  path: markdowns/unlinked-files.md
+  title: Unlinked Files
+- children: []
   order: 6
-  children: []
-- path: frontmatter.md
-  title: Frontmatter
+  path: markdowns/search.md
+  title: Search
+- children: []
   order: 7
-  children: []
-- path: link-validation.md
-  title: Link Validation
+  path: markdowns/frontmatter.md
+  title: Frontmatter and Templates
+- children: []
   order: 8
-  children: []
-- path: import-export.md
-  title: Import & Export
+  path: markdowns/link-validation.md
+  title: Link Validation
+- children: []
   order: 9
-  children: []
-- path: keyboard-shortcuts.md
-  title: Keyboard Shortcuts
+  path: markdowns/import-export.md
+  title: Import & Export
+- children: []
   order: 10
-  children: []
+  path: markdowns/keyboard-shortcuts.md
+  title: Keyboard Shortcuts

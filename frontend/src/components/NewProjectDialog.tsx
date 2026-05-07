@@ -148,7 +148,7 @@ export default function NewProjectDialog({ currentProject, onCreated, onClose }:
     const label = isYaml ? "Select YAML file" : "Select markdowns directory";
 
     return (
-      <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "10vh" }}>
         <div style={{ background: "#fff", borderRadius: 8, width: 560, maxWidth: "90vw", height: 520, boxShadow: "0 8px 32px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column" }}>
           <div style={{ padding: "14px 20px 10px", borderBottom: "1px solid #e8e8e8" }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: "#1a3a5c", marginBottom: 8 }}>{label}</div>
@@ -235,7 +235,7 @@ export default function NewProjectDialog({ currentProject, onCreated, onClose }:
   const canSubmit = !!dir.trim();
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "10vh" }}>
       <div style={{ background: "#fff", borderRadius: 8, minWidth: 480, maxWidth: 560, width: "90vw", boxShadow: "0 8px 32px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "16px 20px 14px", borderBottom: "1px solid #e8e8e8" }}>
           <div style={{ fontSize: 15, fontWeight: 600, color: "#1a3a5c", marginBottom: 14 }}>New Project</div>
@@ -248,7 +248,7 @@ export default function NewProjectDialog({ currentProject, onCreated, onClose }:
                 style={{ ...inputStyle, width: "100%" }} />
             </div>
             <div>
-              <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>Project directory name</div>
+              <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>Project metadata directory name</div>
               <input value={dir} onChange={e => handleDirChange(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") handleSubmit(); }}
                 placeholder="my-documentation"

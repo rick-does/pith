@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, CSSProperties } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { fetchMarkdown } from "../api";
-import { basename, fullPath, isAbsolute } from "../treeHelpers";
+import { basename, fullPath, isExternal } from "../treeHelpers";
 
 export interface OrphanItemProps {
   path: string;
@@ -108,7 +108,7 @@ export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSel
           onMouseLeave={() => { setHovered(false); setPreviewContent(null); setPreviewFixed(null); }}
         >
           <div style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0, padding: `5px ${(isMultiSelected || hovered || forceShowIndicators || indicatorOpen) ? "50px" : "10px"} 5px 12px`, position: "relative" }}>
-            <span style={{ fontSize: "15px", fontWeight: 500, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, fontStyle: isAbsolute(path) ? "italic" : "normal" }} title={tooltip}>
+            <span style={{ fontSize: "15px", fontWeight: 500, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, fontStyle: isExternal(path, markdownsDir) ? "italic" : "normal" }} title={tooltip}>
               {label}
             </span>
           </div>

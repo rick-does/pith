@@ -19,6 +19,7 @@ export interface ProjectInfo {
   title: string;
   archived?: boolean;
   markdowns_dir?: string;
+  yaml_exists?: boolean;
 }
 
 export type OverlayType = "editor" | "yaml" | "project-md" | null;
