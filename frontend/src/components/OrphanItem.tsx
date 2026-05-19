@@ -15,6 +15,7 @@ export interface OrphanItemProps {
   onAddToHierarchy: (path: string) => void;
   currentProject: string;
   markdownsDir?: string;
+  yamlDir?: string;
   setChipRef: (el: HTMLElement | null) => void;
   activeId: string | null;
   brokenLinkMap?: Record<string, number>;
@@ -24,14 +25,14 @@ export interface OrphanItemProps {
   forceShowIndicators?: boolean;
 }
 
-export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSelect, onAddToSelection, onOpen, onDelete, onAddToHierarchy, currentProject, markdownsDir, setChipRef, activeId, brokenLinkMap, frontmatterIssueMap, templateIssueMap, showIndicators, forceShowIndicators }: OrphanItemProps) {
+export function OrphanItem({ path, title, titleMode, isMultiSelected, onMultiSelect, onAddToSelection, onOpen, onDelete, onAddToHierarchy, currentProject, markdownsDir, yamlDir, setChipRef, activeId, brokenLinkMap, frontmatterIssueMap, templateIssueMap, showIndicators, forceShowIndicators }: OrphanItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: path });
   const [hovered, setHovered] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [previewContent, setPreviewContent] = useState<string | null>(null);
   const [previewFixed, setPreviewFixed] = useState<{ left: number; top: number } | null>(null);
   const label = titleMode ? title : basename(path);
-  const fullP = fullPath(path, markdownsDir);
+  const fullP = fullPath(path, yamlDir);
   const tooltip = titleMode ? fullP : `${title}\n${fullP}`;
   const menuRef = useRef<HTMLDivElement>(null);
   const menuTriggerRef = useRef<HTMLSpanElement>(null);

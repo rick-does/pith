@@ -89,13 +89,14 @@ interface SidebarProps {
   orphans: FileInfo[];
   onRefresh: () => Promise<void>;
   markdownsDir?: string;
+  yamlDir?: string;
   treeOps: TreeOps;
   indicators: Indicators;
   chip: ProjectChipProps;
   yamlMissing?: boolean;
 }
 
-export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onMoveToUnlinked, onRemoveFromUnlinked, orphans, onRefresh, markdownsDir, treeOps, indicators, chip, yamlMissing }: SidebarProps) {
+export default function Sidebar({ collection, selectedPath, onSelect, onOpen, onCollectionChange, onMoveToUnlinked, onRemoveFromUnlinked, orphans, onRefresh, markdownsDir, yamlDir, treeOps, indicators, chip, yamlMissing }: SidebarProps) {
   const [orphanSort, setOrphanSort] = useState<"recent" | "alpha" | "custom">("recent");
   const [orphanOrder, setOrphanOrder] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(flatIds(collection.root)));
@@ -539,6 +540,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
                   dragDeltaX={dragDeltaX}
                   currentProject={chip.currentProject}
                   markdownsDir={markdownsDir}
+                  yamlDir={yamlDir}
                   brokenLinkMap={indicators.brokenLinkMap}
                   frontmatterIssueMap={indicators.frontmatterIssueMap}
                   templateIssueMap={indicators.templateIssueMap}
@@ -554,7 +556,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
             </div>
 
             <OrphanPane
-              orphans={orphans} titleMode={chip.titleMode} activeId={activeId} currentProject={chip.currentProject} markdownsDir={markdownsDir}
+              orphans={orphans} titleMode={chip.titleMode} activeId={activeId} currentProject={chip.currentProject} markdownsDir={markdownsDir} yamlDir={yamlDir}
               selectedOrphans={selectedOrphans} onOrphanSelect={handleOrphanSelect}
               onAddToSelection={(path) => setSelectedOrphans(prev => { const next = new Set(prev); next.add(path); return next; })}
               orphanSort={orphanSort} setOrphanSort={setOrphanSort} orphanOrder={orphanOrder}

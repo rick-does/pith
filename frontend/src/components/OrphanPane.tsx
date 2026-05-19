@@ -11,6 +11,7 @@ interface OrphanPaneProps {
   activeId: string | null;
   currentProject: string;
   markdownsDir?: string;
+  yamlDir?: string;
   selectedOrphans: Set<string>;
   onOrphanSelect: (path: string, ctrl: boolean, shift: boolean) => void;
   onAddToSelection: (path: string) => void;
@@ -32,7 +33,7 @@ interface OrphanPaneProps {
 }
 
 export default function OrphanPane({
-  orphans, titleMode, activeId, currentProject, markdownsDir,
+  orphans, titleMode, activeId, currentProject, markdownsDir, yamlDir,
   selectedOrphans, onOrphanSelect, onAddToSelection,
   orphanSort, setOrphanSort, orphanOrder,
   rubberBand, orphanSectionRef, orphanChipRefs,
@@ -237,6 +238,7 @@ export default function OrphanPane({
                   onAddOrphansToCollection(paths);
                 }} currentProject={currentProject}
                 markdownsDir={markdownsDir}
+                yamlDir={yamlDir}
                 setChipRef={(el) => { if (el) orphanChipRefs.current.set(o.path, el); else orphanChipRefs.current.delete(o.path); }}
                 activeId={activeId}
                 brokenLinkMap={brokenLinkMap}

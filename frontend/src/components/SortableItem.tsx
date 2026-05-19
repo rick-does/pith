@@ -85,13 +85,14 @@ export interface ItemProps {
   showTopIndicator?: boolean;
   currentProject: string;
   markdownsDir?: string;
+  yamlDir?: string;
   brokenLinkMap?: Record<string, number>;
   frontmatterIssueMap?: Record<string, boolean>;
   templateIssueMap?: Record<string, boolean>;
   showIndicators?: boolean;
 }
 
-export function SortableItem({ node, depth, isLast, ancestors, selectedPath, titleMode, onSelect, onOpen, onDelete, onRename, onCreateChild, onCopyToChild, expanded, toggleExpand, overId, activeId, activeLabel, dragDeltaX, showTopIndicator, currentProject, markdownsDir, brokenLinkMap, frontmatterIssueMap, templateIssueMap, showIndicators }: ItemProps) {
+export function SortableItem({ node, depth, isLast, ancestors, selectedPath, titleMode, onSelect, onOpen, onDelete, onRename, onCreateChild, onCopyToChild, expanded, toggleExpand, overId, activeId, activeLabel, dragDeltaX, showTopIndicator, currentProject, markdownsDir, yamlDir, brokenLinkMap, frontmatterIssueMap, templateIssueMap, showIndicators }: ItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: node.path });
   const [renaming, setRenaming] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -133,7 +134,7 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
   const isSelected = selectedPath === node.path;
   const isOver = activeId !== null && overId === node.path && activeId !== node.path;
   const label = titleMode ? node.title : basename(node.path);
-  const fullP = fullPath(node.path, markdownsDir);
+  const fullP = fullPath(node.path, yamlDir);
   const tooltip = titleMode ? fullP : `${node.title}\n${fullP}`;
   const brokenCount = brokenLinkMap?.[node.path] ?? 0;
   const hasFmIssue = frontmatterIssueMap?.[node.path] ?? false;
@@ -357,6 +358,7 @@ export function SortableItem({ node, depth, isLast, ancestors, selectedPath, tit
             dragDeltaX={dragDeltaX}
             currentProject={currentProject}
             markdownsDir={markdownsDir}
+            yamlDir={yamlDir}
             brokenLinkMap={brokenLinkMap}
             frontmatterIssueMap={frontmatterIssueMap}
             templateIssueMap={templateIssueMap}

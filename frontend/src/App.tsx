@@ -680,6 +680,7 @@ export default function App() {
 
   const overlayOpen = overlayType !== null;
   const currentMarkdownsDir = projects.find(p => p.name === currentProject)?.markdowns_dir || undefined;
+  const currentYamlDir = projects.find(p => p.name === currentProject)?.yaml_dir || undefined;
 
   if (loading) {
     return (
@@ -740,6 +741,7 @@ export default function App() {
           orphans={orphans}
           onRefresh={handleRefresh}
           markdownsDir={currentMarkdownsDir}
+          yamlDir={currentYamlDir}
           yamlMissing={currentProject ? projects.find(p => p.name === currentProject)?.yaml_exists === false : false}
           treeOps={{
             onDelete: handleDeleteFile,
@@ -816,7 +818,7 @@ export default function App() {
                 const isActive = tab.id === activeTabId;
                 const isDirty = tab.id === activeTabId ? editorContent !== savedContent : tab.content !== tab.savedContent;
                 const label = titleMode ? tab.title : basename(tab.path).replace(/\.md$/, "");
-                const tabFullPath = fullPath(tab.path, currentMarkdownsDir);
+                const tabFullPath = fullPath(tab.path, currentYamlDir);
                 const tabTooltip = titleMode ? tabFullPath : `${tab.title}\n${tabFullPath}`;
                 return (
                   <div key={tab.id} title={tabTooltip} className="editor-tab" onClick={() => handleSwitchTab(tab.id)}
@@ -844,6 +846,7 @@ export default function App() {
               project={currentProject ?? undefined}
               path={selectedPath}
               markdownsDir={currentMarkdownsDir}
+              yamlDir={currentYamlDir}
               content={editorContent}
               savedContent={savedContent}
               onContentChange={setEditorContent}

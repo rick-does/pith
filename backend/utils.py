@@ -118,20 +118,20 @@ def list_projects() -> list[dict]:
         t = extract_title(body)
         if t:
             title = t
+        coll_file = get_collection_file(entry.name)
         result.append({
             "name": entry.name,
             "title": title,
             "archived": bool(meta.get("archived", False)),
             "markdowns_dir": str(md_dir),
-            "yaml_exists": get_collection_file(entry.name).exists(),
+            "yaml_dir": str(coll_file.parent),
+            "yaml_exists": coll_file.exists(),
         })
     return result
 
 
 def discover_pith_projects() -> list[str]:
     """Scan ~/pith-projects for dirs not yet registered as projects and auto-register them."""
-    from .names import memorable_name
-
     base = Path.home() / "pith-projects"
     if not base.exists():
         return []
@@ -180,9 +180,11 @@ def discover_pith_projects() -> list[str]:
         else:
             md_dir = str(subdir / "markdowns")
 
-        name = memorable_name()
+        name = subdir.name
+        suffix = 2
         while project_exists(name):
-            name = memorable_name()
+            name = f"{subdir.name}-{suffix}"
+            suffix += 1
 
         create_project(name, markdowns_dir=md_dir, tree_yaml=str(yaml_file))
         created.append(name)

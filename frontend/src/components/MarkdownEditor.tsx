@@ -17,6 +17,7 @@ interface Props {
   project?: string;
   path: string;
   markdownsDir?: string;
+  yamlDir?: string;
   content: string;
   savedContent?: string;
   onContentChange: (c: string) => void;
@@ -38,7 +39,7 @@ interface Props {
   onEditorThemeChange: (id: string) => void;
 }
 
-const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function MarkdownEditor({ project, path, markdownsDir, content, savedContent, onContentChange, viMode, onViModeChange, onSaved, onSave, onRename, onUseAsTemplate, onApplyTemplate, onFetchTemplateList, onEditTemplate, onViewCompliance, onClose, onReport, onOpenImageBrowser, brokenLinks, editorTheme, onEditorThemeChange }, ref) {
+const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function MarkdownEditor({ project, path, markdownsDir, yamlDir, content, savedContent, onContentChange, viMode, onViModeChange, onSaved, onSave, onRename, onUseAsTemplate, onApplyTemplate, onFetchTemplateList, onEditTemplate, onViewCompliance, onClose, onReport, onOpenImageBrowser, brokenLinks, editorTheme, onEditorThemeChange }, ref) {
   const [view, setView] = useState<"edit" | "preview" | "split">("split");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
@@ -133,7 +134,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function Markdown
             <span
               style={{ color: "#888", fontSize: "14px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: onRename ? "text" : "default" }}
               onDoubleClick={() => { if (onRename) { setRenameValue(basename(path)); setRenaming(true); } }}
-              title={onRename ? `${fullPath(path, markdownsDir)}\nDouble-click to rename` : fullPath(path, markdownsDir)}
+              title={onRename ? `${fullPath(path, yamlDir)}\nDouble-click to rename` : fullPath(path, yamlDir)}
             >
               {basename(path)}
             </span>

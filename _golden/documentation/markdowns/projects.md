@@ -38,7 +38,7 @@ In both cases, new files are always created in a `markdowns/` subdirectory insid
 - If the directory contains a YAML file, PiTH uses it as the hierarchy.
 - If there is no YAML file, PiTH creates a `tree.yaml` in the directory and populates it with the `.md` files it finds.
 
-The project appears in the Projects flyout automatically once discovered. It is assigned a memorable auto-generated name. You can rename it or change any of its paths via **Edit project paths**.
+The project appears in the Projects flyout automatically once discovered. It takes the directory name as its project name (e.g. a folder called `my-docs` becomes the project `my-docs`). You can rename it or change any of its paths via **Edit project paths**.
 
 ## Switching projects
 
@@ -72,6 +72,8 @@ Each project has a notes file for a description or anything else you want to kee
 ## Removing a project from PiTH
 
 Clicking the trash icon next to a project in the Projects flyout removes it from PiTH — the metadata folder at `~/.pith/projects/<project-name>/` is deleted and the project disappears from all lists. Your markdown files are never touched.
+
+**Note:** if the project's directory is inside `~/pith-projects/` and the files are still there, PiTH will rediscover and re-register it automatically within a few seconds. To remove a project permanently, delete or move the directory out of `~/pith-projects/` first, then remove it from PiTH — or archive it instead (see below).
 
 If you want to keep a project registered but hidden from the flyout, use **Open project…** instead: the full project list has an archive/restore flow in the Archived section.
 
