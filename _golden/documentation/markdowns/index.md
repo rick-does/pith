@@ -8,7 +8,7 @@ If you maintain a documentation site built with a static site generator — MkDo
 
 ## What PiTH does
 
-PiTH maintains a hierarchy for your markdown files and lets you interact with it visually: drag files to [reorder and nest them](hierarchy.md), and promote [unlinked files](unlinked-files.md) into the tree. The hierarchy lives in a YAML file — PiTH can create one, or you can point it at an existing file (`mkdocs.yml`, a custom nav config, anything) and PiTH reads and writes it in place without changing its format.
+PiTH maintains a hierarchy for your markdown files and you interact with it visually: drag files to [reorder and nest them](hierarchy.md), and promote [unlinked files](unlinked-files.md) into the tree. The hierarchy lives in a YAML file — PiTH can create one, or you can point it at an existing file (`mkdocs.yml`, a custom nav config, anything) and PiTH reads and writes it in place without changing its format.
 
 Opening a file launches a multi-tab editor with a live rendered preview, vi keybindings, and syntax highlighting. Mermaid diagram code blocks render as actual diagrams in the preview. Multiple files can be open simultaneously as tabs; they persist across sessions.
 
