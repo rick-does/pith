@@ -1,14 +1,14 @@
 # Introduction
 
-PiTH is a local tool for managing large collections of markdown files. It gives you a visual, drag-and-drop interface for organizing files into a hierarchy — so you never have to hand-edit a YAML nav file or sidebar config again.
+PiTH is a visual editor for collections of Markdown files. You drag and drop files in a hierarchical tree, and PiTH saves the structure to a YAML file. PiTH also has a full-featured Markdown editor where you can create, edit, and preview Markdown files.
 
 ## The problem
 
-If you maintain a documentation site built with a static site generator — MkDocs, Docusaurus, Jekyll, or similar — you know the friction. Every time you add a page, rename a file, or reorganize a section, you have to open a config file and edit it by hand. With dozens of files this is tedious. With hundreds, it becomes a real source of errors.
+If you maintain a documentation site built with a static site generator — MkDocs, Docusaurus, Jekyll, or similar — you know the problem. Every time you add a page, rename a file, or reorganize a section, you have to open a config file and edit it by hand. With dozens of files this is tedious. With hundreds, it becomes a source of insidious errors.
 
 ## What PiTH does
 
-PiTH maintains a hierarchy for your markdown files and lets you interact with it visually: drag files to [reorder and nest them](hierarchy.md), and promote [unlinked files](unlinked-files.md) into the tree. The hierarchy lives in a YAML file — PiTH can create one, or you can point it at an existing file (`mkdocs.yml`, a custom nav config, anything) and PiTH will read and write it in place without changing its format.
+PiTH maintains a hierarchy for your markdown files and lets you interact with it visually: drag files to [reorder and nest them](hierarchy.md), and promote [unlinked files](unlinked-files.md) into the tree. The hierarchy lives in a YAML file — PiTH can create one, or you can point it at an existing file (`mkdocs.yml`, a custom nav config, anything) and PiTH reads and writes it in place without changing its format.
 
 Opening a file launches a multi-tab editor with a live rendered preview, vi keybindings, and syntax highlighting. Mermaid diagram code blocks render as actual diagrams in the preview. Multiple files can be open simultaneously as tabs; they persist across sessions.
 
