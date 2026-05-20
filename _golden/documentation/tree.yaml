@@ -1,7 +1,7 @@
 root:
 - children: []
   order: 0
-  path: markdowns/introduction.md
+  path: markdowns/index.md
   title: Introduction
 - children: []
   order: 1

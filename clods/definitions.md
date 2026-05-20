@@ -33,23 +33,25 @@
 
 6. Answering these questions in a tight definition is useful for economy and your own understanding, but the user's version should breathe more, inviting the user to understand, not demonstrate how tightly the information can be packed. It's the difference between writing to help yourself think/learn and writing to change the way the user sees the world. Definition taxonomy is for the writer's understanding, but is too pedantic for the reader/user.
 
-7. Avoid implementation details at the definition level. That's content.
+7. Avoid implementation details at the definition level. That's content. Like the YAML and Markdowns can live anywhere, but the project is always registered at ~/.pith/projects. 
 
 # Definitions
 
 - PiTH
   PiTH is a visual editor for collections of Markdown files, such as static websites and AI memory files. You drag and drop the files in a hierarchical tree, and PiTH saves the structure to a YAML file. It has a full Markdown editor where you can create, edit, and preview Markdown files.
 
+    <feature list>
+
   - PiTH Projects
-    PiTH Projects are the top-level container of a collection of Markdown files and the YAML file that defines their relationships. 
+    A PiTH project is the top-level container of a collection of Markdown files and the YAML file that defines their relationships.
 
-
-    A project is t
+    <feature list>
 
   - Hierarchy editor
-    The hierarchy editor is the main window in PiTH. It has two lists: the hierarchy list and the unlinked list. The hierarchy list 
+    The hierarchy editor is the main window in PiTH. It shows the Markdown files in the selected project in two lists: hierarchy list and the unlinked list.
 
     - Hierarchy list
+      The hierarchy list shows the arrangement of Markdown files as defined in the YAML file. You can drag-drop files within the list, and you can also drag-drop to/from the Unlinked list. The root level of the hierarchy list is always the Project chip, which shows the name of the project and has a button for showing the project menu. 
 
     - Unlinked list
 
