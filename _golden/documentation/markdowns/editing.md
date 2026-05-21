@@ -17,11 +17,11 @@ The editor opens as a panel that slides in from the right. It is split into two 
 - **Left** — a plain text editor with markdown syntax highlighting
 - **Right** — a live rendered preview that updates as you type
 
-The preview supports GitHub Flavored Markdown (GFM) including tables, strikethrough, and task lists. Mermaid diagram code blocks are rendered as actual diagrams — see [Mermaid Diagrams](#mermaid-diagrams) below.
+The preview supports GitHub Flavored Markdown (GFM) including tables, strikethrough, and task lists. Mermaid diagram code blocks render as actual diagrams — see [Mermaid Diagrams](#mermaid-diagrams) below.
 
 ## View modes
 
-Use the **edit / split / preview** buttons in the top-right of the editor toolbar to switch between:
+Select the **edit / split / preview** buttons in the top-right of the editor toolbar to switch between:
 
 - **edit** — text editor only
 - **split** — editor and preview side by side (default)
@@ -53,11 +53,11 @@ Below the editor toolbar is a bar with the following tabs: **Template**, **Stats
 The **Template** tab shows action buttons for working with the project template:
 
 - **Apply template** — applies the template to this file using the currently configured options (configure them in **View template** or the compliance dialog — see [Frontmatter and Templates](frontmatter.md))
-- **Use as template** — saves this file's current content as the project's template (the file in `~/.pith/templates/` that the project's `.pith-project` points to), replacing the previous content. Because templates are shared across projects, this affects every project using the same template. The content is saved verbatim, including any specific frontmatter values. If you want placeholder values in the template (e.g. `Title:` with no value), edit the template directly via **View template** instead
+- **Use as template** — saves this file's current content as the project's template (the file in `~/.pith/templates/` that the project's `.pith-project` points to), replacing the previous content. Because templates can be shared across projects, this affects every project using the same template. PiTH saves the content verbatim, including any specific frontmatter values. If you want placeholder values in the template (e.g. `Title:` with no value), edit the template directly via **View template** instead
 - **View template** — opens the project template in an editor modal, where you can edit the template, configure apply options, and click **Apply to open file** to apply directly to the file you have open
 - **View compliance** — opens the compliance report showing which files are out of compliance given the current apply options
 
-Frontmatter is edited directly in the text editor. The preview pane strips it from the rendered output. See [Frontmatter and Templates](frontmatter.md) for full details on apply options, compliance, and how the template system works.
+You edit Frontmatter directly in the text editor. The preview pane strips it from the rendered output. See [Frontmatter and Templates](frontmatter.md) for full details on apply options, compliance, and how the template system works.
 
 ## Stats
 
@@ -125,11 +125,11 @@ Each file you open adds a tab to the vertical strip along the left edge of the e
 - When all tabs are closed, the editor panel closes
 - Click the **«** button at the top of the strip to collapse the tab strip; click **»** to expand it again
 
-Tabs and their contents persist across sessions — when you reopen PiTH, your previously open files are restored.
+Tabs and their contents persist across sessions — reopening PiTH restores your previously open files.
 
 ## Renaming from the editor
 
-Double-click the filename in the editor toolbar to rename the file inline. The file on disk is renamed to match.
+Double-click the filename in the editor toolbar to rename the file inline. PiTH renames the file on disk to match.
 
 ## Closing the editor
 
@@ -139,13 +139,13 @@ Click the **✕** button in the top right corner of the editor panel to close th
 
 The editor checks your prose for spelling as you type. Misspelled words are underlined with a hint indicator in the gutter.
 
-Spell check skips code blocks, inline code, URLs, frontmatter, and markdown syntax marks — only regular prose text is checked.
+Spell check skips code blocks, inline code, URLs, frontmatter, and markdown syntax marks — it checks only regular prose text.
 
-The checker uses the standard en-US Hunspell dictionary, so technical terms, compound words, acronyms (e.g. GFM, LTS), and proper nouns (e.g. names of people or products) are flagged even when spelled correctly. Add them to your personal dictionary once to avoid being flagged again.
+The checker uses the standard en-US Hunspell dictionary, so it flags technical terms, compound words, acronyms (e.g. GFM, LTS), and proper nouns (e.g. names of people or products) even when they are spelled correctly. Add them to your personal dictionary to avoid being flagged again.
 
 To add a word to your personal dictionary, hover over the underlined word and click **Add to dictionary** in the tooltip. Words you add are saved immediately and persist across sessions and projects.
 
-Your personal word list is stored at `~/.pith/personal.dic` (one word per line). You can edit this file directly to add or remove words in bulk, or copy it to another machine to carry your custom vocabulary with you.
+Your personal word list lives at `~/.pith/personal.dic` (one word per line). You can edit this file directly to add or remove words in bulk, or copy it to another machine to carry your custom vocabulary with you.
 
 ## Mermaid diagrams
 

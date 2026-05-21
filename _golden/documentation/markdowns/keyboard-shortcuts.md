@@ -2,7 +2,7 @@
 
 ## Hierarchy navigation and reordering
 
-These shortcuts work when a file chip in the hierarchy is selected (click a chip to select it).
+These shortcuts work when you have selected a file chip in the hierarchy (click a chip to select it).
 
 | Key | Action |
 |-----|--------|
@@ -11,11 +11,11 @@ These shortcuts work when a file chip in the hierarchy is selected (click a chip
 | → | Nest under the file above (make it a child) |
 | ← | Unnest (move up one level) |
 
-Movement crosses level boundaries — pressing ↑ at the top of a group moves the file above its parent.
+Movement crosses level boundaries — press ↑ at the top of a group to move the file above its parent.
 
 ## Unlinked file shortcuts
 
-These shortcuts work when one or more files in the Unlinked pane are selected.
+These shortcuts work when you have selected one or more files in the Unlinked pane.
 
 | Key | Action |
 |-----|--------|

@@ -2,7 +2,7 @@
 
 PiTH supports YAML frontmatter in markdown files (with opening and closing `---` delimiters).
 
-Frontmatter is automatically stripped from the rendered preview so it doesn't appear in the output.
+PiTH automatically strips Frontmatter from the rendered preview so it doesn't appear in the output.
 
 ## The project template
 
@@ -22,7 +22,7 @@ Title: <add title>
 # Title
 ```
 
-New files created in the project are pre-populated from the template, with the title heading automatically set to the filename. PiTH supports multiple named templates — every `.md` file in `~/.pith/templates/` is available. The **Apply template** button shows a dropdown to pick which template to apply, and **Use as template** lets you save the current file as a new named template.
+New files created in the project are pre-populated with content from the template, with the title heading automatically set to the filename. PiTH supports multiple named templates — every `.md` file in `~/.pith/templates/` is available. The **Apply template** button shows a dropdown for you to pick a template to apply. **Use as template** lets you save the current file as a new named template.
 
 ## Managing the template
 
@@ -41,7 +41,7 @@ Click **⋮** on the project chip and choose **Template → View template** or *
 
 ### Editing the template directly
 
-The template is a plain markdown file in `~/.pith/templates/`. Open it via **View template** and edit it directly. Save to update it. Because templates are shared, editing the default template affects every project that uses it. The frontmatter keys you define become the compliance requirements for all project files using this template. The h2+ headings you define are checked for compliance only when **Append template body** is on. Any body content below the h1 heading can be optionally appended to files when applying.
+The template is a plain markdown file in `~/.pith/templates/`. Open it via **View template** and edit it directly. Save to update it. Because templates are shared, editing the default template affects every project that uses it. The frontmatter keys you define become the compliance requirements for all project files using this template. Only when **Append template body** is on does PiTH check the h2+ headings for compliance. You can have PiTH optionally append to the files any body content below the h1 heading.
 
 ## Applying the template
 

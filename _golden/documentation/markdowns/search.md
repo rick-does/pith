@@ -16,7 +16,7 @@ Each result shows:
 - **Number of matches** in that file
 - **Matching lines** with the query highlighted in context
 
-Up to 10 matching lines per file and 50 files total are shown.
+Up to 10 matching lines per file and 50 files total show here.
 
 ## Opening a result
 
@@ -24,10 +24,10 @@ Click any result — the file title or any matching line — to open that file i
 
 ## Closing search
 
-Click the **✕** button in the search panel header.
+Click the **✕** button in the search panel header to close it.
 
 ## Notes
 
 - Search is case-insensitive
 - Search scans the full text of every `.md` file in `markdowns/`, excluding archived files
-- Results are ranked by number of matches (most matches first)
+- Search ranks results by number of matches (most matches first)

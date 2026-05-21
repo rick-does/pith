@@ -1,6 +1,6 @@
 # Unlinked Files
 
-The **Unlinked** pane shows markdown files that are registered with the project but not yet part of the [hierarchy](hierarchy.md). This includes files discovered in the markdowns directory and files added by reference from outside it. Files end up here when you add files directly to the folder, [import](import-export.md) a batch of files, add an external file by reference, or remove a file from the hierarchy without deleting it.
+The **Unlinked** pane shows markdown files that are registered with the project but not yet part of the [hierarchy](hierarchy.md). This includes files you add to the markdowns directory and files added by reference when you create a project from a YAML file.
 
 ## The Unlinked chip
 
@@ -13,16 +13,16 @@ The pane is open by default. Click the chip to collapse it, and again to reopen 
 
 ## Adding files to the hierarchy
 
-There are four ways to move unlinked files into the hierarchy:
+You have four ways to move unlinked files into the hierarchy:
 
 1. **Select** and **Drag** them from the Unlinked pane and drop them onto the hierarchy
 2. **Select** and press the **←** arrow key
-3. **Select** and click the **←** button between the two panes
+3. **Select** ad click the **←** button between the two panes
 4. Click **⋮** on one file chip and choose **Add to hierarchy**
 
 **Note**: Double-clicking an unlinked file opens it in the editor.
 
-**Alt+click** on a file chip shows a preview of the file's contents without opening the editor. The preview tooltip shows the opposite of the current label mode — if labels show filenames, the tooltip shows the title, and vice versa.
+**Alt+click** on a file chip shows a preview of the file's contents without opening the editor.
 
 Hovering over any chip shows the full file path. In filename mode, the tooltip also shows the title above the path. Files added by reference from outside the project appear in *italics*.
 
@@ -48,7 +48,7 @@ Dragging a file within the Unlinked pane, or using the ↑/↓ arrow keys with a
 
 ## Creating a new file
 
-Click **⋮** on the Unlinked chip and choose **＋ New file**. Type a filename and press Enter. The file is created in `markdowns/` and appears in the Unlinked pane, ready to be added to the hierarchy. If the project has a file template set, the new file is pre-populated from it.
+Click **⋮** on the Unlinked chip and choose **＋ New file**. Type a filename and press Enter. The file appears in `markdowns/` and appears in the Unlinked pane, ready for you to add it to the hierarchy. If the project has a file template, the new file becomes an instance of the template.
 
 You can also add existing markdown files from another directory — see [Adding files from another directory](projects.md#adding-files-from-another-directory).
 

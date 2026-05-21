@@ -59,10 +59,12 @@ On first run the script installs all dependencies and builds the frontend — th
 
 ## First use
 
-On first run PiTH creates a starter project containing a **Getting Started** file that links back to this documentation. After that, it remembers the last project you had open.
+On first run, PiTH creates a starter project with a **Getting Started** file that links back to this documentation. After that, it remembers the last project you had open.
 
 To create your own project, click **⋮** on the project chip and choose **Projects → New project**. You choose where the markdown files live — PiTH points to them in place and stores only lightweight metadata in `~/.pith/projects/`. See [Managing Projects](projects.md) for full details including how to use an existing YAML file as your project's hierarchy.
 
-PiTH watches the markdowns folder for changes every 3 seconds. If you add, rename, or delete files outside the app, the changes are picked up automatically.
+PiTH watches the markdowns folder for changes every 3 seconds. If you add, rename, or delete files outside the app, PiTH picks up the changes automatically.
+
+## Documentation
 
 The **?** button in the header opens this documentation in your browser at any time.
