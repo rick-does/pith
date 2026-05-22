@@ -2,16 +2,6 @@ import DefaultTheme from 'vitepress/theme'
 import { h } from 'vue'
 import './style.css'
 
-const PiTHTitle = {
-  render() {
-    return h('span', { class: 'pith-title' }, [
-      'Pi',
-      h('span', { class: 'pith-t' }, 'T'),
-      'H Docs'
-    ])
-  }
-}
-
 const SearchIcon = {
   render() {
     return h('button', {
@@ -45,7 +35,6 @@ export default {
   extends: DefaultTheme,
   Layout() {
     return h(DefaultTheme.Layout, null, {
-      'nav-bar-title-before': () => h(PiTHTitle),
       'nav-bar-content-before': () => h(SearchIcon)
     })
   }

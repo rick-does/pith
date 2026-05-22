@@ -10,6 +10,8 @@ export default {
   base: '/pith/',
   appearance: false,
   themeConfig: {
+    logo: '/logo.svg',
+    siteTitle: false,
     search: { provider: 'local' },
     sidebar,
     socialLinks: [
