@@ -27,9 +27,7 @@ nav:
 - Managing Projects: _golden/documentation/markdowns/projects.md
 - Building Your Hierarchy: _golden/documentation/markdowns/hierarchy.md
 - Unlinked Files: _golden/documentation/markdowns/unlinked-files.md
-- Editing Files:
-  - Editing Files: _golden/documentation/markdowns/editing.md
-  - Scan Example: _golden/documentation/markdowns/scan-test.md
+- Editing Files: _golden/documentation/markdowns/editing.md
 - Frontmatter and Templates: _golden/documentation/markdowns/frontmatter.md
 - Link Validation: _golden/documentation/markdowns/link-validation.md
 - Search: _golden/documentation/markdowns/search.md

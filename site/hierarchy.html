@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Building Your Hierarchy — PiTH</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="pagefind/pagefind-ui.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a href="index.html" class="topbar-title">PiTH Docs</a>
+      <div class="topbar-right">
+        <button class="search-btn" id="search-btn" title="Search">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </button>
+        <a href="https://github.com/rick-does/pith" class="github-link" title="GitHub" target="_blank" rel="noopener">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="22" height="22" fill="currentColor">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+          </svg>
+        </a>
+      </div>
+    </header>
+    <aside class="sidebar">
+      <nav><ul>
+<li><a href="index.html">Introduction</a></li>
+<li><a href="getting-started.html">Getting Started</a></li>
+<li><a href="projects.html">Managing Projects</a></li>
+<li class="active"><a href="hierarchy.html">Building Your Hierarchy</a></li>
+<li><a href="unlinked-files.html">Unlinked Files</a></li>
+<li><a href="editing.html">Editing Files</a><ul>
+<li><a href="scan-test.html">Scan Example</a></li>
+</ul></li>
+<li><a href="frontmatter.html">Frontmatter and Templates</a></li>
+<li><a href="link-validation.html">Link Validation</a></li>
+<li><a href="search.html">Search</a></li>
+<li><a href="import-export.html">Import & Export</a></li>
+<li><a href="keyboard-shortcuts.html">Keyboard Shortcuts</a></li>
+</ul></nav>
+    </aside>
+    <main class="content">
+      <article><h1 id="building-your-hierarchy">Building Your Hierarchy</h1>
+<p>The hierarchy pane shows your files as a tree. Files can nest to any depth. PiTH saves the structure to the project's YAML file after every change.</p>
+<h2 id="adding-a-file">Adding a file</h2>
+<p>Click <strong>⋮</strong> on the project chip, then <strong>File → New file</strong>. The file is added to the project's markdowns directory and added to the bottom of the hierarchy tree. To create a new file in the <a href="unlinked-files.html">Unlinked pane</a> instead, click <strong>⋮</strong> on the Unlinked chip. If the project has a file template, the file becomes an instance of the template — see <a href="editing.html#template">Template</a>.</p>
+<p>To add a child to an existing file, click <strong>⋮</strong> on that file chip and choose <strong>New sub-page</strong>. The child is added as the last of that files children is also pre-populated from the file template if one exists.</p>
+<p>To create a child that starts as a copy of the parent, choose <strong>Copy to new sub-page</strong>. The new file gets the parent's content with "-copy" appended to the title and filename.</p>
+<h2 id="reordering-with-drag-and-drop">Reordering with drag and drop</h2>
+<p>Drag any file chip by its label to move it. While dragging:</p>
+<ul>
+<li>Hover over the <strong>left half</strong> of a chip to place the dragged file as a sibling (same level)</li>
+<li>Hover over the <strong>right half</strong> of a chip to nest it as the first child of that file</li>
+</ul>
+<p>A spacer shows where the file would land for sibling placement. A ghost chip shows the nesting depth for child placement.</p>
+<h2 id="reordering-with-the-keyboard">Reordering with the keyboard</h2>
+<p>Select a file chip by clicking it. The d-pad arrow buttons appear in the left margin:</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>↑ ↓</td>
+<td>Move up or down within the current level, crossing into parent/child levels as needed</td>
+</tr>
+<tr>
+<td>→</td>
+<td>Nest under the file above (make it a child)</td>
+</tr>
+<tr>
+<td>←</td>
+<td>Unnest (move up one level)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="renaming-a-file">Renaming a file</h2>
+<p>Click <strong>⋮</strong> on a file chip and choose <strong>Rename</strong> to rename it inline. Spaces are replaced with hyphens automatically. The filename on disk changes to match. You can also rename from the <a href="editing.html">editor toolbar</a> — double-click the filename there.</p>
+<h2 id="deleting-a-file">Deleting a file</h2>
+<p>Click <strong>⋮</strong> on a file chip and choose <strong>Delete</strong>. The behavior depends on what kind of project you're in and where the file lives:</p>
+<ul>
+<li><strong>Standard project, file in the markdowns directory</strong> — the file moves to <code>_archive/</code> inside the markdowns directory rather than being permanently deleted. To recover it, move it back by hand.</li>
+<li><strong>File added by reference from outside the markdowns directory</strong> — PiTH removes only the reference; it does not touch the file itself.</li>
+<li><strong>Quick Open YAML project (or any project pointed at your own YAML file)</strong> — PiTH only removes the reference from the YAML and unlinked list. It never moves the file. PiTH treats the YAML's directory as your space, not its own, so it doesn't create an <code>_archive/</code> folder there.</li>
+</ul>
+<p>The app detects file changes automatically within a few seconds.</p>
+<h2 id="flatten-and-restore">Flatten and restore</h2>
+<p>To move all files out of the hierarchy and into the <a href="unlinked-files.html">Unlinked pane</a>, click <strong>⋮</strong> on the project chip and choose <strong>Flatten hierarchy</strong>. This saves a backup of the current tree so you can undo it.</p>
+<p>After flattening, the menu item changes to <strong>Restore hierarchy</strong>. Click it to bring back the saved tree exactly as it was. PiTH automatically forgets the backup when you start building a new hierarchy by dragging files back in.</p>
+<h2 id="expanding-and-collapsing">Expanding and collapsing</h2>
+<p>Click the icon next to any file that has children to expand or collapse it. See <a href="keyboard-shortcuts.html">Keyboard Shortcuts</a> for the full list of navigation keys.</p>
+<h2 id="file-chip-labels-and-tooltips">File chip labels and tooltips</h2>
+<p>The <strong>Labels</strong> setting (⋮ → Settings) controls whether chips show the file title or the filename. Whichever mode is active, hover over any chip to show the full file path. In filename mode, the tooltip also includes the title above the path.</p>
+<p>Files that live outside the project have text in <em>italics</em> to indicate they are external — the file lives somewhere else; PiTH never moves or copies it without your instruction.</p>
+<h2 id="previewing-a-file">Previewing a file</h2>
+<p><strong>Alt+click</strong> any file chip to preview its contents without opening the editor. The tooltip shows the opposite of the current label mode — if chips show filenames, the tooltip shows the title, and vice versa.</p></article>
+    </main>
+  </div>
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-backdrop" id="search-backdrop"></div>
+    <div class="search-panel">
+      <div id="search"></div>
+    </div>
+  </div>
+  <script src="pagefind/pagefind-ui.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      new PagefindUI({ element: "#search", showSubResults: true });
+      const btn = document.getElementById('search-btn');
+      const overlay = document.getElementById('search-overlay');
+      const backdrop = document.getElementById('search-backdrop');
+      btn.addEventListener('click', () => {
+        overlay.classList.toggle('open');
+        if (overlay.classList.contains('open')) {
+          setTimeout(() => { const inp = overlay.querySelector('input'); if (inp) inp.focus(); }, 50);
+        }
+      });
+      backdrop.addEventListener('click', () => overlay.classList.remove('open'));
+    });
+  </script>
+</body>
+</html>

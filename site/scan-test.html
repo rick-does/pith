@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scan Example — PiTH</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="pagefind/pagefind-ui.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a href="index.html" class="topbar-title">PiTH Docs</a>
+      <div class="topbar-right">
+        <button class="search-btn" id="search-btn" title="Search">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </button>
+        <a href="https://github.com/rick-does/pith" class="github-link" title="GitHub" target="_blank" rel="noopener">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="22" height="22" fill="currentColor">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+          </svg>
+        </a>
+      </div>
+    </header>
+    <aside class="sidebar">
+      <nav><ul>
+<li><a href="index.html">Introduction</a></li>
+<li><a href="getting-started.html">Getting Started</a></li>
+<li><a href="projects.html">Managing Projects</a></li>
+<li><a href="hierarchy.html">Building Your Hierarchy</a></li>
+<li><a href="unlinked-files.html">Unlinked Files</a></li>
+<li><a href="editing.html">Editing Files</a><ul>
+<li class="active"><a href="scan-test.html">Scan Example</a></li>
+</ul></li>
+<li><a href="frontmatter.html">Frontmatter and Templates</a></li>
+<li><a href="link-validation.html">Link Validation</a></li>
+<li><a href="search.html">Search</a></li>
+<li><a href="import-export.html">Import & Export</a></li>
+<li><a href="keyboard-shortcuts.html">Keyboard Shortcuts</a></li>
+</ul></nav>
+    </aside>
+    <main class="content">
+      <article><hr />
+<p>Title: Scan Example
+Author:
+Required:</p>
+<hr />
+<h1 id="scan-example">Scan Example</h1>
+<p>This file runs every flag the Scan tab can produce. Open it, then click the <strong>Issues</strong> tab below the editor toolbar to see the results.</p>
+<h1 id="second-h1-heading">Second H1 Heading</h1>
+<p>Having two H1 headings triggers the <strong>multiple H1s</strong> warning. A well-formed document has exactly one.</p>
+<h3 id="heading-level-jump">Heading Level Jump</h3>
+<p>This heading jumps from H1 directly to H3, skipping H2. That triggers the <strong>heading level jump</strong> warning.</p>
+<h2 id="empty-section">Empty Section</h2>
+<h2 id="section-with-a-long-sentence">Section With a Long Sentence</h2>
+<p>This sentence is intentionally constructed to exceed the forty-word threshold that the scan uses to flag overly long sentences, going on and on well past the point where any reasonable reader would prefer a full stop and a fresh start.</p>
+<h2 id="section-with-a-long-paragraph">Section With a Long Paragraph</h2>
+<p>This paragraph exceeds the one hundred and fifty word limit that the scan uses to identify dense blocks of prose. Technical documentation benefits from short, focused paragraphs that readers can scan quickly. When a paragraph runs on past one hundred and fifty words it starts to look like a wall of text, which discourages reading and makes it harder for users to find the information they need. Breaking content into smaller chunks — each covering a single idea — improves both readability and navigability. Adding a few more sentences here to ensure this paragraph reliably crosses the threshold and triggers the info flag during testing. Keep your sentences to the point and that will keep them short.</p>
+<h2 id="todo-section">TODO Section</h2>
+<p>This section contains placeholder markers that the scan looks for.</p>
+<p>TODO: Replace this with real content before publishing.</p>
+<p>Also FIXME: this introduction needs to be written.</p></article>
+    </main>
+  </div>
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-backdrop" id="search-backdrop"></div>
+    <div class="search-panel">
+      <div id="search"></div>
+    </div>
+  </div>
+  <script src="pagefind/pagefind-ui.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      new PagefindUI({ element: "#search", showSubResults: true });
+      const btn = document.getElementById('search-btn');
+      const overlay = document.getElementById('search-overlay');
+      const backdrop = document.getElementById('search-backdrop');
+      btn.addEventListener('click', () => {
+        overlay.classList.toggle('open');
+        if (overlay.classList.contains('open')) {
+          setTimeout(() => { const inp = overlay.querySelector('input'); if (inp) inp.focus(); }, 50);
+        }
+      });
+      backdrop.addEventListener('click', () => overlay.classList.remove('open'));
+    });
+  </script>
+</body>
+</html>
