@@ -34,6 +34,11 @@
   width: auto;
 }
 
+/* Match sidebar top padding to content */
+.VPSidebarNav {
+  padding-top: 24px !important;
+}
+
 /* White social link icons */
 .VPSocialLink {
   color: rgba(255,255,255,0.8) !important;
