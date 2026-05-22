@@ -34,16 +34,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: pip install markdown pygments "ruamel.yaml"
+      - run: pip install mkdocs-material mkdocs-section-index
 
-      - run: python build_docs.py
+      - run: cp _golden/documentation/markdowns/*.md _pages/
 
-      - run: npx pagefind --site site
-
-      # MkDocs build (inactive):
-      # - run: pip install mkdocs-material
-      # - run: cp _golden/documentation/markdowns/*.md _pages/
-      # - run: mkdocs build
+      - run: mkdocs build
 
       - uses: actions/upload-pages-artifact@v4
         with:

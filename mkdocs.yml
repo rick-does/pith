@@ -19,17 +19,23 @@ theme:
   - toc.integrate
 
 extra_css:
-- stylesheets/extra.css
+  - stylesheets/extra.css
+
+plugins:
+  - search
+  - section-index
 
 nav:
-- Introduction: _golden/documentation/markdowns/index.md
-- Getting Started: _golden/documentation/markdowns/getting-started.md
-- Managing Projects: _golden/documentation/markdowns/projects.md
-- Building Your Hierarchy: _golden/documentation/markdowns/hierarchy.md
-- Unlinked Files: _golden/documentation/markdowns/unlinked-files.md
-- Editing Files: _golden/documentation/markdowns/editing.md
-- Frontmatter and Templates: _golden/documentation/markdowns/frontmatter.md
-- Link Validation: _golden/documentation/markdowns/link-validation.md
-- Search: _golden/documentation/markdowns/search.md
-- Import & Export: _golden/documentation/markdowns/import-export.md
-- Keyboard Shortcuts: _golden/documentation/markdowns/keyboard-shortcuts.md
+  - Introduction: index.md
+  - Getting Started: getting-started.md
+  - Managing Projects: projects.md
+  - Building Your Hierarchy: hierarchy.md
+  - Unlinked Files: unlinked-files.md
+  - Editing Files:
+    - editing.md
+    - Scan Example: scan-test.md
+  - Frontmatter and Templates: frontmatter.md
+  - Link Validation: link-validation.md
+  - Search: search.md
+  - Import & Export: import-export.md
+  - Keyboard Shortcuts: keyboard-shortcuts.md
