@@ -34,6 +34,9 @@
   width: auto;
 }
 
+/* Remove prev/next page footer nav */
+.VPDocFooter { display: none !important; }
+
 /* Match sidebar top padding to content */
 #VPSidebarNav {
   padding-top: 24px !important;
