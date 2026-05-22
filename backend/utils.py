@@ -13,6 +13,48 @@ logger = logging.getLogger(__name__)
 from .models import FileNode, CollectionStructure
 from .config import PROJECTS_META_DIR, get_project_meta_dir, get_default_template_path, load_config
 
+
+def _mkdocs_nav_to_nodes(nav: list, order_start: int = 0) -> list[FileNode]:
+    nodes = []
+    for i, item in enumerate(nav):
+        if isinstance(item, str):
+            path = item if item.endswith(".md") else f"{item}.md"
+            title = Path(path).stem.replace("-", " ").replace("_", " ").title()
+            nodes.append(FileNode(path=path, title=title, order=order_start + i))
+        elif isinstance(item, dict):
+            for label, value in item.items():
+                if isinstance(value, str):
+                    path = value if value.endswith(".md") else f"{value}.md"
+                    nodes.append(FileNode(path=path, title=label, order=order_start + i))
+                elif isinstance(value, list):
+                    children = _mkdocs_nav_to_nodes(value)
+                    page_children = [c for c in children if c.path.endswith(".md")]
+                    if page_children:
+                        first = page_children[0]
+                        first.title = label
+                        first.children = [c for c in children if c != first]
+                        first.order = order_start + i
+                        nodes.append(first)
+                    else:
+                        nodes.append(FileNode(
+                            path=f"{label.lower().replace(' ', '-')}.md",
+                            title=label,
+                            order=order_start + i,
+                            children=children,
+                        ))
+    return nodes
+
+
+def _nodes_to_mkdocs_nav(nodes: list[FileNode]) -> list:
+    nav = []
+    for node in sorted(nodes, key=lambda n: n.order):
+        if node.children:
+            children_nav = _nodes_to_mkdocs_nav(node.children)
+            nav.append({node.title: [node.path] + children_nav})
+        else:
+            nav.append({node.title: node.path})
+    return nav
+
 _pkg_golden = Path(__file__).parent / "golden"
 _source_golden = Path(__file__).parent.parent / "_golden"
 GOLDEN_DIR = _source_golden if _source_golden.exists() else _pkg_golden
@@ -469,7 +511,6 @@ def _rebuild_generic_list(data: object, top_key: str | None, path_field: str | N
 
 
 def load_collection(project: str) -> CollectionStructure:
-    from .converters import _mkdocs_nav_to_nodes
     from ruamel.yaml import YAML
 
     tree_file = get_collection_file(project)
@@ -508,7 +549,6 @@ def load_collection(project: str) -> CollectionStructure:
 
 
 def save_collection(project: str, collection: CollectionStructure) -> None:
-    from .converters import _nodes_to_mkdocs_nav
     from ruamel.yaml import YAML
 
     tree_file = get_collection_file(project)

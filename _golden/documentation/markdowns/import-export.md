@@ -11,32 +11,7 @@ The simplest way to bring an existing project into PiTH is to point a new projec
 
 PiTH supports:
 - **PiTH native** — `root:` key with path/title/order/children nodes
-- **MkDocs nav** — `nav:` key; preserves `site_name`, `theme`, and all other top-level fields
-- **Generic YAML** — any YAML with a flat list of `.md` paths (plain strings or dicts with a path field); PiTH preserves extra fields per entry when it writes changes
 
-## Importing from MkDocs
-
-Click **Import from… → MkDocs** to rebuild the PiTH hierarchy from a `mkdocs.yml` that already lives alongside your markdowns. This replaces the current hierarchy.
-
-1. Place your `mkdocs.yml` in the parent folder of your markdowns directory
-2. Click **⋮ → Import from... → MkDocs**
-
-PiTH builds the hierarchy from the `nav:` section of the file. Markdown files referenced in the nav must already exist in your markdowns directory — import does not copy files.
-
-## Importing from Docusaurus
-
-1. Place your `sidebars.js` (or `sidebars.ts`) in the parent folder of your markdowns directory
-2. Click **⋮ → Import from... → Docusaurus**
-
-If PiTH finds neither `sidebars.js` nor `sidebars.ts`, it prompts you for the filename.
-
-## Exporting to MkDocs
-
-Click **⋮ → Export to... → MkDocs**. PiTH writes the exported `mkdocs.yml` to the parent folder of your markdowns directory. Copy it back to your MkDocs project to use it.
-
-## Exporting to Docusaurus
-
-Click **⋮ → Export to... → Docusaurus**. PiTH exports `sidebars.js` to the parent folder of your markdowns directory. Copy it back to your Docusaurus project.
 
 ## Exporting as HTML / PDF
 

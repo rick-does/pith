@@ -334,25 +334,6 @@ export async function saveUnlinked(project: string, nodes: FileInfo[]): Promise<
   if (!r.ok) throw new Error("Failed to save unlinked");
 }
 
-export async function importFromFormat(project: string, format: "mkdocs" | "docusaurus", filename?: string): Promise<void> {
-  const body = format === "docusaurus" && filename ? JSON.stringify({ filename }) : undefined;
-  const r = await fetch(`${BASE}/projects/${project}/import/${format}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body,
-  });
-  if (!r.ok) {
-    const err = await r.json().catch(() => ({}));
-    throw new Error(err.detail ?? "Import failed");
-  }
-  return r.json();
-}
-
-export async function exportToFormat(project: string, format: "mkdocs" | "docusaurus"): Promise<{ path: string }> {
-  const r = await fetch(`${BASE}/projects/${project}/export/${format}`, { method: "POST" });
-  if (!r.ok) throw new Error("Export failed");
-  return r.json();
-}
 
 
 export async function browseStartDir(project?: string): Promise<string> {

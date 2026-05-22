@@ -24,8 +24,6 @@ export interface ProjectChipProps {
   onCreateFile: (filename: string) => Promise<void>;
   onAddFileFromMd: () => void;
   onOpenYaml: () => void;
-  onImport: (format: "mkdocs" | "docusaurus") => void;
-  onExport: (format: "mkdocs" | "docusaurus") => void;
   onEditTemplate: () => void;
   onCheckCompliance: () => void;
   onValidateLinks: () => void;
@@ -42,15 +40,13 @@ export interface ProjectChipProps {
   onEditProjectPaths: () => void;
 }
 
-export default function ProjectChip({ currentProject, currentProjectTitle, currentProjectPath, recentProjects, titleMode, setTitleMode, onSwitchProject, onNewProject, onOpenProject, onArchiveProject, onOpenProjectMd, onCreateFile, onAddFileFromMd, onOpenYaml, onImport, onExport, onEditTemplate, onCheckCompliance, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, showIndicators, onToggleIndicators, showNewProjectFile, onToggleNewProjectFile, onQuickOpenYaml, onEditProjectPaths }: ProjectChipProps) {
+export default function ProjectChip({ currentProject, currentProjectTitle, currentProjectPath, recentProjects, titleMode, setTitleMode, onSwitchProject, onNewProject, onOpenProject, onArchiveProject, onOpenProjectMd, onCreateFile, onAddFileFromMd, onOpenYaml, onEditTemplate, onCheckCompliance, onValidateLinks, onExportHtml, onReport, hasHierarchyBackup, onFlattenHierarchy, onRestoreHierarchy, showIndicators, onToggleIndicators, showNewProjectFile, onToggleNewProjectFile, onQuickOpenYaml, onEditProjectPaths }: ProjectChipProps) {
 
 
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [projectSubmenuOpen, setProjectSubmenuOpen] = useState(false);
-  const [importSubmenuOpen, setImportSubmenuOpen] = useState(false);
-  const [exportSubmenuOpen, setExportSubmenuOpen] = useState(false);
   const [templateSubmenuOpen, setTemplateSubmenuOpen] = useState(false);
   const [fileSubmenuOpen, setFileSubmenuOpen] = useState(false);
   const [yamlSubmenuOpen, setYamlSubmenuOpen] = useState(false);
@@ -307,49 +303,6 @@ export default function ProjectChip({ currentProject, currentProjectTitle, curre
                 onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
               >Scan Project</div>
-
-              <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />
-
-              {/* Import/Export flyouts */}
-              <div
-                style={{ ...menuItem, justifyContent: "space-between", position: "relative" }}
-                onMouseEnter={() => setImportSubmenuOpen(true)}
-                onMouseLeave={() => setImportSubmenuOpen(false)}
-              >
-                <span>Import from...</span>
-                <span style={flyoutArrow}>&#9656;</span>
-                {importSubmenuOpen && (
-                  <div style={submenuStyle}>
-                    {(["mkdocs", "docusaurus"] as const).map(fmt => (
-                      <div key={fmt} style={{ ...menuItem }}
-                        onClick={() => { onImport(fmt); setMenuOpen(false); setImportSubmenuOpen(false); }}
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                      >{fmt === "mkdocs" ? "MkDocs" : "Docusaurus"}</div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div
-                style={{ ...menuItem, justifyContent: "space-between", position: "relative" }}
-                onMouseEnter={() => setExportSubmenuOpen(true)}
-                onMouseLeave={() => setExportSubmenuOpen(false)}
-              >
-                <span>Export to...</span>
-                <span style={flyoutArrow}>&#9656;</span>
-                {exportSubmenuOpen && (
-                  <div style={submenuStyle}>
-                    {(["mkdocs", "docusaurus"] as const).map(fmt => (
-                      <div key={fmt} style={{ ...menuItem }}
-                        onClick={() => { onExport(fmt); setMenuOpen(false); setExportSubmenuOpen(false); }}
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f5f5f5"; }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                      >{fmt === "mkdocs" ? "MkDocs" : "Docusaurus"}</div>
-                    ))}
-                  </div>
-                )}
-              </div>
 
               <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />
 

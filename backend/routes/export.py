@@ -16,12 +16,6 @@ from ..utils import (
     safe_path,
     save_collection,
 )
-from ..converters import (
-    export_docusaurus,
-    export_mkdocs,
-    import_docusaurus,
-    import_mkdocs,
-)
 from ..report import generate_report_html
 
 router = APIRouter()
@@ -37,43 +31,6 @@ async def api_html_preview(project: str, file_path: str):
     html = markdown.markdown(post.content, extensions=["fenced_code", "tables", "toc"])
     return HTMLResponse(html)
 
-
-@router.post("/api/projects/{project}/import/mkdocs")
-async def api_import_mkdocs(project: str):
-    try:
-        nodes = import_mkdocs(project)
-    except FileNotFoundError as e:
-        raise HTTPException(404, str(e))
-    collection = CollectionStructure(root=nodes)
-    save_collection(project, collection)
-    return collection.model_dump()
-
-
-@router.post("/api/projects/{project}/import/docusaurus")
-async def api_import_docusaurus(project: str, request: Request):
-    data = await request.json() if request.headers.get("content-length", "0") != "0" else {}
-    filename = data.get("filename")
-    try:
-        nodes = import_docusaurus(project, filename)
-    except (FileNotFoundError, ValueError) as e:
-        raise HTTPException(400, str(e))
-    collection = CollectionStructure(root=nodes)
-    save_collection(project, collection)
-    return collection.model_dump()
-
-
-@router.post("/api/projects/{project}/export/mkdocs")
-async def api_export_mkdocs(project: str):
-    collection = load_collection(project)
-    path = export_mkdocs(project, collection.root)
-    return {"path": path}
-
-
-@router.post("/api/projects/{project}/export/docusaurus")
-async def api_export_docusaurus(project: str):
-    collection = load_collection(project)
-    path = export_docusaurus(project, collection.root)
-    return {"path": path}
 
 
 @router.get("/api/projects/{project}/export/html")

@@ -31,11 +31,9 @@ If you've ever maintained a documentation site and found yourself hand-editing a
 - **Full-text search** — search across all files with highlighted match context
 - **Mermaid diagrams** — flowcharts, sequence diagrams, and more render live in the preview pane
 
-### Import and export
+### Files and export
 
 - **Point at existing files** — create a project by selecting any markdowns directory, or leave it blank and PiTH creates one for you; PiTH works with the files in place rather than copying them; drop a directory into `~/pith-projects` and PiTH picks it up automatically within seconds
-- **Use any YAML as your hierarchy** — point a project at an existing `mkdocs.yml`, a custom YAML file, or let PiTH create one; changes are written back preserving the original format and any extra fields
-- **MkDocs and Docusaurus** — import an existing nav config or export when ready to publish
 - **Add files from anywhere** — copy individual `.md` files into a project from any directory
 - **HTML/PDF export** — whole-collection export to a single document with table of contents and print CSS
 
@@ -120,5 +118,5 @@ Then open `http://localhost:8002` in your browser.
 - **Editor:** CodeMirror 6 (vi mode via @replit/codemirror-vim)
 - **Drag and drop:** dnd-kit
 - **Readability:** textstat
-- **YAML:** pyyaml (PiTH-native format), ruamel.yaml (round-trip for MkDocs and custom formats)
+- **YAML:** pyyaml, ruamel.yaml
 - **Standalone:** PyInstaller, pywebview

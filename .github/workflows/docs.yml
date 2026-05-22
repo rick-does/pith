@@ -6,10 +6,8 @@ on:
       - main
     paths:
       - "_golden/documentation/**"
-      - "build_docs.py"
-      - "_pages/**"
-      - "mkdocs.yml"
-      - "docs/**"
+      - "docs/.vitepress/**"
+      - "scripts/**"
       - ".github/workflows/docs.yml"
 
 permissions:
@@ -34,15 +32,28 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: pip install mkdocs-material mkdocs-section-index
+      - run: pip install pyyaml
 
-      - run: cp _golden/documentation/markdowns/*.md _pages/
+      - run: python scripts/gen_vitepress_sidebar.py
 
-      - run: mkdocs build
+      - run: cp _golden/documentation/markdowns/*.md docs/
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: npm --prefix docs install
+
+      - run: cd docs && node_modules/.bin/vitepress build .
+
+      # MkDocs (inactive):
+      # - run: pip install mkdocs-material mkdocs-section-index
+      # - run: cp _golden/documentation/markdowns/*.md _pages/
+      # - run: mkdocs build
 
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: site/
+          path: docs/.vitepress/dist
 
       - uses: actions/deploy-pages@v4
         id: deployment

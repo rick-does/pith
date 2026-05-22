@@ -3,8 +3,6 @@ import Sidebar from "./components/Sidebar";
 import MarkdownEditor from "./components/MarkdownEditor";
 import type { MarkdownEditorHandle } from "./components/MarkdownEditor";
 import YAMLEditor from "./components/YAMLEditor";
-import ImportModal from "./components/ImportModal";
-import ExportModal from "./components/ExportModal";
 import SearchPanel from "./components/SearchPanel";
 import TemplateEditor from "./components/TemplateEditor";
 import ComplianceReport from "./components/ComplianceReport";
@@ -23,7 +21,6 @@ import {
   fetchTemplate, saveTemplate,
   fetchTemplateList, fetchTemplateCompliance, applyTemplate, batchApplyTemplate, useFileAsTemplate,
   validateProjectLinks, validateFileLinks,
-  importFromFormat, exportToFormat,
   flattenHierarchy, restoreHierarchy, checkHierarchyBackup,
   fetchConfig, setLastProject,
   fetchPrefs, savePrefs,
@@ -65,8 +62,6 @@ export default function App() {
   const [error, setError] = useState("");
 
   // Simple overlay/modal toggles
-  const [importModal, setImportModal] = useState<{ format: "mkdocs" | "docusaurus" } | null>(null);
-  const [exportModal, setExportModal] = useState<{ format: "mkdocs" | "docusaurus" } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
 
   // Template state
@@ -765,8 +760,6 @@ export default function App() {
             onCreateFile: handleCreateFile,
             onAddFileFromMd: () => setAddFileDialogOpen(true),
             onOpenYaml: handleOpenYaml,
-            onImport: (fmt) => setImportModal({ format: fmt }),
-            onExport: (fmt) => setExportModal({ format: fmt }),
             onEditTemplate: () => setShowTemplateEditor(true),
             onCheckCompliance: handleShowCompliance,
             onValidateLinks: handleShowLinkReport,
@@ -927,22 +920,6 @@ export default function App() {
         </div>
       )}
 
-      {importModal && currentProject && (
-        <ImportModal
-          onImportMkdocs={async () => { await importFromFormat(currentProject, "mkdocs"); setImportModal(null); await loadCollection(currentProject); }}
-          onImportDocusaurus={async (filename?: string) => { await importFromFormat(currentProject, "docusaurus", filename); setImportModal(null); await loadCollection(currentProject); }}
-          onClose={() => setImportModal(null)}
-        />
-      )}
-
-      {exportModal && currentProject && (
-        <ExportModal
-          format={exportModal.format}
-          resultPath=""
-          onExport={async () => { const result = await exportToFormat(currentProject, exportModal.format); setExportModal(null); window.alert(`Exported to: ${result.path}`); }}
-          onClose={() => setExportModal(null)}
-        />
-      )}
 
 
       {searchOpen && currentProject && (

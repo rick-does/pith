@@ -27,8 +27,6 @@ If you already have a YAML file that describes your file structure — a `mkdocs
 
 When you select a YAML file first, PiTH suggests `<yaml-dir>/markdowns/` as the markdowns directory — this is where new files are created. You can accept the suggestion or browse to any other location.
 
-Supported formats: PiTH native (`root:` key), MkDocs (`nav:` key), and any generic YAML with a list of `.md` paths.
-
 ## Auto-discovery
 
 PiTH automatically picks up any directory you place inside `~/pith-projects/` — no dialog required. PiTH scans that folder every few seconds and registers any new directory that contains at least one `.md` file.

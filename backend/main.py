@@ -19,6 +19,7 @@ from .routes.export import router as export_router
 from .routes.quick_open import router as quick_open_router
 
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     PROJECTS_META_DIR.mkdir(parents=True, exist_ok=True)
