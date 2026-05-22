@@ -19,31 +19,31 @@ root:
   order: 4
   path: markdowns/unlinked-files.md
   title: Unlinked Files
-- children: []
+- children:
+  - children: []
+    order: 0
+    path: markdowns/scan-test.md
+    title: Scan Example
   order: 5
   path: markdowns/editing.md
   title: Editing Files
 - children: []
   order: 6
-  path: markdowns/scan-test.md
-  title: Scan Example
-- children: []
-  order: 7
   path: markdowns/frontmatter.md
   title: Frontmatter and Templates
 - children: []
-  order: 8
+  order: 7
   path: markdowns/link-validation.md
   title: Link Validation
 - children: []
-  order: 9
+  order: 8
   path: markdowns/search.md
   title: Search
 - children: []
-  order: 10
+  order: 9
   path: markdowns/import-export.md
   title: Import & Export
 - children: []
-  order: 11
+  order: 10
   path: markdowns/keyboard-shortcuts.md
   title: Keyboard Shortcuts
