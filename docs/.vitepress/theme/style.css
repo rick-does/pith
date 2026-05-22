@@ -35,7 +35,7 @@
 }
 
 /* Match sidebar top padding to content */
-.VPSidebarNav {
+#VPSidebarNav {
   padding-top: 24px !important;
 }
 
