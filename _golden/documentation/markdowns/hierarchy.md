@@ -1,3 +1,7 @@
+---
+Title: Building Your Hierarchy 
+---
+
 # Building Your Hierarchy
 
 The hierarchy pane shows your files as a tree. Files can nest to any depth. PiTH saves the structure to the project's YAML file after every change.

@@ -1,70 +1,31 @@
-# Getting Started
+---
+Title: Introduction 
+---
 
-PiTH is available three ways: as a **pip package** (recommended), a **standalone app** (no Python required), or run from source.
+# Introduction
 
-## pip install (recommended)
+PiTH is a visual editor for collections of Markdown files. You drag and drop files in a hierarchical tree, and PiTH saves the structure to a YAML file. PiTH also has a full-featured Markdown editor where you can create, edit, and preview Markdown files.
 
-Requires Python 3.10+.
+## The problem
 
-```
-pip install pith-md
-pith
-```
+If you maintain a documentation site built with a static site generator — MkDocs, Docusaurus, Jekyll, or similar — you know the problem. Every time you add a page, rename a file, or reorganize a section, you have to open a config file and edit it by hand. With dozens of files this is tedious. With hundreds, it becomes a source of insidious errors.
 
-**Windows and Mac:** PiTH opens in its own desktop window.
+## What PiTH does
 
-**WSL:** PiTH starts the server and opens your Windows browser automatically.
+PiTH maintains a hierarchy for your markdown files and you interact with it visually: drag files to [reorder and nest them](hierarchy.md), and promote [unlinked files](unlinked-files.md) into the tree. The hierarchy lives in a YAML file — PiTH can create one, or you can point it at an existing file (`mkdocs.yml`, a custom nav config, anything) and PiTH reads and writes it in place without changing its format.
 
-**Linux:** PiTH starts the server and prints the URL. Open it in your browser. To connect from a remote machine, use an SSH tunnel:
+Opening a file launches a multi-tab editor with a live rendered preview, vi keybindings, and syntax highlighting. Mermaid diagram code blocks render as actual diagrams in the preview. Multiple files can be open simultaneously as tabs; they persist across sessions.
 
-```
-ssh -L 5000:localhost:5000 user@host "/path/to/pith"
-```
+PiTH also includes:
 
-Then open `http://localhost:5000` in your local browser. Close the terminal to stop PiTH.
+- [Full-text search](search.md) across all files in a project
+- [Internal link validation](link-validation.md) — scan for broken links project-wide or per file
+- [Frontmatter template management](frontmatter.md) — define expected YAML keys, check compliance, and batch-update files
+- [File structure templates](editing.md#template) — define required headings; new files are pre-populated automatically
+- [Quick Open YAML](projects.md#quick-open-yaml) — point PiTH at any `mkdocs.yml`, custom nav config, or YAML with markdown paths and start working immediately
 
-To use a different port: `pith --port 8080`
+Projects point to files wherever they already live — PiTH stores only lightweight metadata in `~/.pith/projects/` and never moves your files unless you ask it to. See [Managing Projects](projects.md).
 
-## Standalone app
+## How this documentation works
 
-No Python required. Download the latest build from the [Releases page](https://github.com/rick-does/pith/releases) and unzip it.
-
-**Windows:** Double-click `pith.exe`. The app opens in its own window.
-
-**Mac:** Double-click `pith`. Right-click → **Open** the first time to bypass the unsigned app warning.
-
-**Linux:** Run `./pith` from a terminal. The server starts and prints a URL — open it in your browser. Press `Ctrl+C` to stop.
-
-## Run from source
-
-Requires [Python 3.12+](https://www.python.org/downloads) and [Node.js LTS](https://nodejs.org).
-
-**Windows:**
-
-```bat
-git clone git@github.com:rick-does/pith.git
-cd pith
-start.bat
-```
-
-**Mac / Linux / WSL:**
-
-```bash
-git clone git@github.com:rick-does/pith.git
-cd pith
-./start.sh
-```
-
-On first run the script installs all dependencies and builds the frontend — this takes a minute or two. Subsequent runs start immediately. Open your browser at `http://localhost:8002`.
-
-## First use
-
-On first run, PiTH creates a starter project with a **Getting Started** file that links back to this documentation. After that, it remembers the last project you had open.
-
-To create your own project, click **⋮** on the project chip and choose **Projects → New project**. You choose where the markdown files live — PiTH points to them in place and stores only lightweight metadata in `~/.pith/projects/`. See [Managing Projects](projects.md) for full details including how to use an existing YAML file as your project's hierarchy.
-
-PiTH watches the markdowns folder for changes every 3 seconds. If you add, rename, or delete files outside the app, PiTH picks up the changes automatically.
-
-## Documentation
-
-The **?** button in the header opens this documentation in your browser at any time.
+This documentation is published on [GitHub Pages](https://rick-does.github.io/pith/). When you create a new project in PiTH, you'll find a short **Getting Started** file that links back here. See [Getting Started](getting-started.md) for installation instructions.

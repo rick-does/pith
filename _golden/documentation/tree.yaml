@@ -4,10 +4,6 @@ root:
   path: markdowns/index.md
   title: Introduction
 - children: []
-  order: 1
-  path: markdowns/getting-started.md
-  title: Getting Started
-- children: []
   order: 2
   path: markdowns/projects.md
   title: Managing Projects

@@ -1,7 +1,5 @@
 ---
 Title: Editing Files
-Author:
-Required:
 ---
 
 # Editing Files

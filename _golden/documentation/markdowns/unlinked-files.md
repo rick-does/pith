@@ -1,3 +1,7 @@
+---
+Title: Unlinked Files
+---
+
 # Unlinked Files
 
 The **Unlinked** pane shows markdown files that are registered with the project but not yet part of the [hierarchy](hierarchy.md). This includes files you add to the markdowns directory and files added by reference when you create a project from a YAML file.

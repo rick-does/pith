@@ -1,7 +1,5 @@
 ---
 Title: Scan Example
-Author:
-Required:
 ---
 
 # Scan Example

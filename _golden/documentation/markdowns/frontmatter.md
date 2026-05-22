@@ -1,3 +1,6 @@
+---
+Title: Frontmatter and Templates 
+---
 # Frontmatter and Templates
 
 PiTH supports YAML frontmatter in markdown files (with opening and closing `---` delimiters).

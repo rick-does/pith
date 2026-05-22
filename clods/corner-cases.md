@@ -16,7 +16,7 @@ worth confirming works as expected in practice.
 ## Project Creation / Auto-discovery
 
 **Multiple YAML files in a dropped dir (`~/pith-projects`)**
-- Situation: user drops a dir containing e.g. `mkdocs.yml` and `custom-nav.yml`
+- Situation: user drops a dir containing e.g. `tree.yaml` and `custom-nav.yaml`
 - Expected: PiTH picks one silently (prefers a file named `tree` or `collection`; otherwise first alphabetically)
 - User path to fix: Edit Project Paths → change YAML file to the preferred one
 - Verify: the picked YAML is actually loaded and the hierarchy renders correctly

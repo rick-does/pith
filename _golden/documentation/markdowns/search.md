@@ -1,3 +1,6 @@
+---
+Title: Search 
+---
 # Search
 
 PiTH includes full-text search across all files in the current project.

@@ -1,3 +1,7 @@
+---
+Title: Keyboard Shortcuts 
+---
+
 # Keyboard Shortcuts
 
 ## Hierarchy navigation and reordering
