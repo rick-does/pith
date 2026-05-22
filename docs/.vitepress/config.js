@@ -8,6 +8,7 @@ export default {
   title: 'PiTH',
   description: 'A visual markdown workspace with hierarchy editing and prose analysis',
   base: '/pith/',
+  appearance: false,
   themeConfig: {
     search: { provider: 'local' },
     sidebar,

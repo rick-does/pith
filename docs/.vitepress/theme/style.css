@@ -2,6 +2,10 @@
   display: none !important;
 }
 
+.VPNavBarExtra .divider {
+  display: none !important;
+}
+
 .nav-search-icon {
   display: flex;
   align-items: center;
