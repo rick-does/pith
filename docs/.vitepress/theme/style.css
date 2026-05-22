@@ -1,11 +1,41 @@
+/* Hide default search button */
 .VPNavBarSearch {
   display: none !important;
 }
 
+/* Hide appearance toggle separator */
 .VPNavBarExtra .divider {
   display: none !important;
 }
 
+/* Blue header matching PiTH */
+.VPNav,
+.VPNavBar,
+.VPNavBar .content,
+.VPNavBar.has-sidebar .content,
+.VPNavBar.fill .content {
+  background-color: #1a6fa8 !important;
+  border-bottom-color: #1a6fa8 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* White site title */
+.VPNavBarTitle .title {
+  color: white !important;
+  font-weight: 500;
+  border-bottom-color: rgba(255,255,255,0.2) !important;
+}
+
+/* White social link icons */
+.VPSocialLink {
+  color: rgba(255,255,255,0.8) !important;
+}
+.VPSocialLink:hover {
+  color: white !important;
+}
+
+/* Custom search icon */
 .nav-search-icon {
   display: flex;
   align-items: center;
@@ -15,11 +45,17 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  color: var(--vp-c-text-2);
+  color: rgba(255,255,255,0.8);
   transition: color 0.25s;
   padding: 0;
 }
-
 .nav-search-icon:hover {
-  color: var(--vp-c-text-1);
+  color: white;
+}
+
+/* White hamburger for mobile */
+.VPNavBarHamburger .top,
+.VPNavBarHamburger .middle,
+.VPNavBarHamburger .bottom {
+  background-color: white !important;
 }
