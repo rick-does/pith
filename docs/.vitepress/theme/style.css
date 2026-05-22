@@ -1,0 +1,21 @@
+.VPNavBarSearch {
+  display: none !important;
+}
+
+.nav-search-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--vp-c-text-2);
+  transition: color 0.25s;
+  padding: 0;
+}
+
+.nav-search-icon:hover {
+  color: var(--vp-c-text-1);
+}
