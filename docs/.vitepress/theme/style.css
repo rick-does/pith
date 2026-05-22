@@ -8,16 +8,24 @@
   display: none !important;
 }
 
-/* Blue header matching PiTH */
+/* Blue header — cover every VitePress nav layer */
 .VPNav,
 .VPNavBar,
+.VPNavBar .wrapper,
+.VPNavBar .container,
+.VPNavBar .title,
 .VPNavBar .content,
+.VPNavBar .content-body,
 .VPNavBar.has-sidebar .content,
-.VPNavBar.fill .content {
+.VPNavBar.has-sidebar .content-body,
+.VPNavBar.fill .content,
+.VPNavBar.fill .content-body {
   background-color: #1a6fa8 !important;
-  border-bottom-color: #1a6fa8 !important;
+  background: #1a6fa8 !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  border-bottom-color: rgba(255,255,255,0.15) !important;
+  box-shadow: none !important;
 }
 
 /* White site title */
