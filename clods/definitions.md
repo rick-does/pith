@@ -38,24 +38,37 @@
 # Definitions
 
 - PiTH
-  PiTH is a visual editor for collections of Markdown files. You drag and drop files in a hierarchical tree, and PiTH saves the structure to a YAML file. PiTH also has a full-featured Markdown editor where you can create, edit, and preview Markdown files.
 
-- PiTH
-  PiTH is a visual editor for collections of Markdown files, such as static websites and AI memory files. You drag and drop the files in a hierarchical tree, and PiTH saves the structure to a YAML file. It has a full Markdown editor where you can create, edit, and preview Markdown files.
-
-    <feature list>
-
-  - PiTH Projects
-    A PiTH project is the top-level container of a collection of Markdown files and the YAML file that defines their relationships.
+  PiTH is a visual editor for collections of Markdown files. You drag and drop files in a hierarchy tree, and PiTH saves the structure to a YAML file. PiTH also has a full-featured Markdown editor where you can create, edit, and preview Markdown files.
+  
+  (((PiTH is a visual editor for collections of Markdown files, such as static websites and AI memory files. You drag and drop the files in a hierarchy tree, and PiTH saves the structure to a YAML file. It has a full Markdown editor where you can create, edit, and preview Markdown files.)))
 
     <feature list>
+
+  For each collection of Markdown files, PiTH registers a project and a YAML file. 
+
+      - Project
+        A project is the parent container for all the files related to managing a Markdown collection. You can either create a project and then populate with Markdowns, or load an existing YAML file or directory of Markdown files into PiTH, and PiTH creates the project automatically.
+
+      - YAML file
+        A YAML file defines the hierarchical relationships among the Markdown files. As you drag and drop files in the hierarchy tree, PiTH updates the YAML file to store the structure. 
 
   - Hierarchy editor
-    The hierarchy editor is the main window in PiTH. It shows the Markdown files in the selected project in two lists: hierarchy list and the unlinked list.
+  
+    The hierarchy editor is the main window in PiTH. It shows the selected project's Markdown files in two lists: the hierarchy tree and the unlinked list.
 
-    - Hierarchy list
-      The hierarchy list shows the arrangement of Markdown files as defined in the YAML file. You can drag-drop files within the list, and you can also drag-drop to/from the Unlinked list. The root level of the hierarchy list is always the Project chip, which shows the name of the project and has a button for showing the project menu. 
+    - Hierarchy tree 
+
+      The hierarchy tree shows the arrangement of Markdown files as defined in the YAML file. You can drag-drop files within the list, and you can also drag-drop to/from the unlinked list. The root level of the hierarchy tree is always the Project chip, which shows the name of the project and has a button for you to open the project menu. 
 
     - Unlinked list
 
+      The unlinked list shows the Markdown files that are not included in the hierarchy tree. You can move these files into the hierarchy tree.
+
   - Markdown editor
+
+    The Markdown editor is a side window that opens when you double-click any file in either the hierarchy tree or the unlinked list. You can edit the text in the Edit pane and preview the HTML output in the Preview pane.
+
+    <feature list>
+
+    

@@ -10,7 +10,7 @@ function projectDirName(path: string, fallback: string): string {
 }
 
 export interface ProjectChipProps {
-  currentProject: string;
+  currentProject: string | null;
   currentProjectTitle: string;
   currentProjectPath?: string;
   recentProjects: ProjectInfo[];
@@ -107,6 +107,14 @@ export default function ProjectChip({ currentProject, currentProjectTitle, curre
     boxShadow: "0 4px 16px rgba(0,0,0,0.12)", minWidth: "160px", overflow: "hidden",
   };
 
+  const hasProject = !!currentProject;
+  const chipLabel = !hasProject
+    ? "Project --->"
+    : titleMode ? currentProjectTitle : (currentProjectPath ? projectDirName(currentProjectPath, currentProject!) : currentProject);
+  const chipTitle = !hasProject
+    ? ""
+    : currentProjectPath ? (titleMode ? currentProjectPath : `${currentProjectTitle}\n${currentProjectPath}`) : (titleMode ? currentProject! : currentProjectTitle);
+
   return (
     <div style={{ margin: `${GAP}px 0` }}>
       <div style={{
@@ -118,10 +126,10 @@ export default function ProjectChip({ currentProject, currentProjectTitle, curre
       }}>
         <span
           style={{ fontSize: "15px", fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, cursor: "pointer" }}
-          title={currentProjectPath ? (titleMode ? currentProjectPath : `${currentProjectTitle}\n${currentProjectPath}`) : (titleMode ? currentProject : currentProjectTitle)}
-          onDoubleClick={() => { onOpenProjectMd(); }}
+          title={chipTitle}
+          onDoubleClick={() => { if (hasProject) onOpenProjectMd(); }}
         >
-          {titleMode ? currentProjectTitle : (currentProjectPath ? projectDirName(currentProjectPath, currentProject) : currentProject)}
+          {chipLabel}
         </span>
         <span ref={menuRef} style={{ position: "relative", flexShrink: 0 }}>
           <span
@@ -191,21 +199,20 @@ export default function ProjectChip({ currentProject, currentProjectTitle, curre
                         }}
                       >
                         <span>{titleMode ? p.title : p.name}</span>
-                        {p.name !== currentProject && (
-                          <span
+                        <span
                             title="Archive project"
                             onClick={(e) => { e.stopPropagation(); onArchiveProject(p.name); setMenuOpen(false); setProjectSubmenuOpen(false); }}
                             style={{ color: "#555", fontSize: "18px", lineHeight: 1, padding: "2px 6px", borderRadius: "3px", cursor: "pointer", flexShrink: 0 }}
                             onMouseEnter={(e) => { e.stopPropagation(); (e.currentTarget as HTMLSpanElement).style.color = "#c0392b"; }}
                             onMouseLeave={(e) => { (e.currentTarget as HTMLSpanElement).style.color = "#555"; }}
                           >&#128465;</span>
-                        )}
                       </div>
                     ))}
                   </div>
                 )}
               </div>
 
+              {hasProject && <>
               {/* File flyout */}
               <div
                 style={{ ...menuItem, justifyContent: "space-between", position: "relative" }}
@@ -305,6 +312,7 @@ export default function ProjectChip({ currentProject, currentProjectTitle, curre
               >Scan Project</div>
 
               <div style={{ height: "1px", background: "#b8cfe0", margin: "2px 0" }} />
+              </>}
 
               {/* Settings flyout */}
               <div

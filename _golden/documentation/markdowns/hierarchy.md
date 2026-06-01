@@ -1,18 +1,10 @@
 ---
-Title: Building Your Hierarchy 
+Title: Hierarchy tree 
 ---
 
-# Building Your Hierarchy
+# Hierarchy Tree
 
 The hierarchy pane shows your files as a tree. Files can nest to any depth. PiTH saves the structure to the project's YAML file after every change.
-
-## Adding a file
-
-Click **⋮** on the project chip, then **File → New file**. The file is added to the project's markdowns directory and added to the bottom of the hierarchy tree. To create a new file in the [Unlinked pane](unlinked-files.md) instead, click **⋮** on the Unlinked chip. If the project has a file template, the file becomes an instance of the template — see [Template](editing.md#template).
-
-To add a child to an existing file, click **⋮** on that file chip and choose **New sub-page**. The child is added as the last of that files children is also pre-populated from the file template if one exists.
-
-To create a child that starts as a copy of the parent, choose **Copy to new sub-page**. The new file gets the parent's content with "-copy" appended to the title and filename.
 
 ## Reordering with drag and drop
 
@@ -32,6 +24,14 @@ Select a file chip by clicking it. The d-pad arrow buttons appear in the left ma
 | ↑ ↓ | Move up or down within the current level, crossing into parent/child levels as needed |
 | → | Nest under the file above (make it a child) |
 | ← | Unnest (move up one level) |
+
+## Adding a file
+
+Click **⋮** on the project chip, then **File → New file**. The file is added to the project's markdowns directory and added to the bottom of the hierarchy tree. To create a new file in the [Unlinked pane](unlinked-files.md) instead, click **⋮** on the Unlinked chip. If the project has a file template, the file becomes an instance of the template — see [Template](editing.md#template).
+
+To add a child to an existing file, click **⋮** on that file chip and choose **New sub-page**. The child is added as the last of that files children is also pre-populated from the file template if one exists.
+
+To create a child that starts as a copy of the parent, choose **Copy to new sub-page**. The new file gets the parent's content with "-copy" appended to the title and filename.
 
 ## Renaming a file
 

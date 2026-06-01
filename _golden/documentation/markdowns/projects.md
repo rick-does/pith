@@ -1,8 +1,8 @@
 ---
-Title: Managing Projects 
+Title: Projects 
 ---
 
-# Managing Projects
+# Projects
 
 A project is a named set of markdown files with its own hierarchy stored in a YAML file. You can have as many projects as you like and switch between them freely.
 

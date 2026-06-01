@@ -26,6 +26,7 @@ _PREFS_DEFAULTS: dict = {
 def _default_config() -> dict:
     return {
         "recent_projects": [],
+        "active_project": None,
         "prefs": dict(_PREFS_DEFAULTS),
     }
 

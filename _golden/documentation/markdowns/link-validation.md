@@ -4,7 +4,7 @@ Title: Link Validation
 
 # Link Validation
 
-PiTH can detect broken internal links across all files in a project. An internal link is any markdown link that points to another file. External links (starting with `http://` or `https://`) are not checked.
+PiTH detects broken internal links across all files in a project. An internal link is any markdown link that points to another file. External links (starting with `http://` or `https://`) are not checked.
 
 ## Status indicators on chips
 

@@ -1,8 +1,8 @@
 ---
-Title: Editing Files
+Title: Markdown Editor 
 ---
 
-# Editing Files
+# Markdown Editor 
 
 ## Opening a file
 
@@ -86,7 +86,7 @@ The **Issues** tab runs a structural triage of the current file and flags potent
 
 The panel shows **No issues found** if none found. The heading count for the file is always at the bottom.
 
-See [Issues Example](scan-test.md) for a sample file that triggers every Issues flag.
+See [Scan Example](scan-test.md) for a sample file that triggers every Issues flag.
 
 ## Structure
 

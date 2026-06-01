@@ -28,7 +28,7 @@ export async function openImagesFolder(project: string): Promise<void> {
   if (!r.ok) throw new Error("Failed to open images folder");
 }
 
-export async function fetchConfig(): Promise<{ recent_projects: string[]; prefs: Record<string, unknown> }> {
+export async function fetchConfig(): Promise<{ recent_projects: string[]; prefs: Record<string, unknown>; active_project?: string | null }> {
   const r = await fetch(`${BASE}/config`);
   if (!r.ok) throw new Error("Failed to fetch config");
   return r.json();
@@ -48,7 +48,7 @@ export async function savePrefs(prefs: Record<string, unknown>): Promise<void> {
   });
 }
 
-export async function setLastProject(project: string): Promise<void> {
+export async function setLastProject(project: string | null): Promise<void> {
   await fetch(`${BASE}/config/last-project`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },

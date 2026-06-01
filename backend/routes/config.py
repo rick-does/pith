@@ -27,6 +27,7 @@ async def get_config():
         save_config(cfg)
     return {
         "recent_projects": recents,
+        "active_project": cfg.get("active_project"),
         "prefs": cfg.get("prefs", {}),
     }
 
@@ -73,8 +74,12 @@ async def add_personal_word(request: Request):
 @router.put("/api/config/last-project")
 async def set_last_project(body: dict):
     project = body.get("project")
+    cfg = load_config()
+    cfg["active_project"] = project if project else None
     if project:
         push_recent_project(project)
+    else:
+        save_config(cfg)
     return {"ok": True}
 
 

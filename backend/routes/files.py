@@ -46,14 +46,15 @@ async def api_create_markdown(project: str, file_path: str):
     fp.parent.mkdir(parents=True, exist_ok=True)
     title = Path(file_path).stem.replace("-", " ").replace("_", " ").title()
     tmpl = load_unified_template(project)
-    content = re.sub(r'^#\s+.+$', f'# {title}', tmpl, count=1, flags=re.MULTILINE)
-    if not re.search(r'^#\s+', content, re.MULTILINE):
-        content = f"# {title}\n{content}"
+    fm_match = re.match(r'^---\n.*?\n---\n?', tmpl, re.DOTALL)
+    fm_block = fm_match.group(0) if fm_match else ""
+    body = tmpl[fm_match.end():] if fm_match else tmpl
+    body = re.sub(r'^#\s+.+\n?', '', body, count=1, flags=re.MULTILINE)
+    content = fm_block + f"# {title}\n" + body.lstrip('\n')
     fp.write_text(content, encoding="utf-8")
     import os as _os
-    yaml_dir = get_collection_file(project).parent.resolve()
-    yaml_rel = Path(_os.path.relpath(fp, yaml_dir)).as_posix()
-    return {"path": yaml_rel, "status": "created"}
+    md_rel = Path(_os.path.relpath(fp, md_dir.resolve())).as_posix()
+    return {"path": md_rel, "status": "created"}
 
 
 @router.put("/api/projects/{project}/markdown/{file_path:path}")

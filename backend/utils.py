@@ -131,7 +131,12 @@ def safe_path(project: str, rel_path: str) -> Path:
     if Path(rel_path).is_absolute():
         return Path(rel_path)
     yaml_dir = get_collection_file(project).parent.resolve()
-    return (yaml_dir / rel_path).resolve()
+    candidate = (yaml_dir / rel_path).resolve()
+    if not candidate.exists():
+        md_candidate = (get_markdowns_dir(project).resolve() / rel_path).resolve()
+        if md_candidate.exists():
+            return md_candidate
+    return candidate
 
 
 
@@ -382,14 +387,9 @@ def sync_collection(project: str, collection: CollectionStructure) -> Collection
                 continue
             fp = (yaml_dir / node.path).resolve()
             if not fp.exists():
-                # Legacy: path was stored relative to markdowns_dir — migrate it
                 fp_legacy = (md_dir / node.path).resolve()
                 if fp_legacy.exists():
                     fp = fp_legacy
-                    try:
-                        node.path = Path(os.path.relpath(fp, yaml_dir)).as_posix()
-                    except ValueError:
-                        node.path = str(fp)
                 else:
                     continue
             try:
@@ -632,16 +632,20 @@ def get_orphans(project: str, collection: CollectionStructure) -> list[dict]:
         stored = migrated
         save_unlinked_nodes(project, stored)
 
+    known_abs: set[str] = {str(fp) for p in known if (fp := _resolve(p)) is not None}
+
     stored_paths = {n.path for n in stored}
     new_nodes = [
         FileNode(path=f["path"], title=f["title"])
         for f in get_all_md_files(project)
-        if f["path"] not in known and f["path"] not in stored_paths
+        if (fa := _resolve(f["path"])) is not None
+        and str(fa) not in known_abs
+        and f["path"] not in stored_paths
     ]
     if new_nodes:
         stored = stored + new_nodes
         save_unlinked_nodes(project, stored)
-    return [{"path": n.path, "title": n.title} for n in stored if n.path not in known]
+    return [{"path": n.path, "title": n.title} for n in stored if (fa := _resolve(n.path)) is None or str(fa) not in known_abs]
 
 
 def archive_file(project: str, rel_path: str) -> str | None:

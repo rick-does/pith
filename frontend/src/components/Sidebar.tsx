@@ -494,18 +494,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
 
             <div ref={treeRef} style={{ overflowY: "auto", minHeight: 0, paddingTop: "8px", paddingBottom: "8px", outline: "none" }} tabIndex={0} onKeyDown={handleKeyDown}>
 
-              {!chip.currentProject && (
-                <div style={{ color: "#aaa", padding: "16px", fontSize: "13px", textAlign: "center" }}>
-                  No projects yet.{" "}
-                  <span onClick={() => chip.onNewProject()} style={{ color: "#1a6fa8", cursor: "pointer", textDecoration: "underline" }}>
-                    Create one
-                  </span>
-                </div>
-              )}
-
-              {chip.currentProject && (
-                <ProjectChip {...chip} />
-              )}
+              <ProjectChip {...chip} />
 
               {yamlMissing && (
                 <div title="YAML file not found on disk. Use Projects → Edit project paths to point to a new file, or remove this project from the Projects menu."
@@ -548,7 +537,7 @@ export default function Sidebar({ collection, selectedPath, onSelect, onOpen, on
                 />
               ))}
 
-              {collection.root.length === 0 && orphans.length === 0 && (
+              {chip.currentProject && collection.root.length === 0 && orphans.length === 0 && (
                 <div style={{ color: "#aaa", padding: "16px", fontSize: "13px", textAlign: "center" }}>
                   No markdown files yet. Create one with + New file.
                 </div>

@@ -50,6 +50,39 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function Markdown
   const codeEditorRef = useRef<CodeEditorHandle>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const editPaneRef = useRef<HTMLDivElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = () => {
+    const el = previewRef.current;
+    if (!el) return;
+    const clone = el.cloneNode(true) as HTMLElement;
+    clone.querySelector("button")?.remove();
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument!;
+    doc.open();
+    doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+      body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.7;color:#1a1a1a;padding:2rem;margin:0}
+      h1,h2,h3,h4,h5,h6{margin-top:1.5em;margin-bottom:0.5em}
+      p{margin:0.75em 0}
+      pre{background:#f4f4f4;padding:1em;border-radius:4px;overflow-wrap:break-word;white-space:pre-wrap}
+      code{background:#f4f4f4;padding:0.15em 0.4em;border-radius:3px;font-size:0.9em}
+      pre code{background:none;padding:0}
+      blockquote{border-left:4px solid #ddd;margin:0;padding-left:1em;color:#555}
+      img{max-width:100%}
+      table{border-collapse:collapse;width:100%}
+      th,td{border:1px solid #ddd;padding:0.4em 0.6em;text-align:left}
+      th{background:#f0f0f0}
+      a{color:#1a6fa8}
+      hr{border:none;border-top:1px solid #ddd}
+    </style></head><body>${clone.innerHTML}</body></html>`);
+    doc.close();
+    const win = iframe.contentWindow!;
+    win.onafterprint = () => document.body.removeChild(iframe);
+    win.focus();
+    win.print();
+  };
   const viewRef = useRef(view);
   viewRef.current = view;
   const [splitBtnLeft, setSplitBtnLeft] = useState(0);
@@ -202,11 +235,12 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function Markdown
           </div>
         )}
         {(view === "preview" || view === "split") && (
-          <div style={{
+          <div ref={previewRef} style={{
             flex: 1, minWidth: 0, overflowY: "auto", padding: "1.5rem 2rem",
             background: "#fafafa", color: "#1a1a1a", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-            lineHeight: "1.7",
+            lineHeight: "1.7", position: "relative",
           }}>
+            <button onClick={handlePrint} title="Print" style={{ position: "absolute", top: "0.75rem", right: "0.75rem", padding: "3px 10px", fontSize: "12px", border: "1px solid #ccc", borderRadius: "4px", background: "#fff", color: "#555", cursor: "pointer" }}>Print</button>
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               rehypePlugins={[rehypeHighlight]}

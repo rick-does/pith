@@ -1,8 +1,8 @@
 ---
-Title: null
+Title: PiTH 
 ---
 
-# Introduction
+# PiTH 
 
 PiTH is a visual editor for collections of Markdown files. You drag and drop files in a hierarchical tree, and PiTH saves the structure to a YAML file. PiTH also has a full-featured Markdown editor where you can create, edit, and preview Markdown files.
 

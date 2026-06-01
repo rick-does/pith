@@ -198,11 +198,14 @@ export default function App() {
         const recents: string[] = cfg.recent_projects ?? [];
         setProjects(activeProjects);
         setRecentProjectNames(recents);
+        const savedActive = cfg.active_project;
+        if (savedActive === null) { setLoading(false); return; }
         if (activeProjects.length === 0) { setLoading(false); return; }
-        const firstRecent = recents.find((n: string) => activeProjects.some((p: ProjectInfo) => p.name === n));
-        const project = firstRecent ?? activeProjects[0].name;
-        setCurrentProject(project);
-        await loadCollection(project);
+        const projectToLoad = (typeof savedActive === "string" && activeProjects.some((p: ProjectInfo) => p.name === savedActive))
+          ? savedActive
+          : (recents.find((n: string) => activeProjects.some((p: ProjectInfo) => p.name === n)) ?? activeProjects[0].name);
+        setCurrentProject(projectToLoad);
+        await loadCollection(projectToLoad);
       } catch {
         setError("Failed to load projects");
       } finally {
@@ -308,19 +311,17 @@ export default function App() {
   const handleArchiveProject = useCallback(async (name: string) => {
     setRecentProjectNames(prev => prev.filter(n => n !== name));
     setProjects(prev => prev.filter(p => p.name !== name));
-    await deleteProject(name);
+    await archiveProject(name);
     const ps = await listProjects();
     const activeProjects = ps.filter((p: ProjectInfo) => !p.archived);
     setProjects(activeProjects);
     if (name === currentProject) {
-      if (activeProjects.length > 0) {
-        await handleSwitchProject(activeProjects[0].name);
-      } else {
-        setCurrentProject(null);
-        setCollection({ root: [] });
-        setOrphans([]);
-        setOverlayType(null);
-      }
+      setCurrentProject(null);
+      setCollection({ root: [] });
+      setOrphans([]);
+      setOverlayType(null);
+      setSelectedPath(null);
+      setLastProject(null).catch(() => {});
     }
   }, [currentProject, handleSwitchProject]);
 
@@ -746,7 +747,7 @@ export default function App() {
           }}
           indicators={{ brokenLinkMap, frontmatterIssueMap, templateIssueMap }}
           chip={{
-            currentProject: currentProject ?? "",
+            currentProject: currentProject,
             currentProjectTitle: projects.find(p => p.name === currentProject)?.title ?? currentProject ?? "",
             currentProjectPath: currentMarkdownsDir,
             recentProjects: recentProjectNames.map(n => projects.find(p => p.name === n)).filter(Boolean) as ProjectInfo[],

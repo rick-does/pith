@@ -172,9 +172,15 @@ async def api_rename_project(name: str, request: Request):
 
 @router.post("/api/projects/{name}/archive")
 async def api_archive_project(name: str):
+    from ..config import load_config, save_config
     if not project_exists(name):
         raise HTTPException(404, "Project not found")
     archive_project(name)
+    cfg = load_config()
+    cfg["recent_projects"] = [p for p in cfg.get("recent_projects", []) if p != name]
+    if cfg.get("active_project") == name:
+        cfg["active_project"] = None
+    save_config(cfg)
     return {"status": "archived"}
 
 
